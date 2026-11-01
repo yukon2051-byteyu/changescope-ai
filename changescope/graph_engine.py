@@ -21,6 +21,9 @@ from changescope import models
 
 DEFAULT_MAX_DEPTH = 3
 
+# 影響度スコアの「近さ」の点数（段数 → 点）。表にない段数は1点
+PROXIMITY_POINTS = {1: 6, 2: 4, 3: 2}
+
 # 確認状態の確かさの順位（小さいほど不確か）。経路の中で最も不確かな状態をその影響の状態とする
 _STATUS_RANK = {"unconfirmed": 0, "assumed": 1, "confirmed": 2}
 
@@ -36,6 +39,7 @@ class Step:
     evidence: str
     status: str
     reversed: bool  # 双方向の関係を逆向きにたどった場合 True
+    note: str = ""
 
 
 @dataclass
@@ -47,6 +51,18 @@ class ImpactItem:
     element_type: str
     depth: int
     path: list[Step]
+    spread: int = 0  # 波及数：この要素を経由して影響が伝わる要素の数
+    extra_paths: int = 0  # 複数経路：最短経路以外にも影響を受けるつながりの数
+
+    @property
+    def proximity(self) -> int:
+        """近さの点数。変更対象に近いほど高い。"""
+        return PROXIMITY_POINTS.get(self.depth, 1)
+
+    @property
+    def score(self) -> int:
+        """影響度 ＝ 近さ ＋ 波及数 ＋ 複数経路。確からしさ（確認状態）は別の軸として含めない。"""
+        return self.proximity + self.spread + self.extra_paths
 
     @property
     def level(self) -> str:
@@ -83,7 +99,9 @@ def build_graph(elements: pd.DataFrame, dependencies: pd.DataFrame) -> nx.MultiD
     """
     graph = nx.MultiDiGraph()
     for _, row in elements.iterrows():
-        graph.add_node(row["element_id"], name=row["name"], element_type=row["element_type"])
+        owner = row.get("owner", "")
+        graph.add_node(row["element_id"], name=row["name"], element_type=row["element_type"],
+                       owner=owner if isinstance(owner, str) else "")
 
     # 検証済みデータが前提だが、念のため存在しない要素への線は追加しない
     for _, row in dependencies.sort_values("dependency_id").iterrows():
@@ -94,6 +112,7 @@ def build_graph(elements: pd.DataFrame, dependencies: pd.DataFrame) -> nx.MultiD
             "relation_type": row["relation_type"],
             "evidence": row["evidence"],
             "status": row["status"],
+            "note": row.get("note", ""),
         }
         graph.add_edge(row["from_id"], row["to_id"], key=row["dependency_id"], reversed=False, **attrs)
         if row["direction"] == "both":
@@ -134,28 +153,44 @@ def analyze_impact(graph: nx.MultiDiGraph, target_ids: list[str], max_depth: int
                 evidence=data["evidence"],
                 status=data["status"],
                 reversed=data["reversed"],
+                note=data["note"],
             )
             paths[neighbor] = paths[current] + [step]
             queue.append(neighbor)
 
+    # 波及数：各影響の経路の途中にある要素ごとに、経由して影響が伝わった件数を数える
+    spread = {element_id: 0 for element_id in paths}
+    for path in paths.values():
+        for step in path[:-1]:
+            spread[step.to_id] += 1
+
+    affected = set(paths)
     for element_id, path in paths.items():
         if not path:
             continue
         node = graph.nodes[element_id]
+        # 複数経路：変更対象・影響範囲の要素のうち、この要素へ線がつながっている要素の数（最短経路の1本を除く）
+        sources = {u for u, _ in graph.in_edges(element_id) if u in affected and u != element_id}
         result.impacts.append(
-            ImpactItem(element_id, node["name"], node["element_type"], len(path), path)
+            ImpactItem(element_id, node["name"], node["element_type"], len(path), path,
+                       spread=spread[element_id], extra_paths=max(0, len(sources) - 1))
         )
-    result.impacts.sort(key=lambda i: (i.depth, i.element_type, i.element_id))
+    # 影響の大きい順。同点なら近い順、種類、IDの順
+    result.impacts.sort(key=lambda i: (-i.score, i.depth, i.element_type, i.element_id))
     result.beyond_max_depth = sorted(beyond - set(paths))
     return result
 
 
+def step_label(step: Step) -> str:
+    """経路1区間の関係名。双方向の関係を逆向きにたどった場合は、元の関係名に「双方向」と付ける。"""
+    if step.reversed:
+        return f"{models.RELATION_TYPES.get(step.relation_type, step.relation_type)}・双方向"
+    return models.RELATION_TARGET_LABELS.get(step.relation_type, step.relation_type)
+
+
 def describe_path(graph: nx.MultiDiGraph, item: ImpactItem) -> str:
-    """影響の理由を人が読める文にする。例：勤怠管理システム ［データを提供する］→ 勤怠実績データ"""
+    """影響の理由を人が読める文にする。例：勤怠管理業務 → 人事部（担当）"""
     parts = [graph.nodes[item.path[0].from_id]["name"]]
     for step in item.path:
-        label = models.RELATION_TYPES.get(step.relation_type, step.relation_type)
-        if step.reversed:
-            label += "（逆向き）"
-        parts.append(f"［{label}］→ {graph.nodes[step.to_id]['name']}")
-    return " ".join(parts)
+        parts.append(f"{graph.nodes[step.to_id]['name']}（{step_label(step)}）")
+    return " → ".join(parts)

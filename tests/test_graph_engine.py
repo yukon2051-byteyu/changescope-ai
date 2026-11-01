@@ -64,7 +64,13 @@ def test_path_records_evidence():
     item = next(i for i in analyze_impact(g, ["A"]).impacts if i.element_id == "C")
     assert [s.dependency_id for s in item.path] == ["1", "2"]
     assert [s.evidence for s in item.path] == ["根拠1", "根拠2"]
-    assert describe_path(g, item) == "要素A ［利用する］→ 要素B ［利用する］→ 要素C"
+    assert describe_path(g, item) == "要素A → 要素B（利用先） → 要素C（利用先）"
+
+
+def test_describe_reversed_step():
+    g = make_graph(list("AB"), [("1", "A", "B", "both", "confirmed")])
+    item = analyze_impact(g, ["B"]).impacts[0]
+    assert describe_path(g, item) == "要素B → 要素A（利用する・双方向）"
 
 
 def test_shortest_path_is_used():

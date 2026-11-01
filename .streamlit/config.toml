@@ -1,0 +1,36 @@
+# 配色：紺と金の差し色。背景は白一色にせず、わずかに温かみのあるアイボリーにする
+[theme]
+base = "light"
+font = "Noto Sans JP:https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap, Meiryo, sans-serif"
+primaryColor = "#1F3260"
+textColor = "#1B2433"
+backgroundColor = "#F8F7F3"
+secondaryBackgroundColor = "#EFECE4"
+linkColor = "#1F3260"
+linkUnderline = false
+borderColor = "#DDD8CC"
+dataframeBorderColor = "#E4E0D5"
+dataframeHeaderBackgroundColor = "#EFECE4"
+showWidgetBorder = true
+# ヘッダーの下の余白（標準は約6rem）。本文側はさらにCSS（changescope/ui.py）で上端近くまで詰めている
+paddingTop = "0.75rem"
+baseRadius = "small"
+buttonRadius = "small"
+blueColor = "#1F3260"
+blueBackgroundColor = "#E8ECF4"
+blueTextColor = "#14213D"
+
+[theme.sidebar]
+backgroundColor = "#14213D"
+secondaryBackgroundColor = "#22365F"
+textColor = "#E9E4D6"
+primaryColor = "#D9C08A"
+borderColor = "#2C406B"
+
+[client]
+# 右上の開発者向けボタン（Deploy など）を隠し、メニューだけにする
+toolbarMode = "minimal"
+
+[server]
+# アップロード上限（MB）。CSV・Excelの検証側でも1MBを上限にしている
+maxUploadSize = 1

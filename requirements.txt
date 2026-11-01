@@ -2,4 +2,5 @@
 streamlit>=1.40
 networkx>=3.3
 pandas>=2.2
+openpyxl>=3.1  # Excelテンプレートの作成・読み込み
 pytest>=8.0

@@ -28,9 +28,21 @@ RELATION_TYPES = {
     "depends_on": "その他の依存",
 }
 
+# 経路の表示用：「from → to（ここ）」の形で、to が from から見て何にあたるかを表す
+RELATION_TARGET_LABELS = {
+    "provides_data": "提供データ・提供先",
+    "uses": "利用先",
+    "integrates_with": "連携先",
+    "performs": "担当",
+    "approves": "承認者",
+    "governed_by": "準拠する規程",
+    "produces": "作成する帳票",
+    "depends_on": "依存先",
+}
+
 # 影響の伝わり方
 DIRECTIONS = {
-    "one_way": "一方向（from→to）",
+    "one_way": "一方向",
     "both": "双方向",
 }
 
@@ -56,3 +68,27 @@ DEPENDENCY_REQUIRED_COLUMNS = [
     "status",
 ]
 DEPENDENCY_OPTIONAL_COLUMNS = ["note"]
+
+# Excelテンプレートで使う日本語の列名（CSVの列名 → Excelの見出し）
+ELEMENT_HEADERS_JA = {
+    "element_id": "要素ID",
+    "name": "名前",
+    "element_type": "種類",
+    "description": "説明",
+    "owner": "責任部門・担当（要素ID）",
+    "aliases": "別名（;区切り）",
+}
+DEPENDENCY_HEADERS_JA = {
+    "dependency_id": "依存関係ID",
+    "from_id": "影響元の要素ID",
+    "to_id": "影響先の要素ID",
+    "relation_type": "関係の種類",
+    "direction": "影響の向き",
+    "evidence": "根拠（資料名・ヒアリング等）",
+    "status": "確認状態",
+    "note": "補足",
+}
+
+# 区分値の列と、その選択肢（Excelでは日本語で選び、読み込み時にCSVの値へ変換する）
+ELEMENT_CHOICE_COLUMNS = {"element_type": ELEMENT_TYPES}
+DEPENDENCY_CHOICE_COLUMNS = {"relation_type": RELATION_TYPES, "direction": DIRECTIONS, "status": STATUSES}
