@@ -1,0 +1,5 @@
+# Phase 1 で使うライブラリ（AI・PDF・影響マップ用は各Phaseで追加する）
+streamlit>=1.40
+networkx>=3.3
+pandas>=2.2
+pytest>=8.0
