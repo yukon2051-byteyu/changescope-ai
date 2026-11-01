@@ -156,15 +156,60 @@ def test_missing_reference_is_excluded_with_warning():
     assert "XXX-999" in result.warnings[0].message
 
 
-def test_duplicate_edge_is_merged_with_warning():
+def test_duplicate_edge_is_merged_keeping_all_evidence():
     data = deps_csv(
-        "D-001,SYS-001,DAT-001,provides_data,one_way,根拠A,confirmed,",
-        "D-002,SYS-001,DAT-001,provides_data,one_way,根拠B,assumed,",
+        "D-001,SYS-001,DAT-001,provides_data,one_way,業務フロー図,unconfirmed,メモA",
+        "D-002,SYS-001,DAT-001,provides_data,one_way,人事部ヒアリング,confirmed,",
     )
     result = validate_dependencies(data, ELEMENT_IDS)
     assert result.ok
-    assert list(result.data["dependency_id"]) == ["D-001"]  # 最初の行を残す
+    assert len(result.data) == 1
+    merged = result.data.iloc[0]
+    assert merged["dependency_id"] == "D-001"
+    assert merged["evidence"] == "業務フロー図／人事部ヒアリング"  # 根拠が消えない
+    assert merged["status"] == "confirmed"  # 最も確かな状態を採用
+    assert merged["note"] == "メモA"
     assert "統合" in result.warnings[0].message
+    assert "確認状態が異なる" in result.warnings[0].message
+
+
+def test_merged_status_does_not_depend_on_row_order():
+    rows = [
+        "D-001,SYS-001,DAT-001,uses,one_way,根拠A,confirmed,",
+        "D-002,SYS-001,DAT-001,uses,one_way,根拠B,assumed,",
+        "D-003,SYS-001,DAT-001,uses,one_way,根拠C,unconfirmed,",
+    ]
+    forward = validate_dependencies(deps_csv(*rows), ELEMENT_IDS)
+    backward = validate_dependencies(deps_csv(*reversed(rows)), ELEMENT_IDS)
+    assert forward.data.iloc[0]["status"] == backward.data.iloc[0]["status"] == "confirmed"
+
+
+def test_duplicate_edge_with_same_evidence_is_not_repeated():
+    data = deps_csv(
+        "D-001,SYS-001,DAT-001,uses,one_way,業務フロー図,confirmed,",
+        "D-002,SYS-001,DAT-001,uses,one_way,業務フロー図,confirmed,",
+    )
+    merged = validate_dependencies(data, ELEMENT_IDS).data.iloc[0]
+    assert merged["evidence"] == "業務フロー図"
+
+
+def test_duplicate_edge_direction_prefers_both():
+    data = deps_csv(
+        "D-001,SYS-001,DAT-001,uses,one_way,根拠,confirmed,",
+        "D-002,SYS-001,DAT-001,uses,both,根拠,confirmed,",
+    )
+    result = validate_dependencies(data, ELEMENT_IDS)
+    assert result.data.iloc[0]["direction"] == "both"
+    assert "方向が異なる" in result.warnings[0].message
+
+
+def test_duplicate_merge_without_note_column():
+    header = "dependency_id,from_id,to_id,relation_type,direction,evidence,status\n"
+    data = (header + "D-001,SYS-001,DAT-001,uses,one_way,根拠A,confirmed\n"
+            "D-002,SYS-001,DAT-001,uses,one_way,根拠B,confirmed\n").encode("utf-8")
+    result = validate_dependencies(data, ELEMENT_IDS)
+    assert result.ok
+    assert result.data.iloc[0]["evidence"] == "根拠A／根拠B"
 
 
 def test_same_pair_with_different_relation_is_not_duplicate():

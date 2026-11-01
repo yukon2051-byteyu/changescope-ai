@@ -189,15 +189,47 @@ def validate_dependencies(data: bytes, element_ids: set[str]) -> ValidationResul
         keep.append(not missing)
     df = df[keep]
 
-    # 同じ from・to・関係の種類の組み合わせは、最初の1行に統合する
-    key = ["from_id", "to_id", "relation_type"]
-    duplicated = df[df.duplicated(subset=key, keep="first")]
-    for index, row in duplicated.iterrows():
-        result.warnings.append(
-            Issue(
-                f"{row['from_id']} → {row['to_id']}（{row['relation_type']}）が重複しているため、最初の行に統合します。",
-                _csv_row(index),
-            )
-        )
-    result.data = df.drop_duplicates(subset=key, keep="first").reset_index(drop=True)
+    result.data = _merge_duplicate_edges(df, result)
     return result
+
+
+# 確認状態の確かさの順位（大きいほど確か）
+_STATUS_RANK = {"unconfirmed": 0, "assumed": 1, "confirmed": 2}
+
+
+def _join_unique(values: pd.Series) -> str:
+    """空欄と重複を除き、出現順に「／」でつなぐ。"""
+    return "／".join(dict.fromkeys(v for v in values if v))
+
+
+def _merge_duplicate_edges(df: pd.DataFrame, result: ValidationResult) -> pd.DataFrame:
+    """同じ from・to・関係の種類の行を1行に統合する。根拠を失わないよう、情報は合わせて残す。
+
+    - 根拠・補足：重複を除いてつなぐ
+    - 確認状態：最も確かなものを採用（確認済 ＞ 推定 ＞ 未確認）
+    - 方向：1行でも双方向があれば双方向（影響の見落としを防ぐため広く取る）
+    - dependency_id：最初の行のIDを使う
+    """
+    key = ["from_id", "to_id", "relation_type"]
+    if "note" not in df.columns:
+        df = df.assign(note="")
+
+    merged_rows = []
+    for _, group in df.groupby(key, sort=False):
+        first = group.iloc[0].copy()
+        if len(group) > 1:
+            first["evidence"] = _join_unique(group["evidence"])
+            first["note"] = _join_unique(group["note"])
+            first["status"] = max(group["status"], key=_STATUS_RANK.__getitem__)
+            first["direction"] = "both" if (group["direction"] == "both").any() else "one_way"
+
+            rows = "、".join(str(_csv_row(i)) for i in group.index)
+            message = f"{first['from_id']} → {first['to_id']}（{first['relation_type']}）が重複しているため統合しました（{rows}行目）。"
+            if group["status"].nunique() > 1:
+                message += f"確認状態が異なるため「{first['status']}」を採用しました。内容を確認してください。"
+            if group["direction"].nunique() > 1:
+                message += "方向が異なるため「both」を採用しました。"
+            result.warnings.append(Issue(message, _csv_row(group.index[1])))
+        merged_rows.append(first)
+
+    return pd.DataFrame(merged_rows).reset_index(drop=True)
