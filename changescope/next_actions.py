@@ -5,8 +5,9 @@
 2. 要確認のつながりを確かめる（1件確かめると有無がはっきりする影響が多い順）
 3. 見落としやすい影響（他部門・2段以上先）を、その部門に共有する
 4. 影響の大きい要素について、責任部門に影響内容を確認する
-5. （段数の上限より先がある場合）さらに先の影響を確認する
-6. 確認結果をデータに反映して、もう一度分析する
+5. 見落としチェックの項目を、変更計画・テスト計画に入れる
+6. （段数の上限より先がある場合）さらに先の影響を確認する
+7. 確認結果をデータに反映して、もう一度分析する
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import networkx as nx
 
 from changescope import models
 from changescope.graph_engine import ImpactResult, step_label
+from changescope.gaps import REGISTRATION, Finding
 from changescope.insights import department_of, hard_to_notice
 from changescope.stakeholders import PERSON_TYPES, Stakeholder
 
@@ -79,7 +81,7 @@ def find_uncertain_links(graph: nx.MultiDiGraph, result: ImpactResult) -> list[U
 
 
 def build_next_actions(graph: nx.MultiDiGraph, result: ImpactResult,
-                       stakeholders: list[Stakeholder]) -> list[Action]:
+                       stakeholders: list[Stakeholder], gaps: list[Finding] | None = None) -> list[Action]:
     actions = []
 
     owners = [s.name for s in stakeholders if s.is_target_owner]
@@ -143,6 +145,14 @@ def build_next_actions(graph: nx.MultiDiGraph, result: ImpactResult,
             "影響の大きい要素について、具体的な影響を確認する",
             "影響度の上位から、責任部門に「何が変わるか」「対応が必要か」を確認します。",
             items,
+        ))
+
+    if gaps:
+        actions.append(Action(
+            f"見落としチェックの項目を、変更計画・テスト計画に入れる（{len(gaps)}件）",
+            "影響範囲から、変更時に忘れやすい確認事項と、登録が足りないデータを洗い出しています。"
+            "「見落としチェック」タブで対象を確認し、計画に入れてください。",
+            [f"{'【登録の不足】' if g.kind == REGISTRATION else ''}{g.title}" for g in gaps],
         ))
 
     if result.beyond_max_depth:

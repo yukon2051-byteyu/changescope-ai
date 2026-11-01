@@ -8,12 +8,14 @@ from changescope.datasets import load_scenarios
 from changescope.graph_engine import (
     DEFAULT_MAX_DEPTH, PROXIMITY_POINTS, analyze_impact, describe_path, step_label,
 )
+from changescope.gaps import find_gaps
 from changescope.insights import department_of, hard_to_notice, impact_tags, target_departments
 from changescope.matcher import find_candidates
 from changescope.next_actions import build_next_actions
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
-    STATUS_LABELS, action_steps, data_table, element_label, get_dataset, section, show_mode_banner,
+    STATUS_LABELS, action_steps, data_table, element_label, findings_list, get_dataset, section,
+    show_mode_banner,
 )
 
 MAX_INPUT_CHARS = 1000
@@ -95,6 +97,7 @@ uncertain = [i for i in result.impacts if i.path_status != "confirmed"]
 stakeholders = find_stakeholders(dataset.graph, result)
 tags = impact_tags(dataset.graph, result)
 hidden = hard_to_notice(dataset.graph, result)
+gaps = find_gaps(dataset.graph, result)
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("影響を受ける関係者", f"{len(stakeholders)} 件", help="影響を受ける部門・役割")
 c2.metric("直接影響", f"{len(result.direct)} 件", help="変更対象と直接つながっている要素")
@@ -108,7 +111,7 @@ if not result.impacts:
 
 section("NEXT ACTIONS", "次にやること")
 st.caption("この分析結果をもとに、変更を安全に進めるための手順を上から順に示しています。")
-action_steps(build_next_actions(dataset.graph, result, stakeholders))
+action_steps(build_next_actions(dataset.graph, result, stakeholders, gaps))
 
 section("DETAILS", "詳しい結果")
 
@@ -159,8 +162,8 @@ def stakeholder_table(items) -> pd.DataFrame:
     })
 
 
-tab0, tab_hidden, tab1, tab2, tab3 = st.tabs([
-    f"誰に影響するか（{len(stakeholders)}）", f"見落としやすい影響（{len(hidden)}）",
+tab0, tab_hidden, tab_gaps, tab1, tab2, tab3 = st.tabs([
+    f"誰に影響するか（{len(stakeholders)}）", f"見落としやすい影響（{len(hidden)}）", f"見落としチェック（{len(gaps)}）",
     f"直接影響（{len(result.direct)}）", f"間接影響（{len(result.indirect)}）", "要素ごとの根拠",
 ])
 with tab0:
@@ -183,6 +186,16 @@ with tab_hidden:
         st.info("変更対象の責任部門が登録されていないため、判定できません。要素の「責任部門・担当」を登録してください。")
     else:
         st.write("見落としやすい影響はありません。")
+with tab_gaps:
+    st.caption(
+        "「登録の不足」は、分析の範囲で登録が足りないデータです。"
+        "「確認すべき観点」は、影響範囲に含まれる要素の種類から、変更時に忘れやすい確認事項を対象つきで示しています。"
+        "変更計画やテスト計画に入れてください。"
+    )
+    if gaps:
+        findings_list(gaps)
+    else:
+        st.write("見落としチェックで指摘する項目はありません。")
 with tab1:
     st.caption("注目：他部門＝変更対象の責任部門とは別の部門の要素　見落としやすい＝他部門の要素で、2段以上先にあるもの")
     data_table(impact_table(result.direct), numeric_columns=("影響度",))

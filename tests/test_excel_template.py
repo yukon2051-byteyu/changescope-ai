@@ -39,6 +39,7 @@ def test_template_appearance():
         assert ws.column_dimensions["A"].width == cm_to_width(4.0) == 16.8  # A列＝4cm
     header_colors = {c.fill.fgColor.rgb for c in wb[ELEMENTS_SHEET][1]}
     assert not any(color.endswith("C55A11") for color in header_colors)  # 以前のオレンジは使わない
+    assert wb[ELEMENTS_SHEET]["A1"].fill.fgColor.rgb.endswith("1F3260")  # 必須の見出しは濃紺（黒に見える色は使わない）
     guide = wb[GUIDE_SHEET]
     assert "A1:B1" in {str(r) for r in guide.merged_cells.ranges}  # タイトルがB列まで表示される
     # 見出し行のB列は空欄（空文字だとA列の文字がはみ出して表示されない）

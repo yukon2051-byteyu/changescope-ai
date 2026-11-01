@@ -128,6 +128,17 @@ _GLOBAL_CSS = """
 .cs-action-list { margin: 6px 0 0 0; padding-left: 1.2em; color: var(--cs-sub); font-size: .9rem; }
 .cs-action-list li { margin: 2px 0; }
 
+.cs-finding {
+  background: var(--cs-paper); border: 1px solid var(--cs-line); border-radius: 4px; padding: 14px 18px; margin: 10px 0;
+}
+.cs-finding-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.cs-finding-title { font-weight: 700; color: var(--cs-navy); letter-spacing: .04em; }
+.cs-finding-detail { color: var(--cs-ink); line-height: 1.8; font-size: .93rem; }
+.cs-finding-items { color: var(--cs-sub); font-size: .9rem; margin-top: 6px; line-height: 1.8; }
+.cs-badge, .cs-badge-warn { font-size: .75rem; padding: 2px 8px; border-radius: 3px; white-space: nowrap; }
+.cs-badge { background: var(--cs-navy); color: var(--cs-gold-light); }
+.cs-badge-warn { background: var(--cs-gold); color: #fff; }
+
 .cs-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 12px 0; }
 .cs-flow-box {
   flex: 1 1 150px; background: var(--cs-navy); color: #fff; border-radius: 4px; padding: 14px 16px;
@@ -250,6 +261,21 @@ def action_steps(actions) -> None:
             f'{f"<ul class=cs-action-list>{items}</ul>" if items else ""}</div></div></div>'
         )
     html(f'<div class="cs-actions">{body}</div>')
+
+
+def findings_list(findings) -> None:
+    """見落としチェックの結果を表示する。登録データの名前を含むため、すべてエスケープする。"""
+    body = ""
+    for f in findings:
+        kind_class = "cs-badge-warn" if f.kind == "登録の不足" else "cs-badge"
+        items = "、".join(escape(i) for i in f.items)
+        body += (
+            f'<div class="cs-finding"><div class="cs-finding-head"><span class="{kind_class}">{escape(f.kind)}</span>'
+            f'<span class="cs-finding-title">{escape(f.title)}</span></div>'
+            f'<div class="cs-finding-detail">{escape(f.detail)}</div>'
+            f'{f"<div class=cs-finding-items>対象：{items}</div>" if items else ""}</div>'
+        )
+    html(body)
 
 
 def ui_label(text: str) -> str:

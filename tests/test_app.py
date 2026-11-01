@@ -83,6 +83,8 @@ def test_analysis_page_scenario_a_flow():
     assert metrics["間接影響"] == "14 件"
     assert metrics["影響を受ける関係者"] == "7 件"
     assert metrics["見落としやすい"] == "5 件"
+    assert any(t.label.startswith("見落としチェック") for t in at.tabs)
+    assert any("データの移行・引き継ぎ" in m.value for m in at.markdown)
     assert any("次にやること" in m.value for m in at.markdown)
     assert any("変更対象の責任部門と、変更の方針を共有する" in m.value for m in at.markdown)
     # 直接影響の表（影響の大きい順）。長い文章も切れずに表示されるHTMLの表で表示している
