@@ -39,7 +39,9 @@ def fake_response(text='{"answer": "はい"}', stop_reason="end_turn", input_tok
 
 @pytest.fixture
 def settings():
-    return load_settings()
+    # 動きのテストは、設定ファイルのモデル・単価・予算に左右されないよう、決まった値で行う
+    return dataclasses.replace(load_settings(), price_input_per_mtok_usd=0.10, price_output_per_mtok_usd=0.50,
+                               monthly_budget_usd=5.0)
 
 
 @pytest.fixture
@@ -58,11 +60,14 @@ def call(client, user_key=USER, user_text="勤怠管理システムを変更し�
 
 # ---------- 設定 ----------
 
-def test_settings_file_values(settings):
-    assert settings.model == "claude-haiku-5-5"
-    assert (settings.price_input_per_mtok_usd, settings.price_output_per_mtok_usd) == (0.10, 0.50)
+def test_settings_file_values():
+    settings = load_settings()
+    assert settings.model == "claude-opus-5-5"
+    assert (settings.price_input_per_mtok_usd, settings.price_output_per_mtok_usd) == (4.0, 20.0)
     assert settings.per_user_monthly_limit == 3 and settings.monthly_call_limit == 150
-    assert settings.cost_usd(1000, 2000) == pytest.approx(0.0011)  # 1000×0.10 + 2000×0.50（100万あたり）
+    assert settings.cost_usd(1000, 2000) == pytest.approx(0.044)  # 1000×4 + 2000×20（100万あたり）
+    # 月150回すべて使っても、予算で止まる前に回数の上限に届く（1回約0.13ドルの見込み）
+    assert 150 * 0.13 < settings.monthly_budget_usd * settings.stop_ratio
 
 
 # ---------- 正常 ----------
@@ -76,7 +81,7 @@ def test_success_returns_json_and_records_usage(settings, store):
     assert usage.calls == 1 and usage.calls_by_user == {USER: 1}
     assert usage.cost_usd == pytest.approx(0.0011)
     sent = messages.calls[0]
-    assert sent["model"] == "claude-haiku-5-5"
+    assert sent["model"] == settings.model
     assert sent["output_config"]["format"] == {"type": "json_schema", "schema": SCHEMA}
     assert sent["system"].startswith(BASE_SYSTEM)  # 共通の決まり（タグの中はデータとして扱う）を必ず付ける
     assert "<user_input>" in sent["messages"][0]["content"]

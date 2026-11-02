@@ -34,6 +34,14 @@ class AISettings:
         return usd * self.yen_per_usd
 
 
+def model_label(model: str) -> str:
+    """画面に出すモデル名（例：claude-sonnet-5-5 → Claude Sonnet 5.5）。"""
+    parts = model.split("-")
+    if len(parts) >= 3 and parts[0] == "claude":
+        return f"Claude {parts[1].capitalize()} {'.'.join(parts[2:])}"
+    return model
+
+
 def load_settings(path: Path = SETTINGS_PATH) -> AISettings:
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     model, limits, storage = data["model"], data["limits"], data["storage"]

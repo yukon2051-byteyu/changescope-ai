@@ -8,7 +8,7 @@ import streamlit as st
 from changescope import models
 from changescope.access import check_access_code, load_access_codes
 from changescope.ai_client import AIClient, get_api_key
-from changescope.ai_settings import load_settings
+from changescope.ai_settings import load_settings, model_label
 from changescope.assessment import assess
 from changescope.datasets import load_scenarios
 from changescope.graph_engine import (
@@ -184,7 +184,7 @@ with col_ai, st.container(border=True):
             else:
                 settings = load_settings()
                 client = AIClient(settings, UsageStore(settings.usage_db), api_key=get_api_key())
-                with st.spinner("AIが確認漏れを調べています（30秒ほどかかります）"):
+                with st.spinner("AIが確認漏れを調べています（1分ほどかかります。画面を閉じずにお待ちください）"):
                     report, message = find_oversights(client, dataset.graph, result, text, stakeholders, gaps,
                                                       hidden, user_key)
                 if report is None:
@@ -198,9 +198,11 @@ if oversight and oversight["targets"] == result.targets:
     report = oversight["report"]
     if oversight["kind"] == "sample":
         note(f"<b>AIによる分析のサンプル</b>　事前にAIで生成した結果です（{escape(oversight['generated_on'])}、"
-             f"{escape(oversight['model'])}）。いま実行したAI分析ではありません。")
+             f"{escape(model_label(oversight['model']))}）。いま実行したAI分析ではありません。"
+             "AIの回答は毎回少しずつ異なるため、同じ内容で分析しても結果が変わることがあります。")
     else:
-        note(f"<b>AIによる分析結果</b>　今回の費用（試算）：約{oversight['yen']:.1f}円")
+        note(f"<b>AIによる分析結果</b>（{escape(model_label(load_settings().model))}）　"
+             f"今回の費用（試算）：約{oversight['yen']:.1f}円")
     st.caption(
         "AIは組織全体を知りません。「登録情報にもとづく」は登録されたつながりを根拠にした指摘、"
         "「AIの推測」は根拠が登録データにない指摘です。どちらも確認先に聞いて確かめてください。"
