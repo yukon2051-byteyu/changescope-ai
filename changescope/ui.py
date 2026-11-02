@@ -41,7 +41,8 @@ def show_mode_banner(dataset: Dataset | None) -> None:
     if dataset is None:
         st.info("データが読み込まれていません。「データ管理」でサンプルデータかExcelテンプレートを読み込んでください。")
         return
-    source = "架空サンプルデータ（サンプル商事株式会社）" if dataset.source == "sample" else "アップロードしたデータ"
+    source = {"sample": "架空サンプルデータ（サンプル商事株式会社）",
+              "diagram": "「図で入力する」で作成・編集したデータ"}.get(dataset.source, "アップロードしたデータ")
     st.info(f"**データ：** {source}　｜　**分析方式：** AIなし（登録された依存関係のみで分析）")
 
 

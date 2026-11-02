@@ -16,7 +16,7 @@ def element(element_id, name, element_type):
 
 def link(dependency_id, source, target, relation_type="uses", status="confirmed"):
     return {"dependency_id": dependency_id, "from_id": source, "to_id": target, "relation_type": relation_type,
-            "direction": "one_way", "status": status, "evidence": ""}
+            "direction": "one_way", "status": status, "evidence": "ヒアリング"}
 
 
 # 勤怠管理システム → 勤怠実績データ → 経理部、勤怠実績データ → 個人情報取扱規程
@@ -138,3 +138,30 @@ def test_direct_links_to_replace():
     links = LINKS + [link("D-9", "SYS", "ACC")]  # 勤怠管理システム → 経理部 の直接の線
     assert [l["dependency_id"] for l in direct_links_to_replace(links, "SYS", "DATA", "ACC")] == ["D-9"]
     assert direct_links_to_replace(links, "SYS", "SYS", "ACC") == []  # 真ん中から引いた線は置き換えない
+
+
+# ---------- 図で編集したデータを、分析用のデータにする ----------
+
+def test_records_round_trip_keeps_sample():
+    from changescope.datasets import load_from_records, to_records
+    ds = load_sample()
+    result = load_from_records(*to_records(ds))
+    assert not result.errors and result.dataset.source == "diagram"
+    assert len(result.dataset.elements) == 57 and len(result.dataset.dependencies) == 75
+    assert result.dataset.graph.number_of_edges() == ds.graph.number_of_edges()
+
+
+def test_records_use_the_same_checks_as_excel():
+    from changescope.datasets import load_from_records
+    duplicated = ELEMENTS + [element("SYS2", "勤怠管理システム", "system")]
+    result = load_from_records(duplicated, LINKS)
+    assert result.dataset is None and any("勤怠管理システム" in e for e in result.errors)  # 同じ名前はエラー
+    missing = LINKS + [link("D-8", "SYS", "NOWHERE")]
+    assert load_from_records(ELEMENTS, missing).dataset is None  # 存在しない参照先はエラー
+
+
+def test_records_accept_custom_types():
+    from changescope.datasets import load_from_records
+    custom = ELEMENTS + [element("EQ", "製造ライン1", "設備")]
+    result = load_from_records(custom, LINKS + [link("D-7", "SYS", "EQ", "監視する")])
+    assert result.dataset is not None  # 利用者が追加した種類・関係の種類も使える

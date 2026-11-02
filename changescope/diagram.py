@@ -17,6 +17,8 @@ from changescope import models
 DATA, RULE = "data", "rule"
 PEOPLE = ("department", "role")
 MAX_ROWS = 6  # 1列に並べる箱の上限（超えたら「ほか〇件」にまとめる）
+# 根拠を書かずに線を引いたときの値（根拠は必須の列のため。あとでExcelや線のクリックで書き直せる）
+NO_EVIDENCE = "未記入（図で入力）"
 
 # 確認状態の不確かさの順（大きいほど不確か）
 STATUS_ORDER = {"confirmed": 0, "assumed": 1, "unconfirmed": 2}

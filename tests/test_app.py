@@ -164,3 +164,49 @@ def test_analysis_page_wrong_access_code_does_not_call_ai():
     assert not at.exception
     assert any("アクセスコードが正しくありません" in e.value for e in at.error)
     assert at.session_state["oversight"] is None
+
+
+# ---------- 図で入力する ----------
+
+def test_diagram_page_tutorial_creates_data_for_analysis():
+    at = run_page("diagram.py")
+    assert not at.exception
+    next(b for b in at.button if b.label == "新しく作る").click().run()
+    at.text_input[0].set_value("勤怠管理システム")
+    next(b for b in at.button if b.label == "登録して次へ").click().run()
+    at.text_input[0].set_value("勤怠実績データ")
+    at.selectbox[0].set_value("data")
+    next(b for b in at.button if b.label == "登録して次へ").click().run()
+    next(b for b in at.button if b.label.startswith("うまく線を引けない")).click().run()
+    assert at.radio[0].value == "provides_data"  # システム → データは自動で「データを提供する」
+    assert any("「勤怠管理システム」は、「勤怠実績データ」を提供する" in i.value for i in at.info)
+    next(b for b in at.button if b.label == "関係を設定する").click().run()
+    assert not at.exception
+    dataset = at.session_state["dataset"]
+    assert dataset.source == "diagram" and len(dataset.dependencies) == 1
+    assert dataset.dependencies.iloc[0]["evidence"] == "未記入（図で入力）"  # 根拠を書かなかったとき
+    next(b for b in at.button if b.label == "続けて作る").click().run()
+    assert not at.exception
+    assert any("やってみましょう" in i.value for i in at.info)
+
+    # 作ったデータで、そのまま影響分析ができる
+    at.switch_page("pages/analysis.py").run()
+    at.multiselect[0].set_value([dataset.elements.iloc[0]["element_id"]]).run()
+    next(b for b in at.button if b.label == "影響を分析する").click().run()
+    assert not at.exception
+    assert {m.label: m.value for m in at.metric}["直接影響"] == "1 件"
+
+
+def test_diagram_page_opens_sample_and_follows_data_change():
+    at = run_page("diagram.py", load_sample())
+    next(b for b in at.button if b.label == "図で開く").click().run()
+    assert not at.exception
+    assert any("見る要素を切り替える" in m.value for m in at.markdown)
+    assert any(t.value == "図で入力する" for t in at.title)
+    # 検索で選ぶと、その要素が真ん中になる
+    at.selectbox(key="dg_search").set_value("SYS-ATT").run()
+    assert not at.exception and at.session_state["dg_center"] == "SYS-ATT"
+    # 「データ管理」で別のデータを読み込んだら、図での編集は最初からやり直す
+    at.session_state["dataset"] = load_sample()
+    at.run()
+    assert any("入れ替わった" in i.value for i in at.info)

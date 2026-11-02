@@ -9,7 +9,7 @@ import streamlit as st
 from changescope import excel_template, models
 from changescope.datasets import SAMPLE_DIR, load_from_csv, load_from_excel, load_sample
 from changescope.excel_template import build_template
-from changescope.ui import data_table, get_dataset, set_dataset, show_mode_banner
+from changescope.ui import data_table, get_dataset, note, set_dataset, show_mode_banner, ui_label
 
 MAX_SHOWN_ISSUES = 50
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -45,6 +45,10 @@ def show_load_errors(result) -> None:
 
 st.title("データ管理")
 show_mode_banner(get_dataset())
+note("<b>登録のしかたは2つあります。</b>この画面では、Excelにまとめて書いて読み込みます。"
+     f"図を見ながら1つずつ作りたいときは、{ui_label('図で入力する')} を使ってください（はじめての方におすすめ）。"
+     "ここで読み込んだデータも、「図で入力する」で開いて確認・修正できます。")
+st.page_link("pages/diagram.py", label="図で入力する", icon=":material/account_tree:")
 
 source = st.radio(
     "使用するデータ",

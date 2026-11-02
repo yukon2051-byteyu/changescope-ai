@@ -22,7 +22,7 @@ SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample"
 
 @dataclass
 class Dataset:
-    source: str  # "sample"（架空サンプル）または "upload"（利用者のCSV）
+    source: str  # "sample"（架空サンプル）・"upload"（利用者のExcel・CSV）・"diagram"（図で作成・編集）
     elements: pd.DataFrame
     dependencies: pd.DataFrame
     graph: nx.MultiDiGraph
@@ -85,6 +85,31 @@ def load_from_excel(data: bytes) -> LoadResult:
     if result.dataset is not None and result.dataset.warnings is not result.warnings:
         result.dataset.warnings[:0] = parsed.warnings
     return result
+
+
+def to_records(dataset: Dataset) -> tuple[list[dict], list[dict]]:
+    """データ一式を、図で編集するための辞書のリスト（要素・依存関係）にする。"""
+    return dataset.elements.to_dict("records"), dataset.dependencies.to_dict("records")
+
+
+def load_from_records(elements: list[dict], dependencies: list[dict], source: str = "diagram") -> LoadResult:
+    """図で編集した要素・依存関係を読み込む。
+
+    Excel・CSVと同じ検証（名前の重複・存在しない参照先・区分値など）を必ず通すため、
+    いったんCSVの形にしてから load_from_csv で読み込む。
+    """
+    element_columns = models.ELEMENT_REQUIRED_COLUMNS + models.ELEMENT_OPTIONAL_COLUMNS
+    dependency_columns = models.DEPENDENCY_REQUIRED_COLUMNS + models.DEPENDENCY_OPTIONAL_COLUMNS
+
+    def csv(records: list[dict], columns: list[str]) -> bytes:
+        frame = pd.DataFrame(records).reindex(columns=columns).astype(object).fillna("")
+        return frame.to_csv(index=False).encode("utf-8")
+
+    # 利用者が追加した種類・関係の種類（Excelの選択肢シートで追加したもの）も、そのまま使えるようにする
+    extra_types = frozenset(e["element_type"] for e in elements) - set(models.ELEMENT_TYPES)
+    extra_relations = frozenset(d["relation_type"] for d in dependencies) - set(models.RELATION_TYPES)
+    return load_from_csv(csv(elements, element_columns), csv(dependencies, dependency_columns), source=source,
+                         labels=("要素", "つながり"), extra_types=extra_types, extra_relations=extra_relations)
 
 
 def load_sample() -> Dataset:

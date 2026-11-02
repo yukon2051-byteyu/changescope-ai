@@ -14,6 +14,7 @@ pages = [
     st.Page("pages/home.py", title="ホーム", icon=":material/home:", default=True),
     st.Page("pages/guide.py", title="使い方・用語について", icon=":material/menu_book:"),
     st.Page("pages/data.py", title="データ管理", icon=":material/folder_open:"),
+    st.Page("pages/diagram.py", title="図で入力する", icon=":material/account_tree:"),
     st.Page("pages/analysis.py", title="影響分析", icon=":material/troubleshoot:"),
 ]
 st.navigation(pages).run()
