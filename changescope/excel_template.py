@@ -59,11 +59,17 @@ _CHOICES_GUIDE = [
 # 列幅：Excelの列幅は「標準フォントの数字1文字の幅」が単位。メイリオ11ptの数字の幅は 9px（96dpiで実測）
 _DIGIT_WIDTH_PX = 9
 FIRST_COLUMN_CM = 4.0
-# シートごとに指定する列幅（cm）
-COLUMN_WIDTHS_CM = {
-    "要素": {"D": 6.0},  # 説明
-    "選択肢": {"B": 7.0, "C": 6.0, "D": 5.61},
-}
+# Excelに出す列（IDは内部だけで使うため、Excelには出さない。古いExcelのID列は読み込める）
+EXCEL_ELEMENT_COLUMNS = [c for c in models.ELEMENT_HEADERS_JA if c != "element_id"]
+EXCEL_DEPENDENCY_COLUMNS = [c for c in models.DEPENDENCY_HEADERS_JA if c != "dependency_id"]
+# 列幅（cm）。要素シートは列の名前で、選択肢シートは列記号で指定する
+ELEMENT_WIDTHS_CM = {"description": 6.0}  # 説明
+CHOICES_WIDTHS_CM = {"A": 5.6, "B": 7.0, "C": 6.0, "D": 5.61, "E": 0.5}
+
+
+def column_letter(columns: list[str], column: str) -> str:
+    """Excelに出す列の並びから、列記号（A, B, …）を返す。"""
+    return chr(ord("A") + columns.index(column))
 
 
 def cm_to_width(cm: float) -> float:
@@ -99,7 +105,6 @@ _GUIDE = [
     ("", ""),
     ("【大切なルール】", ""),
     ("見出しの色", "濃紺の見出しは必須、薄いグレーの見出しは任意です。見出しの文字は変更しないでください。"),
-    ("要素ID", "空欄で構いません（自動で付けます）。付ける場合は、重複しない記号にします（例：SYS-001）。"),
     ("名前", "依存関係シートの「影響元」「影響先」や「責任部門・担当」は、要素の名前をプルダウンで選びます。"
             "同じ名前の要素は登録できません（例：「人事部（本社）」「人事部（工場）」のように区別します）。"
             "要素の名前を後から変えた場合は、依存関係シートの名前も直してください。"),
@@ -130,8 +135,9 @@ _GUIDE = [
 ]
 
 
-def _write_sheet(ws, df: pd.DataFrame, headers: dict[str, str], required: list[str],
+def _write_sheet(ws, df: pd.DataFrame, headers: dict[str, str], columns: list[str], required: list[str],
                  choices: dict[str, dict[str, str]]) -> None:
+    headers = {c: headers[c] for c in columns}
     ws.append([headers[c] for c in headers])
     ws.row_dimensions[1].height = 24
     for cell, column in zip(ws[1], headers):
@@ -195,11 +201,11 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
     guide.column_dimensions["B"].width = 100
 
     ws_e = wb.create_sheet(ELEMENTS_SHEET)
-    _write_sheet(ws_e, elements, models.ELEMENT_HEADERS_JA, models.ELEMENT_REQUIRED_COLUMNS,
+    _write_sheet(ws_e, elements, models.ELEMENT_HEADERS_JA, EXCEL_ELEMENT_COLUMNS, models.ELEMENT_REQUIRED_COLUMNS,
                  models.ELEMENT_CHOICE_COLUMNS)
     ws_d = wb.create_sheet(DEPENDENCIES_SHEET)
-    _write_sheet(ws_d, dependencies, models.DEPENDENCY_HEADERS_JA, models.DEPENDENCY_REQUIRED_COLUMNS,
-                 models.DEPENDENCY_CHOICE_COLUMNS)
+    _write_sheet(ws_d, dependencies, models.DEPENDENCY_HEADERS_JA, EXCEL_DEPENDENCY_COLUMNS,
+                 models.DEPENDENCY_REQUIRED_COLUMNS, models.DEPENDENCY_CHOICE_COLUMNS)
 
     # 選択肢シート（プルダウンの元になる一覧）
     ws_c = wb.create_sheet(CHOICES_SHEET)
@@ -223,6 +229,8 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
             ws_c.cell(row=r, column=col, value=label).fill = _BUILTIN_FILL  # もとからある値（変更しない）
         for r, label in enumerate(extras, start=len(choice) + 2):
             ws_c.cell(row=r, column=col, value=label)  # 利用者が追加した値
+        for r in range(2, len(choice) + len(extras) + 2):
+            ws_c.cell(row=r, column=col).alignment = Alignment(vertical="center")  # 上下中央揃え
     for r, (label, text) in enumerate(_CHOICES_GUIDE, start=1):
         label_cell = ws_c.cell(row=r, column=6, value=label)
         label_cell.font = Font(name=FONT_NAME, bold=True, color=INK)
@@ -242,26 +250,32 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
             return f"OFFSET('{CHOICES_SHEET}'!${letter}$2,0,0,COUNTA('{CHOICES_SHEET}'!${letter}:${letter})-1,1)"
         return f"'{CHOICES_SHEET}'!${letter}$2:${letter}${len(choice) + 1}"
 
-    # 要素の名前の一覧（B列）。要素を追加するとプルダウンにも自動で出るよう、入力されている行数に合わせて広げる
-    name_list = f"OFFSET('{ELEMENTS_SHEET}'!$B$2,0,0,COUNTA('{ELEMENTS_SHEET}'!$B:$B)-1,1)"
-    _add_list_validation(ws_e, "C", choice_formula(CHOICE_HEADERS[0], models.ELEMENT_TYPES), MAX_ELEMENT_ROWS, "種類")
-    _add_list_validation(ws_e, "E", name_list, MAX_ELEMENT_ROWS, "責任部門・担当",
-                         "「要素」シートに登録した名前から選んでください。")
-    _add_list_validation(ws_d, "B", name_list, MAX_DEPENDENCY_ROWS, "影響元",
-                         "「要素」シートに登録した名前から選んでください。")
-    _add_list_validation(ws_d, "C", name_list, MAX_DEPENDENCY_ROWS, "影響先",
-                         "「要素」シートに登録した名前から選んでください。")
-    _add_list_validation(ws_d, "D", choice_formula(CHOICE_HEADERS[1], models.RELATION_TYPES), MAX_DEPENDENCY_ROWS, "関係の種類")
-    _add_list_validation(ws_d, "E", choice_formula(CHOICE_HEADERS[2], models.DIRECTIONS), MAX_DEPENDENCY_ROWS, "影響の向き")
-    _add_list_validation(ws_d, "G", choice_formula(CHOICE_HEADERS[3], models.STATUSES), MAX_DEPENDENCY_ROWS, "確認状態")
+    e = lambda column: column_letter(EXCEL_ELEMENT_COLUMNS, column)  # noqa: E731
+    d = lambda column: column_letter(EXCEL_DEPENDENCY_COLUMNS, column)  # noqa: E731
+    # 要素の名前の一覧。要素を追加するとプルダウンにも自動で出るよう、入力されている行数に合わせて広げる
+    n = e("name")
+    name_list = f"OFFSET('{ELEMENTS_SHEET}'!${n}$2,0,0,COUNTA('{ELEMENTS_SHEET}'!${n}:${n})-1,1)"
+    pick_name = "「要素」シートに登録した名前から選んでください。"
+    _add_list_validation(ws_e, e("element_type"), choice_formula(CHOICE_HEADERS[0], models.ELEMENT_TYPES),
+                         MAX_ELEMENT_ROWS, "種類")
+    _add_list_validation(ws_e, e("owner"), name_list, MAX_ELEMENT_ROWS, "責任部門・担当", pick_name)
+    _add_list_validation(ws_d, d("from_id"), name_list, MAX_DEPENDENCY_ROWS, "影響元", pick_name)
+    _add_list_validation(ws_d, d("to_id"), name_list, MAX_DEPENDENCY_ROWS, "影響先", pick_name)
+    _add_list_validation(ws_d, d("relation_type"), choice_formula(CHOICE_HEADERS[1], models.RELATION_TYPES),
+                         MAX_DEPENDENCY_ROWS, "関係の種類")
+    _add_list_validation(ws_d, d("direction"), choice_formula(CHOICE_HEADERS[2], models.DIRECTIONS),
+                         MAX_DEPENDENCY_ROWS, "影響の向き")
+    _add_list_validation(ws_d, d("status"), choice_formula(CHOICE_HEADERS[3], models.STATUSES),
+                         MAX_DEPENDENCY_ROWS, "確認状態")
 
     for ws in wb.worksheets:
         ws.sheet_view.showGridLines = False
         ws.column_dimensions["A"].width = cm_to_width(FIRST_COLUMN_CM)
     # 個別に指定した列幅（cm）。A列の共通設定のあとに設定し、上書きされないようにする
-    for sheet, widths in COLUMN_WIDTHS_CM.items():
-        for letter, cm in widths.items():
-            wb[sheet].column_dimensions[letter].width = cm_to_width(cm)
+    for column, cm in ELEMENT_WIDTHS_CM.items():
+        ws_e.column_dimensions[column_letter(EXCEL_ELEMENT_COLUMNS, column)].width = cm_to_width(cm)
+    for letter, cm in CHOICES_WIDTHS_CM.items():
+        ws_c.column_dimensions[letter].width = cm_to_width(cm)
 
     buffer = io.BytesIO()
     wb.save(buffer)

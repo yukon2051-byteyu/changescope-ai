@@ -226,7 +226,6 @@ with tab3:
             )
             st.markdown(
                 f"- 根拠：{step.evidence}\n"
-                f"- 確認状態：{STATUS_LABELS[step.status]}\n"
-                f"- 依存関係ID：{step.dependency_id}"
+                f"- 確認状態：{STATUS_LABELS[step.status]}"
                 + (f"\n- 補足：{step.note}" if step.note else "")
             )

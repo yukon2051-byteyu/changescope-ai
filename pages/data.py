@@ -1,9 +1,12 @@
 """データ管理画面：サンプルデータ、または記入したExcelテンプレート（上級者はCSV）を読み込む。"""
 
+import hashlib
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
-from changescope import models
+from changescope import excel_template, models
 from changescope.datasets import SAMPLE_DIR, load_from_csv, load_from_excel, load_sample
 from changescope.excel_template import build_template
 from changescope.ui import data_table, get_dataset, set_dataset, show_mode_banner
@@ -12,13 +15,23 @@ MAX_SHOWN_ISSUES = 50
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
+def template_version() -> str:
+    """テンプレートを作る処理・区分値・サンプルデータの目印。
+
+    st.cache_data は、キャッシュした関数自体が変わらない限り、アプリを再起動するまで古い結果を返す。
+    テンプレートを作る処理などが変わったら作り直すよう、関係するファイルの中身から目印を作り、引数に渡す。
+    """
+    files = [excel_template.__file__, models.__file__, SAMPLE_DIR / "elements.csv", SAMPLE_DIR / "dependencies.csv"]
+    return hashlib.sha256(b"".join(Path(f).read_bytes() for f in files)).hexdigest()
+
+
 @st.cache_data
-def blank_template() -> bytes:
+def blank_template(version: str) -> bytes:
     return build_template()
 
 
 @st.cache_data
-def sample_workbook() -> bytes:
+def sample_workbook(version: str) -> bytes:
     sample = load_sample()
     return build_template(sample.elements, sample.dependencies)
 
@@ -61,9 +74,9 @@ else:
             "記入方法は、ファイル内の「使い方」シートに書いてあります。種類や確認状態はプルダウンで選べます。"
         )
         c1, c2 = st.columns(2)
-        c1.download_button("白紙テンプレート（記入例3行入り）", blank_template(),
+        c1.download_button("白紙テンプレート（記入例3行入り）", blank_template(template_version()),
                            "ChangeScope_テンプレート.xlsx", XLSX_MIME, type="primary", width="stretch", icon=":material/download:")
-        c2.download_button("記入済みの例（サンプル商事の全データ）", sample_workbook(),
+        c2.download_button("記入済みの例（サンプル商事の全データ）", sample_workbook(template_version()),
                            "ChangeScope_記入例_サンプル商事.xlsx", XLSX_MIME, width="stretch",
                            icon=":material/download:")
 
@@ -130,7 +143,6 @@ if dataset is not None:
             elements = elements[elements["element_type"].isin(type_filter)]
         data_table(
             pd.DataFrame({
-                "ID": elements["element_id"],
                 "名前": elements["name"],
                 "種類": elements["element_type"].map(models.element_type_label),
                 "責任部門・担当": elements.get("owner", pd.Series("", index=elements.index)).map(lambda o: names.get(o, o)),
@@ -141,7 +153,6 @@ if dataset is not None:
         deps = dataset.dependencies
         data_table(
             pd.DataFrame({
-                "ID": deps["dependency_id"],
                 "影響元": deps["from_id"].map(names),
                 "影響先": deps["to_id"].map(names),
                 "関係": deps["relation_type"].map(models.relation_type_label),
