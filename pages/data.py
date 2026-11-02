@@ -119,7 +119,10 @@ if dataset is not None:
     tab1, tab2 = st.tabs(["要素一覧", "依存関係一覧"])
     with tab1:
         type_filter = st.multiselect(
-            "種類で絞り込み", list(models.ELEMENT_TYPES), format_func=models.ELEMENT_TYPES.get
+            "種類で絞り込み",
+            # もとからある8種類に、データ内で使われている追加の種類を加える
+            list(dict.fromkeys([*models.ELEMENT_TYPES, *dataset.elements["element_type"]])),
+            format_func=models.element_type_label,
         )
         elements = dataset.elements
         if type_filter:
@@ -128,7 +131,7 @@ if dataset is not None:
             pd.DataFrame({
                 "ID": elements["element_id"],
                 "名前": elements["name"],
-                "種類": elements["element_type"].map(models.ELEMENT_TYPES),
+                "種類": elements["element_type"].map(models.element_type_label),
                 "責任部門・担当": elements.get("owner", pd.Series("", index=elements.index)).map(lambda o: names.get(o, o)),
                 "説明": elements.get("description", ""),
             }),
@@ -140,7 +143,7 @@ if dataset is not None:
                 "ID": deps["dependency_id"],
                 "影響元": deps["from_id"].map(names),
                 "影響先": deps["to_id"].map(names),
-                "関係": deps["relation_type"].map(models.RELATION_TYPES),
+                "関係": deps["relation_type"].map(models.relation_type_label),
                 "向き": deps["direction"].map(models.DIRECTIONS),
                 "確認状態": deps["status"].map(models.STATUSES),
                 "根拠": deps["evidence"],

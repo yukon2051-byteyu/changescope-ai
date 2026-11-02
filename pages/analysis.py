@@ -148,7 +148,7 @@ def impact_table(items) -> pd.DataFrame:
         "影響度": [i.score for i in items],
         "注目": [tags.get(i.element_id, "") for i in items],
         "影響を受ける要素": [i.name for i in items],
-        "種類": [models.ELEMENT_TYPES[i.element_type] for i in items],
+        "種類": [models.element_type_label(i.element_type) for i in items],
         "所属部門": [department_name(i.element_id) for i in items],
         "区分": [f"{LEVEL_LABELS[i.level]}（{i.depth}段）" for i in items],
         "確認状態": [STATUS_LABELS[i.path_status] for i in items],

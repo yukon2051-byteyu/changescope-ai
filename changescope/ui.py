@@ -33,7 +33,7 @@ def get_dataset() -> Dataset | None:
 
 def element_label(dataset: Dataset, element_id: str) -> str:
     node = dataset.graph.nodes[element_id]
-    return f"{node['name']}（{models.ELEMENT_TYPES[node['element_type']]}）"
+    return f"{node['name']}（{models.element_type_label(node['element_type'])}）"
 
 
 def show_mode_banner(dataset: Dataset | None) -> None:

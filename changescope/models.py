@@ -89,6 +89,20 @@ DEPENDENCY_HEADERS_JA = {
     "note": "補足",
 }
 
+# 利用者が追加できる選択肢（種類・関係の種類）の最大文字数。追加した値は、日本語の名前のまま値として使う
+MAX_CUSTOM_CHOICE_LENGTH = 20
+
+
+def element_type_label(code: str) -> str:
+    """種類の表示名。利用者が追加した種類は、その名前のまま表示する。"""
+    return ELEMENT_TYPES.get(code, code)
+
+
+def relation_type_label(code: str) -> str:
+    """関係の種類の表示名。利用者が追加した関係は、その名前のまま表示する。"""
+    return RELATION_TYPES.get(code, code)
+
+
 # 区分値の列と、その選択肢（Excelでは日本語で選び、読み込み時にCSVの値へ変換する）
 ELEMENT_CHOICE_COLUMNS = {"element_type": ELEMENT_TYPES}
 DEPENDENCY_CHOICE_COLUMNS = {"relation_type": RELATION_TYPES, "direction": DIRECTIONS, "status": STATUSES}

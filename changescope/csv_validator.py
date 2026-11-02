@@ -120,11 +120,12 @@ def _check_columns_and_cells(
     return True
 
 
-def _check_choice(df: pd.DataFrame, column: str, choices: dict[str, str], result: ValidationResult) -> None:
-    """区分値が決められた選択肢の中にあるか確認する。"""
-    allowed = ", ".join(choices)
+def _check_choice(df: pd.DataFrame, column: str, choices: dict[str, str], result: ValidationResult,
+                  extras: frozenset[str] = frozenset()) -> None:
+    """区分値が決められた選択肢（と、利用者が追加した選択肢）の中にあるか確認する。"""
+    allowed = ", ".join([*choices, *sorted(extras)])
     for index, value in df[column].items():
-        if value and value not in choices:
+        if value and value not in choices and value not in extras:
             result.errors.append(
                 Issue(f"「{value}」は使えません。次のいずれかを指定してください: {allowed}", _csv_row(index), column)
             )
@@ -136,8 +137,8 @@ def _check_duplicate_ids(df: pd.DataFrame, column: str, result: ValidationResult
         result.errors.append(Issue(f"ID「{value}」が重複しています。", _csv_row(index), column))
 
 
-def validate_elements(data: bytes) -> ValidationResult:
-    """要素CSVを検証する。"""
+def validate_elements(data: bytes, extra_types: frozenset[str] = frozenset()) -> ValidationResult:
+    """要素CSVを検証する。extra_types は利用者が追加した種類（Excelの選択肢シートで追加したもの）。"""
     df, read_errors = read_csv(data)
     result = ValidationResult(data=None, errors=read_errors)
     if df is None:
@@ -147,7 +148,7 @@ def validate_elements(data: bytes) -> ValidationResult:
         df, models.ELEMENT_REQUIRED_COLUMNS, models.ELEMENT_OPTIONAL_COLUMNS, MAX_ELEMENT_ROWS, result
     ):
         return result
-    _check_choice(df, "element_type", models.ELEMENT_TYPES, result)
+    _check_choice(df, "element_type", models.ELEMENT_TYPES, result, extra_types)
     _check_duplicate_ids(df, "element_id", result)
 
     if result.ok:
@@ -155,8 +156,10 @@ def validate_elements(data: bytes) -> ValidationResult:
     return result
 
 
-def validate_dependencies(data: bytes, element_ids: set[str]) -> ValidationResult:
-    """依存関係CSVを検証する。element_ids は検証済みの要素CSVに含まれるIDの集合。"""
+def validate_dependencies(data: bytes, element_ids: set[str],
+                          extra_relations: frozenset[str] = frozenset()) -> ValidationResult:
+    """依存関係CSVを検証する。element_ids は検証済みの要素CSVに含まれるIDの集合。
+    extra_relations は利用者が追加した関係の種類（Excelの選択肢シートで追加したもの）。"""
     df, read_errors = read_csv(data)
     result = ValidationResult(data=None, errors=read_errors)
     if df is None:
@@ -166,7 +169,7 @@ def validate_dependencies(data: bytes, element_ids: set[str]) -> ValidationResul
         df, models.DEPENDENCY_REQUIRED_COLUMNS, models.DEPENDENCY_OPTIONAL_COLUMNS, MAX_DEPENDENCY_ROWS, result
     ):
         return result
-    _check_choice(df, "relation_type", models.RELATION_TYPES, result)
+    _check_choice(df, "relation_type", models.RELATION_TYPES, result, extra_relations)
     _check_choice(df, "direction", models.DIRECTIONS, result)
     _check_choice(df, "status", models.STATUSES, result)
     _check_duplicate_ids(df, "dependency_id", result)

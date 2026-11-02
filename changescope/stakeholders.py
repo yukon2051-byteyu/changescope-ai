@@ -39,7 +39,7 @@ class Stakeholder:
 
     @property
     def type_label(self) -> str:
-        return models.ELEMENT_TYPES.get(self.element_type, "未登録")
+        return models.element_type_label(self.element_type) if self.element_type else "未登録"
 
     @property
     def is_target_owner(self) -> bool:

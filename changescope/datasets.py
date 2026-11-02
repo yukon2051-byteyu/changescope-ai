@@ -43,16 +43,19 @@ def _format(issues: list[Issue], file_label: str, column_labels: dict[str, str])
 
 def load_from_csv(elements_csv: bytes, dependencies_csv: bytes, source: str = "upload",
                   labels: tuple[str, str] = ("要素CSV", "依存関係CSV"),
-                  column_labels: dict[str, str] | None = None) -> LoadResult:
-    """2つのCSVを検証して読み込む。エラーがあれば dataset は None。"""
+                  column_labels: dict[str, str] | None = None,
+                  extra_types: frozenset[str] = frozenset(),
+                  extra_relations: frozenset[str] = frozenset()) -> LoadResult:
+    """2つのCSVを検証して読み込む。エラーがあれば dataset は None。
+    extra_types・extra_relations は、Excelの選択肢シートで利用者が追加した種類・関係の種類。"""
     column_labels = column_labels or {}
-    elements = validate_elements(elements_csv)
+    elements = validate_elements(elements_csv, extra_types)
     errors = _format(elements.errors, labels[0], column_labels)
     warnings = _format(elements.warnings, labels[0], column_labels)
     if not elements.ok:
         return LoadResult(None, errors, warnings)
 
-    dependencies = validate_dependencies(dependencies_csv, set(elements.data["element_id"]))
+    dependencies = validate_dependencies(dependencies_csv, set(elements.data["element_id"]), extra_relations)
     errors += _format(dependencies.errors, labels[1], column_labels)
     warnings += _format(dependencies.warnings, labels[1], column_labels)
     if not dependencies.ok:
@@ -64,14 +67,22 @@ def load_from_csv(elements_csv: bytes, dependencies_csv: bytes, source: str = "u
 
 def load_from_excel(data: bytes) -> LoadResult:
     """Excelテンプレートを読み込む。Excelの行番号とエラーの行番号は一致する（見出し=1行目）。"""
-    elements_csv, dependencies_csv, errors = read_workbook(data)
-    if errors:
-        return LoadResult(None, errors)
-    return load_from_csv(
-        elements_csv, dependencies_csv,
+    parsed = read_workbook(data)
+    if parsed.errors:
+        return LoadResult(None, parsed.errors, parsed.warnings)
+    result = load_from_csv(
+        parsed.elements_csv, parsed.dependencies_csv,
         labels=(f"シート「{ELEMENTS_SHEET}」", f"シート「{DEPENDENCIES_SHEET}」"),
         column_labels={**models.ELEMENT_HEADERS_JA, **models.DEPENDENCY_HEADERS_JA},
+        extra_types=parsed.extra_types,
+        extra_relations=parsed.extra_relations,
     )
+    # 選択肢シートの警告（もとからある選択肢が消されている など）を先頭に加える
+    result.warnings[:0] = parsed.warnings
+    # データ一式の警告は、読み込み結果の警告と同じリストのことがある（二重に追加しない）
+    if result.dataset is not None and result.dataset.warnings is not result.warnings:
+        result.dataset.warnings[:0] = parsed.warnings
+    return result
 
 
 def load_sample() -> Dataset:

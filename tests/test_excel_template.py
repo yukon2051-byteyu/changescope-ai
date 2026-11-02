@@ -99,6 +99,76 @@ def test_renamed_header():
     assert "種類" in result.errors[0]
 
 
+# ---------- 選択肢の追加（種類・関係の種類は追加できる） ----------
+
+def add_custom_choices(wb, types=(), relations=()):
+    ws = wb[CHOICES_SHEET]
+    for column, values in ((1, types), (2, relations)):
+        row = ws.max_row + 1
+        while ws.cell(row=row - 1, column=column).value is None:  # その列の最終行の次
+            row -= 1
+        for offset, value in enumerate(values):
+            ws.cell(row=row + offset, column=column, value=value)
+
+
+def test_choices_sheet_explains_what_can_be_changed():
+    ws = open_book(build_template())[CHOICES_SHEET]
+    headers = [c.value for c in ws[1]][:4]
+    assert headers == ["種類（行を追加できます）", "関係の種類（行を追加できます）",
+                       "影響の向き（変更できません）", "確認状態（変更できません）"]
+    guide = " ".join(str(c.value) for c in ws["G"] if c.value)
+    assert "追加" in guide and "変更・削除はしないでください" in guide
+    # 種類のプルダウンは、行を追加すると自動で広がる
+    dv_formulas = [dv.formula1 for dv in open_book(build_template())[ELEMENTS_SHEET].data_validations.dataValidation]
+    assert any("OFFSET" in f and "COUNTA" in f for f in dv_formulas)
+
+
+def test_custom_type_and_relation_can_be_used():
+    wb = open_book(build_template())
+    add_custom_choices(wb, types=["設備"], relations=["保守する"])
+    wb[ELEMENTS_SHEET].append(["EQ-001", "製造ライン1", "設備"])
+    wb[DEPENDENCIES_SHEET].append(["D-003", "PRC-001", "EQ-001", "保守する", "一方向", "設備台帳", "確認済"])
+    result = load_from_excel(save(wb))
+    assert result.dataset is not None, result.errors
+    assert "設備" in set(result.dataset.elements["element_type"])
+    assert "保守する" in set(result.dataset.dependencies["relation_type"])
+
+
+def test_custom_type_not_added_to_choices_is_error():
+    wb = open_book(build_template())
+    wb[ELEMENTS_SHEET].append(["EQ-001", "製造ライン1", "設備"])
+    result = load_from_excel(save(wb))
+    assert result.dataset is None
+    assert any("設備" in e for e in result.errors)
+
+
+def test_deleted_builtin_choice_is_warning():
+    wb = open_book(build_template())
+    wb[CHOICES_SHEET]["A3"] = "ITシステム"  # もとからある「情報システム」を書き換えた
+    result = load_from_excel(save(wb))
+    assert result.dataset is not None  # 読み込みは続ける
+    assert any("情報システム" in w and "変更・削除しないでください" in w for w in result.warnings)
+
+
+def test_too_long_custom_choice_is_error():
+    wb = open_book(build_template())
+    add_custom_choices(wb, types=["あ" * 21])
+    result = load_from_excel(save(wb))
+    assert result.dataset is None
+    assert any("長すぎます" in e for e in result.errors)
+
+
+def test_custom_choices_round_trip():
+    wb = open_book(build_template())
+    add_custom_choices(wb, types=["設備"])
+    wb[ELEMENTS_SHEET].append(["EQ-001", "製造ライン1", "設備"])
+    first = load_from_excel(save(wb)).dataset
+    # 書き出したExcelの選択肢シートに、追加した種類が残っている → もう一度読み込める
+    again = load_from_excel(build_template(first.elements, first.dependencies))
+    assert again.dataset is not None, again.errors
+    assert "設備" in [c.value for c in open_book(build_template(first.elements, first.dependencies))[CHOICES_SHEET]["A"]]
+
+
 def test_not_an_excel_file():
     result = load_from_excel(b"this is not excel")
     assert result.dataset is None

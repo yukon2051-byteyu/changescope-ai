@@ -97,6 +97,30 @@ def test_analysis_page_scenario_a_flow():
     assert not at.dataframe  # 文章が切れる st.dataframe は使わない
 
 
+def test_analysis_page_with_custom_type():
+    # 利用者が追加した種類（設備）を含むデータでも、分析画面が動く
+    import io
+
+    from openpyxl import load_workbook
+
+    from changescope.datasets import load_from_excel
+    from changescope.excel_template import CHOICES_SHEET, DEPENDENCIES_SHEET, ELEMENTS_SHEET, build_template
+
+    wb = load_workbook(io.BytesIO(build_template()))
+    wb[CHOICES_SHEET]["A10"] = "設備"
+    wb[ELEMENTS_SHEET].append(["EQ-001", "製造ライン1", "設備", "", "DEP-001"])
+    wb[DEPENDENCIES_SHEET].append(["D-003", "SYS-001", "EQ-001", "利用する", "一方向", "設備台帳", "確認済"])
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    dataset = load_from_excel(buffer.getvalue()).dataset
+
+    at = run_page("analysis.py", dataset)
+    at.multiselect[0].set_value(["SYS-001"]).run()
+    next(b for b in at.button if b.label == "影響を分析する").click().run()
+    assert not at.exception
+    assert any("製造ライン1" in m.value and "設備" in m.value for m in at.markdown)
+
+
 def test_analysis_page_unknown_text_warns():
     at = run_page("analysis.py", load_sample())
     at.text_area[0].input("新しいチャットツールを入れたい").run()
