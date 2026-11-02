@@ -1,0 +1,21 @@
+# AI分析の設定（秘密情報は書かない。APIキーは .streamlit/secrets.toml に書く）
+# 単価は 2026-11-01 に Claude API の公式価格ページで確認した値。変わったらここを直す。
+
+[model]
+name = "claude-haiku-5-5"
+price_input_per_mtok_usd = 0.10   # 入力 100万トークンあたりのドル
+price_output_per_mtok_usd = 0.50  # 出力 100万トークンあたりのドル（AIの思考に使ったトークンも出力に含まれる）
+effort = "medium"                 # AIがどれだけ考えるか（low / medium / high）
+yen_per_usd = 160                 # 費用を円で表示するための為替（仮の値）
+
+[limits]
+max_input_chars = 1000         # 利用者が入力する文の最大文字数
+max_output_tokens = 8000       # 1回の回答の最大トークン数
+timeout_seconds = 60           # 回答を待つ最大秒数
+monthly_budget_usd = 5.0       # 月の予算（Claude Console の上限と同じ）
+stop_ratio = 0.9               # 予算のこの割合に達したら、AI機能を止める
+monthly_call_limit = 150       # 月の呼び出し回数の上限（全員の合計）
+per_user_monthly_limit = 3     # 1人あたりの月の利用回数
+
+[storage]
+usage_db = "data/usage.db"     # 利用記録の保存先（Gitには入れない）
