@@ -4,15 +4,17 @@ from types import SimpleNamespace
 
 import pytest
 
+from changescope.access import check_access_code
 from changescope.ai_client import AIResult
 from changescope.datasets import load_sample
 from changescope.gaps import find_gaps
 from changescope.graph_engine import analyze_impact
 from changescope.insights import hard_to_notice
 from changescope.oversight import (
-    ESTIMATE, GUESS, REGISTERED, SCHEMA, build_prompt, find_oversights, scrub_numbers, validate,
+    ESTIMATE, GUESS, REGISTERED, SCHEMA, build_prompt, find_oversights, load_sample_report, scrub_numbers, validate,
 )
 from changescope.stakeholders import find_stakeholders
+from changescope.usage_store import hash_user
 
 CHANGE = "現在の勤怠管理システムを新しいクラウドサービスに変更したい"
 
@@ -144,3 +146,28 @@ def test_schema_is_strict():
         if node.get("type") == "array":
             check(node["items"])
     check(SCHEMA)
+
+
+# ---------- 事前生成のサンプル・アクセスコード ----------
+
+@pytest.mark.parametrize("scenario_id", ["A", "B", "C", "D"])
+def test_sample_reports_load(scenario_id):
+    sample = load_sample_report(scenario_id)
+    report = sample.report
+    assert sample.model and sample.generated_on
+    assert report.findings and report.unregistered  # 確認漏れと未登録の推測が入っている
+    assert all(f.basis in (REGISTERED, GUESS) for f in report.findings)
+    assert all("D-" not in f.title + f.detail + f.question for f in report.findings)  # 文章にIDを見せない
+
+
+def test_missing_sample_returns_none():
+    assert load_sample_report("Z") is None
+
+
+def test_access_code_check():
+    codes = ["demo-2026"]
+    assert check_access_code("demo-2026", codes) == hash_user("demo-2026")
+    assert check_access_code(" demo-2026 ", codes) == hash_user("demo-2026")  # 前後の空白は無視
+    assert check_access_code("wrong", codes) is None
+    assert check_access_code("", codes) is None
+    assert check_access_code("demo-2026", []) is None  # コードが設定されていなければ使えない

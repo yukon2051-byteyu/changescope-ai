@@ -132,3 +132,35 @@ def test_analysis_page_unknown_text_warns():
     at.text_area[0].input("新しいチャットツールを入れたい").run()
     assert not at.exception
     assert any("見つけられませんでした" in w.value for w in at.warning)
+
+
+def analyze_scenario_a(secrets=None) -> AppTest:
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30)
+    at.session_state["dataset"] = load_sample()
+    for key, value in (secrets or {}).items():
+        at.secrets[key] = value
+    at.run()
+    at = at.switch_page("pages/analysis.py").run()
+    at.button(key="scenario_A").click().run()
+    next(b for b in at.button if b.label == "影響を分析する").click().run()
+    return at
+
+
+def test_analysis_page_shows_ai_sample_without_cost():
+    # 入力例で分析すると、事前に生成したAIのサンプルを料金なしで見られる。サンプルであることを明示する
+    at = analyze_scenario_a()
+    next(b for b in at.button if b.label == "AIによる分析のサンプルを見る").click().run()
+    assert not at.exception
+    assert any("AIによる分析のサンプル" in m.value and "いま実行したAI分析ではありません" in m.value for m in at.markdown)
+    cards = [m.value for m in at.markdown if 'class="cs-ai-card' in m.value]
+    assert cards and "確認先：" in cards[0] and "登録情報にもとづく" in cards[0]
+    assert any(t.label.startswith("未登録の影響の推測") for t in at.tabs)
+
+
+def test_analysis_page_wrong_access_code_does_not_call_ai():
+    at = analyze_scenario_a({"ACCESS_CODES": ["right-code"]})
+    at.text_input(key="access_code").set_value("wrong-code").run()
+    next(b for b in at.button if b.label == "AIで確認漏れを調べる").click().run()
+    assert not at.exception
+    assert any("アクセスコードが正しくありません" in e.value for e in at.error)
+    assert at.session_state["oversight"] is None

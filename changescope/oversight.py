@@ -13,8 +13,10 @@ AIには登録データそのものではなく、Pythonで分析した結果（
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import networkx as nx
 
@@ -33,6 +35,8 @@ REGISTERED = "登録情報にもとづく"
 GUESS = "AIの推測"
 UNREGISTERED_CONTACT = "未登録の部門候補"
 ESTIMATE = "要見積もり"
+# 事前にAIで生成したサンプル結果（4シナリオ）。料金なしで見られる
+SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample" / "ai_results"
 
 # 費用・期間の数字（AIに作らせない）。「3段階」のような、費用・期間でない数字は対象外
 _MONEY_OR_PERIOD = re.compile(
@@ -263,3 +267,21 @@ def find_oversights(client: AIClient, graph: nx.MultiDiGraph, result: ImpactResu
     report.input_tokens, report.output_tokens, report.cost_usd = (
         answer.input_tokens, answer.output_tokens, answer.cost_usd)
     return report, ""
+
+
+@dataclass
+class SampleReport:
+    report: OversightReport
+    model: str
+    generated_on: str
+
+
+def load_sample_report(scenario_id: str) -> SampleReport | None:
+    """事前に生成したサンプル結果を読み込む。なければ None。"""
+    path = SAMPLE_DIR / f"oversight_{scenario_id}.json"
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    raw = dict(data["report"])
+    raw["findings"] = [OversightFinding(**f) for f in raw["findings"]]
+    return SampleReport(OversightReport(**raw), data["model"], data["generated_on"])

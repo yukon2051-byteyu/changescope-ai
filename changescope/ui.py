@@ -182,6 +182,21 @@ _GLOBAL_CSS = """
 .cs-badge { background: var(--cs-navy); color: var(--cs-gold-light); }
 .cs-badge-warn { background: var(--cs-gold); color: #fff; }
 
+.cs-ai-card {
+  background: var(--cs-paper); border: 1px solid var(--cs-line); border-left: 4px solid var(--cs-line);
+  border-radius: 4px; padding: 14px 18px; margin: 10px 0;
+}
+.cs-ai-高 { border-left-color: var(--cs-navy); }
+.cs-ai-中 { border-left-color: var(--cs-gold); }
+.cs-ai-imp { font-size: .75rem; font-weight: 700; color: var(--cs-navy); white-space: nowrap; }
+.cs-ai-view { font-size: .75rem; color: var(--cs-sub); border: 1px solid var(--cs-line); padding: 1px 8px; border-radius: 3px; }
+.cs-ai-ask { background: var(--cs-cream); border-radius: 3px; padding: 10px 14px; margin-top: 10px; }
+.cs-ai-ask-to { font-weight: 700; color: var(--cs-navy); font-size: .9rem; }
+.cs-ai-q { color: var(--cs-ink); line-height: 1.8; margin-top: 4px; }
+.cs-ai-q::before { content: "質問　"; color: var(--cs-gold); font-weight: 700; }
+.cs-ai-cand { margin-left: 8px; font-size: .75rem; font-weight: 400; color: var(--cs-gold); }
+.cs-finding-items ul { margin: 4px 0 0; padding-left: 1.2em; }
+
 .cs-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 12px 0; }
 .cs-flow-box {
   flex: 1 1 150px; background: var(--cs-navy); color: #fff; border-radius: 4px; padding: 14px 16px;
@@ -358,6 +373,32 @@ def findings_list(findings) -> None:
             f'<span class="cs-finding-title">{escape(f.title)}</span></div>'
             f'<div class="cs-finding-detail">{escape(f.detail)}</div>'
             f'{f"<div class=cs-finding-items>対象：{items}</div>" if items else ""}</div>'
+        )
+    html(body)
+
+
+def oversight_findings(findings) -> None:
+    """AIが見つけた確認漏れを、1件ずつカードで表示する（確認先・質問文・根拠つき）。
+
+    AIの回答と登録データの名前を含むため、すべてエスケープする。
+    「登録情報にもとづく」と「AIの推測」は色を変えて区別する。
+    """
+    body = ""
+    for f in findings:
+        basis_class = "cs-badge" if f.basis == "登録情報にもとづく" else "cs-badge-warn"
+        contact = escape(f.contact) + ("" if f.contact_registered else '<span class="cs-ai-cand">未登録の部門候補</span>')
+        evidence = "".join(f"<li>{escape(e)}</li>" for e in f.evidence)
+        body += (
+            f'<div class="cs-ai-card cs-ai-{escape(f.importance)}"><div class="cs-finding-head">'
+            f'<span class="cs-ai-imp">重要度 {escape(f.importance)}</span>'
+            f'<span class="{basis_class}">{escape(f.basis)}</span>'
+            f'<span class="cs-ai-view">{escape(f.viewpoint)}</span></div>'
+            f'<div class="cs-finding-title">{escape(f.title)}</div>'
+            f'<div class="cs-finding-detail">{escape(f.detail)}</div>'
+            f'<div class="cs-ai-ask"><div class="cs-ai-ask-to">確認先：{contact}</div>'
+            f'<div class="cs-ai-q">{escape(f.question)}</div></div>'
+            f'{f"<div class=cs-finding-items>根拠にしたつながり<ul>{evidence}</ul></div>" if evidence else ""}'
+            "</div>"
         )
     html(body)
 

@@ -6,6 +6,9 @@ import pandas as pd
 import streamlit as st
 
 from changescope import models
+from changescope.access import check_access_code, load_access_codes
+from changescope.ai_client import AIClient, get_api_key
+from changescope.ai_settings import load_settings
 from changescope.assessment import assess
 from changescope.datasets import load_scenarios
 from changescope.graph_engine import (
@@ -15,11 +18,13 @@ from changescope.gaps import find_gaps
 from changescope.insights import department_of, hard_to_notice, impact_tags, target_departments
 from changescope.matcher import find_candidates
 from changescope.next_actions import build_next_actions, find_uncertain_links
+from changescope.oversight import ESTIMATE, REGISTERED, find_oversights, load_sample_report
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
-    STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, note, section,
-    show_mode_banner,
+    STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, note,
+    oversight_findings, section, show_mode_banner,
 )
+from changescope.usage_store import UsageStore
 
 MAX_INPUT_CHARS = 1000
 MAX_DEPTH_LIMIT = 8  # 選べる段数の上限
@@ -85,6 +90,7 @@ max_depth = st.slider(
 if st.button("影響を分析する", type="primary", disabled=not targets):
     st.session_state.impact_result = analyze_impact(dataset.graph, targets, max_depth)
     st.session_state.impact_targets = list(targets)
+    st.session_state.oversight = None  # 前の分析のAI結果は消す
 
 result = st.session_state.get("impact_result")
 if result is None:
@@ -131,6 +137,113 @@ if not result.impacts:
 section("NEXT ACTIONS", "次にやること")
 st.caption("この分析結果をもとに、変更を安全に進めるための手順を上から順に示しています。")
 action_steps(build_next_actions(dataset.graph, result, stakeholders, gaps))
+
+# ---------- 4. AIで確認漏れを調べる ----------
+section("AI CHECK", "AIで確認漏れを調べる")
+st.caption(
+    "上の結果は、登録されたつながりをプログラムでたどったものです。AIは、この結果をもとに"
+    "「変更の前にまだ確認していないこと」と「誰に何を聞けばよいか」を挙げます。"
+)
+
+
+def sample_scenario_id() -> str | None:
+    """サンプルデータで、入力例と同じ変更対象を分析しているときだけ、そのシナリオの番号を返す。"""
+    if dataset.source != "sample":
+        return None
+    for _, row in load_scenarios().iterrows():
+        if sorted(str(row["target_ids"]).split(";")) == sorted(result.targets):
+            return row["scenario_id"]
+    return None
+
+
+scenario_id = sample_scenario_id()
+access_codes = load_access_codes()
+col_sample, col_ai = st.columns(2)
+with col_sample, st.container(border=True):
+    st.markdown("**サンプルを見る（料金なし）**")
+    if scenario_id:
+        st.caption("この入力例を、事前にAIで分析した結果を表示します。")
+        if st.button("AIによる分析のサンプルを見る", icon=":material/description:"):
+            sample = load_sample_report(scenario_id)
+            st.session_state.oversight = {"kind": "sample", "targets": result.targets, "report": sample.report,
+                                          "model": sample.model, "generated_on": sample.generated_on}
+    else:
+        st.caption("サンプルデータの入力例（4つのボタン）で分析すると、事前にAIで分析した結果を見られます。")
+with col_ai, st.container(border=True):
+    st.markdown("**AIで分析する（アクセスコードが必要）**")
+    if not access_codes:
+        st.caption("この環境ではAI分析が設定されていません。サンプルをご覧ください。")
+    else:
+        code = st.text_input("アクセスコード", type="password", key="access_code")
+        if not text.strip():
+            st.caption("AIに渡すため、「変更したい内容」を入力してください。")
+        if st.button("AIで確認漏れを調べる", type="primary", icon=":material/search:", disabled=not text.strip()):
+            user_key = check_access_code(code, access_codes)
+            if user_key is None:
+                st.error("アクセスコードが正しくありません。")
+            else:
+                settings = load_settings()
+                client = AIClient(settings, UsageStore(settings.usage_db), api_key=get_api_key())
+                with st.spinner("AIが確認漏れを調べています（30秒ほどかかります）"):
+                    report, message = find_oversights(client, dataset.graph, result, text, stakeholders, gaps,
+                                                      hidden, user_key)
+                if report is None:
+                    st.warning(message)
+                else:
+                    st.session_state.oversight = {"kind": "ai", "targets": result.targets, "report": report,
+                                                  "yen": settings.to_yen(report.cost_usd)}
+
+oversight = st.session_state.get("oversight")
+if oversight and oversight["targets"] == result.targets:
+    report = oversight["report"]
+    if oversight["kind"] == "sample":
+        note(f"<b>AIによる分析のサンプル</b>　事前にAIで生成した結果です（{escape(oversight['generated_on'])}、"
+             f"{escape(oversight['model'])}）。いま実行したAI分析ではありません。")
+    else:
+        note(f"<b>AIによる分析結果</b>　今回の費用（試算）：約{oversight['yen']:.1f}円")
+    st.caption(
+        "AIは組織全体を知りません。「登録情報にもとづく」は登録されたつながりを根拠にした指摘、"
+        "「AIの推測」は根拠が登録データにない指摘です。どちらも確認先に聞いて確かめてください。"
+        f"費用や期間の数字は、AIに作らせず「{ESTIMATE}」と表示します。"
+    )
+    registered = sum(f.basis == REGISTERED for f in report.findings)
+    st.markdown(f"**確認漏れ {len(report.findings)}件**（登録情報にもとづく {registered}件・"
+                f"AIの推測 {len(report.findings) - registered}件。重要度の高い順）")
+    oversight_findings(report.findings)
+
+    ai_tabs = st.tabs(["部門別の調整ポイント", "トラブルの予測", "見落としがちな費用", "推奨する進め方",
+                       f"未登録の影響の推測（{len(report.unregistered)}）"])
+    with ai_tabs[0]:
+        data_table(pd.DataFrame({
+            "部門・担当": [d["department"] + ("" if d["registered"] else "（未登録の部門候補）")
+                       for d in report.department_points],
+            "調整ポイント": [[f"・{p['viewpoint']}：{p['content']}" for p in d["points"]] for d in report.department_points],
+        }))
+    with ai_tabs[1]:
+        data_table(pd.DataFrame({
+            "起こりうるトラブル": [r["scenario"] for r in report.risks],
+            "起きる条件": [r["condition"] for r in report.risks],
+            "影響が広がる先": [r["spread_to"] for r in report.risks],
+            "予防策": [r["prevention"] for r in report.risks],
+        }))
+    with ai_tabs[2]:
+        st.caption(f"金額はAIに作らせていません。必要な費用は見積もりで確認してください（{ESTIMATE}）。")
+        data_table(pd.DataFrame({
+            "費用の項目": [c["item"] for c in report.hidden_costs],
+            "見落としやすい理由": [c["detail"] for c in report.hidden_costs],
+        }))
+    with ai_tabs[3]:
+        data_table(pd.DataFrame({
+            "段階": [a["step"] for a in report.approach],
+            "内容": [a["detail"] for a in report.approach],
+        }))
+    with ai_tabs[4]:
+        st.caption("登録データにはないが、関係しそうな要素のAIの推測です。実在すれば、Excelに追加して分析し直してください。")
+        data_table(pd.DataFrame({
+            "要素の候補": [u["name"] for u in report.unregistered],
+            "種類": [u["element_type"] for u in report.unregistered],
+            "理由": [u["reason"] for u in report.unregistered],
+        }))
 
 section("DETAILS", "詳しい結果")
 
