@@ -165,3 +165,23 @@ def test_records_accept_custom_types():
     custom = ELEMENTS + [element("EQ", "製造ライン1", "設備")]
     result = load_from_records(custom, LINKS + [link("D-7", "SYS", "EQ", "監視する")])
     assert result.dataset is not None  # 利用者が追加した種類・関係の種類も使える
+
+
+def test_diagram_data_round_trips_through_excel():
+    # 図で作ったデータを Excel に保存し、「データ管理」で読み込み直すと、同じ内容に戻る
+    from changescope.datasets import load_from_excel, load_from_records
+    from changescope.diagram import NO_EVIDENCE
+    from changescope.excel_template import build_template
+    elements = ELEMENTS + [element("EQ", "製造ライン1", "設備"), {**element("HR", "人事部", "department")}]
+    elements[0] = {**elements[0], "owner": "HR"}  # 責任部門は名前で書き出され、読み込むとIDに戻る
+    links = LINKS + [link("D-7", "SYS", "EQ", "監視する"), {**link("D-8", "SYS", "HR"), "evidence": NO_EVIDENCE}]
+    saved = load_from_records(elements, links).dataset
+    reloaded = load_from_excel(build_template(saved.elements, saved.dependencies))
+    assert not reloaded.errors
+    ds = reloaded.dataset
+    assert sorted(ds.elements["name"]) == sorted(saved.elements["name"])
+    assert len(ds.dependencies) == len(saved.dependencies)
+    owner = ds.elements.set_index("name").loc["勤怠管理システム", "owner"]
+    assert ds.elements.set_index("element_id").loc[owner, "name"] == "人事部"
+    assert "監視する" in set(ds.dependencies["relation_type"])  # 利用者が追加した関係の種類も残る
+    assert NO_EVIDENCE in set(ds.dependencies["evidence"])

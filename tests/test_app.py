@@ -172,6 +172,8 @@ def test_diagram_page_tutorial_creates_data_for_analysis():
     at = run_page("diagram.py")
     assert not at.exception
     next(b for b in at.button if b.label == "新しく作る").click().run()
+    # つながりがないうちは、保存ボタンは押せない
+    assert next(b for b in at.button if b.label == "Excelに保存する").disabled
     at.text_input[0].set_value("勤怠管理システム")
     next(b for b in at.button if b.label == "登録して次へ").click().run()
     at.text_input[0].set_value("勤怠実績データ")
@@ -185,6 +187,8 @@ def test_diagram_page_tutorial_creates_data_for_analysis():
     dataset = at.session_state["dataset"]
     assert dataset.source == "diagram" and len(dataset.dependencies) == 1
     assert dataset.dependencies.iloc[0]["evidence"] == "未記入（図で入力）"  # 根拠を書かなかったとき
+    # つながりができると、Excelに保存できる
+    assert [b.label for b in at.get("download_button")] == ["Excelに保存する"]
     next(b for b in at.button if b.label == "続けて作る").click().run()
     assert not at.exception
     assert any("やってみましょう" in i.value for i in at.info)

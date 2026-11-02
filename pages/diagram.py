@@ -11,6 +11,7 @@
 """
 
 import uuid
+from datetime import date
 from html import escape
 
 import pandas as pd
@@ -22,6 +23,7 @@ from streamlit_flow.state import StreamlitFlowState
 
 from changescope import diagram, models
 from changescope.datasets import load_from_records, to_records
+from changescope.excel_template import build_template
 from changescope.ui import STATUS_LABELS, data_table, get_dataset, note, set_dataset
 
 st.title("図で入力する")
@@ -42,6 +44,30 @@ CENTER_STYLE = {**BASE, "background": GOLD, "color": NAVY, "border": f"3px solid
 EMPTY_STYLE = {**BASE, "background": "#F4F1E8", "color": "#8A94A6", "border": "1px dashed #DDD8CC"}
 CANVAS_STYLE = {"border": f"2px solid {NAVY}", "borderRadius": "6px", "background": "#FFFFFF"}
 VIEWS = ["つながりを入力する", "全体図（見る）"]
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+# 線をつなぐ ●（接続点）を大きくする。図の部品は別の枠（iframe）の中に描かれ、●の大きさを変える設定がないため、
+# 外から部品の枠に CSS を1つ足す。部品の作り（.react-flow__handle という名前）に依存するので、部品を更新して
+# 効かなくなっても、画面は動く（●が標準の6pxに戻るだけ）。枠は図を描き直すと作り直されるため、定期的に確かめる。
+HANDLE_SIZE_PX = 15  # 標準の6pxの2.5倍
+st.html(f"""<script>
+if (!window.csHandleTimer) {{
+  window.csHandleTimer = setInterval(() => {{
+    for (const frame of document.querySelectorAll("iframe")) {{
+      try {{
+        const doc = frame.contentDocument;
+        if (!doc || !doc.querySelector(".react-flow") || doc.getElementById("cs-handle-style")) continue;
+        const style = doc.createElement("style");
+        style.id = "cs-handle-style";
+        style.textContent = `.react-flow__handle {{ width: {HANDLE_SIZE_PX}px; height: {HANDLE_SIZE_PX}px;
+          background: {GOLD}; border: 2px solid #fff; box-shadow: 0 0 0 1px {NAVY}; }}`;
+        doc.head.appendChild(style);
+      }} catch (e) {{}}  // 別のサイトの枠には触れない（触れられない）
+    }}
+  }}, 500);
+}}
+</script>""", unsafe_allow_javascript=True)
 
 
 # ---------- 図で編集しているデータ ----------
@@ -254,12 +280,25 @@ if st.session_state.get("dg_toast"):
 for error in st.session_state.get("dg_errors", []):
     st.error(error)
 
-note("<b>図で作った内容は、このページを閉じると消えます。</b>"
-     "分析には、そのまま使えます（「影響分析」で分析できます）。")
-if st.button("最初の画面に戻る", icon=":material/arrow_back:"):
+note("<b>図で作った内容は、このページを閉じると消えます。</b>残したいときは、下の「Excelに保存する」を押してください。"
+     "保存したExcelは、「データ管理」から読み込むと続きを編集できます。分析には、そのまま使えます（「影響分析」）。")
+c_back, c_save, _ = st.columns([1, 1, 2])
+if c_back.button("最初の画面に戻る", icon=":material/arrow_back:", width="stretch"):
     for key in [k for k in st.session_state if str(k).startswith("dg_")]:
         del st.session_state[key]
     st.rerun()
+synced = st.session_state.get("dg_synced")
+if synced is None:
+    c_save.button("Excelに保存する", icon=":material/download:", disabled=True, width="stretch",
+                  help="つながりを1本以上作ると保存できます。")
+else:
+    # Excelを作るのは、データが変わったときだけ（画面を更新するたびに作ると遅くなるため）
+    if st.session_state.get("dg_excel_for") is not synced:
+        st.session_state.dg_excel = build_template(synced.elements, synced.dependencies)
+        st.session_state.dg_excel_for = synced
+    c_save.download_button("Excelに保存する", st.session_state.dg_excel,
+                           f"ChangeScope_図で作成_{date.today():%Y%m%d}.xlsx", XLSX_MIME, type="primary",
+                           icon=":material/download:", width="stretch")
 
 
 # ---------- ダイアログ ----------
