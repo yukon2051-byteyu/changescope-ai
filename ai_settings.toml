@@ -11,13 +11,14 @@ effort = "medium"                 # AIがどれだけ考えるか（low / medium
 yen_per_usd = 160                 # 費用を円で表示するための為替（仮の値）
 
 [limits]
-max_input_chars = 1000         # 利用者が入力する文の最大文字数
+max_input_chars = 1000         # 利用者が入力する文（変更内容）の最大文字数
+max_document_chars = 8000      # 「資料から作る」で貼り付ける資料の最大文字数
 max_output_tokens = 16000      # 1回の回答の最大トークン数（Opus は回答が長め。実測は最大約6,000）
 timeout_seconds = 180          # 回答を待つ最大秒数（Opus の実測は約50〜60秒）
 monthly_budget_usd = 25.0      # 月の予算（Claude Console の上限と同じにする）。1回約0.13ドル×150回＝約19.6ドルの見込み
 stop_ratio = 0.9               # 予算のこの割合に達したら、AI機能を止める
 monthly_call_limit = 150       # 月の呼び出し回数の上限（全員の合計）
-per_user_monthly_limit = 3     # 1人あたりの月の利用回数
+per_user_monthly_limit = 3     # 1人あたりの月の利用回数（機能ごとに数える。月の回数の上限は全機能の合計）
 
 [storage]
 usage_db = "data/usage.db"     # 利用記録の保存先（Gitには入れない）

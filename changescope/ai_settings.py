@@ -17,6 +17,7 @@ class AISettings:
     effort: str
     yen_per_usd: float
     max_input_chars: int
+    max_document_chars: int
     max_output_tokens: int
     timeout_seconds: float
     monthly_budget_usd: float
@@ -52,6 +53,7 @@ def load_settings(path: Path = SETTINGS_PATH) -> AISettings:
         effort=model["effort"],
         yen_per_usd=float(model["yen_per_usd"]),
         max_input_chars=int(limits["max_input_chars"]),
+        max_document_chars=int(limits["max_document_chars"]),
         max_output_tokens=int(limits["max_output_tokens"]),
         timeout_seconds=float(limits["timeout_seconds"]),
         monthly_budget_usd=float(limits["monthly_budget_usd"]),

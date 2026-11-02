@@ -124,6 +124,9 @@ def test_per_user_limit_and_other_user_still_allowed(settings, store):
     client, messages = make_client(settings, store)
     assert "1人3回まで" in call(client).message
     assert call(client, user_key=hash_user("another-code")).ok
+    # 回数は機能ごとに数える：同じ人でも、別の機能はまだ使える
+    other = client.call_json("別の機能", "役割", wrap_user_input("文"), SCHEMA, USER, "文")
+    assert other.ok
 
 
 def test_monthly_call_limit(settings, store):
@@ -175,3 +178,12 @@ def test_user_input_cannot_close_the_tag():
 
 def test_cost_guard_allows_normal_case(settings, store):
     assert cost_guard.check(settings, store, USER, "短い入力").allowed
+
+
+def test_document_feature_allows_longer_input(settings, store):
+    # 「資料から作る」は、変更内容（1,000文字まで）より長い資料（8,000文字まで）を受け付ける
+    client, messages = make_client(settings, store)
+    ok = client.call_json("資料から作る", "役割", wrap_user_input("あ" * 1500), SCHEMA, USER, "あ" * 1500, max_chars=8000)
+    assert ok.ok
+    too_long = client.call_json("資料から作る", "役割", "", SCHEMA, USER, "あ" * 8001, max_chars=8000)
+    assert not too_long.ok and "8000文字以内" in too_long.message

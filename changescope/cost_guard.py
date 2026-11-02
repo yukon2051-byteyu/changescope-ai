@@ -18,12 +18,19 @@ class Decision:
     reason: str = ""
 
 
-def check(settings: AISettings, store: UsageStore, user_key: str | None, user_text: str = "") -> Decision:
-    """AIを呼び出してよいかを判断する。user_text は利用者が入力した文（長さの確認に使う）。"""
+def check(settings: AISettings, store: UsageStore, user_key: str | None, user_text: str = "",
+          feature: str = "", max_chars: int | None = None) -> Decision:
+    """AIを呼び出してよいかを判断する。
+
+    user_text : 利用者が入力した文（長さの確認に使う）
+    feature   : 機能名。1人あたりの回数は機能ごとに数える（月の回数の上限は全機能の合計）
+    max_chars : この機能で入力できる最大文字数（省略すると、変更内容の上限 max_input_chars）
+    """
     if not user_key:
         return Decision(False, "AI分析にはアクセスコードが必要です。")
-    if len(user_text) > settings.max_input_chars:
-        return Decision(False, f"入力が長すぎます（{len(user_text)}文字）。{settings.max_input_chars}文字以内にしてください。")
+    limit = max_chars or settings.max_input_chars
+    if len(user_text) > limit:
+        return Decision(False, f"入力が長すぎます（{len(user_text)}文字）。{limit}文字以内にしてください。")
 
     usage = store.monthly()
     stop_at = settings.monthly_budget_usd * settings.stop_ratio
@@ -31,6 +38,7 @@ def check(settings: AISettings, store: UsageStore, user_key: str | None, user_te
         return Decision(False, "今月のAI利用の予算に達したため、AI分析を停止しています。AIを使わない分析はそのまま使えます。")
     if usage.calls >= settings.monthly_call_limit:
         return Decision(False, "今月のAI分析の回数の上限に達しました。AIを使わない分析はそのまま使えます。")
-    if usage.calls_by_user.get(user_key, 0) >= settings.per_user_monthly_limit:
-        return Decision(False, f"今月のAI分析は、1人{settings.per_user_monthly_limit}回までです。来月またお試しください。")
+    if store.user_calls(user_key, feature) >= settings.per_user_monthly_limit:
+        name = f"「{feature}」" if feature else "AI分析"
+        return Decision(False, f"今月の{name}は、1人{settings.per_user_monthly_limit}回までです。来月またお試しください。")
     return Decision(True)

@@ -69,6 +69,14 @@ class UsageStore:
                  input_tokens, output_tokens, cost_usd, status),
             )
 
+    def user_calls(self, user_key: str, feature: str, month: str | None = None) -> int:
+        """その月に、その利用者がその機能を使った回数（成功した呼び出しだけ）。"""
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) FROM api_usage WHERE month = ? AND user_key = ? AND feature = ? AND status = 'ok'",
+                (month or current_month(), user_key, feature),
+            ).fetchone()[0]
+
     def monthly(self, month: str | None = None) -> MonthlyUsage:
         """その月の合計。
 
