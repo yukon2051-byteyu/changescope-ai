@@ -1,7 +1,10 @@
-# Phase 1 で使うライブラリ（AI・PDF・影響マップ用は各Phaseで追加する）
-streamlit>=1.40
+# ChangeScope AI で使うライブラリ（公開先の Streamlit Community Cloud でも、このファイルから入れる）
+streamlit>=1.66  # 横並びの配置（st.container の horizontal）、st.html のスクリプト実行を使うため
 networkx>=3.3
 pandas>=2.2
 openpyxl>=3.1  # Excelテンプレートの作成・読み込み
-anthropic>=2.3  # Claude API（Phase 2：AI分析）
+anthropic>=2.3  # Claude API（AIで確認漏れを調べる）
+# 図で入力する画面の部品（React Flow を Streamlit で使うもの。MITライセンス）。
+# ●（接続点）の大きさを部品の中のCSSの名前に頼って変えているため、版を固定する（更新するときは画面で確認する）
+streamlit-flow-component==1.6.1
 pytest>=8.0
