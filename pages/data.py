@@ -89,8 +89,9 @@ else:
 
     with st.expander("CSVで登録する（上級者向け）"):
         st.markdown(
-            "**要素CSV** 必須列：`element_id`, `name`, `element_type`　任意列：`description`, `owner`, `aliases`（「;」区切り）\n\n"
-            "**依存関係CSV** 必須列：`dependency_id`, `from_id`, `to_id`, `relation_type`, `direction`, `evidence`, `status`　任意列：`note`\n\n"
+            "**要素CSV** 必須列：`name`, `element_type`　任意列：`element_id`（空欄なら自動）, `description`, `owner`, `aliases`（「;」区切り）\n\n"
+            "**依存関係CSV** 必須列：`from_id`, `to_id`, `relation_type`, `direction`, `evidence`, `status`　任意列：`dependency_id`（空欄なら自動）, `note`\n\n"
+            "`from_id`・`to_id`・`owner` は、要素のIDでも名前でも指定できます。同じ名前の要素は登録できません。\n\n"
             "区分値は英語のコードで記入します（例：`system`, `uses`, `one_way`, `confirmed`）。一覧はExcelテンプレートの「選択肢」シートと同じです。"
         )
         c1, c2 = st.columns(2)

@@ -113,6 +113,29 @@ def test_too_many_rows(monkeypatch):
     assert not result.ok
 
 
+def test_blank_and_missing_element_ids_are_assigned():
+    csv = "element_id,name,element_type\nE-002,勤怠,system\n,給与,system\n,人事部,department\n"
+    result = validate_elements(csv.encode("utf-8"))
+    assert result.ok
+    assert list(result.data["element_id"]) == ["E-002", "E-001", "E-003"]  # 使われている番号は飛ばす
+
+    no_id_column = validate_elements("name,element_type\n勤怠,system\n".encode("utf-8"))
+    assert list(no_id_column.data["element_id"]) == ["E-001"]
+
+
+def test_duplicate_names_are_error():
+    csv = "name,element_type\n人事部,department\n人事部,department\n"
+    result = validate_elements(csv.encode("utf-8"))
+    assert not result.ok
+    assert result.errors[0].row == 3 and result.errors[0].column == "name"
+
+
+def test_owner_can_be_written_by_name():
+    csv = "element_id,name,element_type,owner\nS1,勤怠,system,人事部\nD1,人事部,department,\nX1,帳票,document,総務課\n"
+    owners = list(validate_elements(csv.encode("utf-8")).data["owner"])
+    assert owners == ["D1", "", "総務課"]  # 登録された名前はIDに。未登録の名前はそのまま
+
+
 def test_unknown_column_is_warning_only():
     csv = "element_id,name,element_type,memo\nSYS-001,勤怠,system,メモ\n"
     result = validate_elements(csv.encode("utf-8"))
@@ -133,6 +156,26 @@ def test_dependencies_valid():
     assert result.warnings == []
 
 
+def test_dependencies_by_name_and_auto_ids():
+    names = {"勤怠管理システム": "SYS-001", "勤怠実績データ": "DAT-001"}
+    data = deps_csv(",勤怠管理システム,勤怠実績データ,provides_data,one_way,根拠,confirmed,")
+    result = validate_dependencies(data, ELEMENT_IDS, name_to_id=names)
+    assert result.ok
+    row = result.data.iloc[0]
+    assert (row["from_id"], row["to_id"], row["dependency_id"]) == ("SYS-001", "DAT-001", "D-001")
+
+
+def test_name_and_id_references_to_same_edge_are_merged():
+    names = {"勤怠管理システム": "SYS-001"}
+    data = deps_csv(
+        "D-001,SYS-001,DAT-001,provides_data,one_way,根拠A,confirmed,",
+        "D-002,勤怠管理システム,DAT-001,provides_data,one_way,根拠B,confirmed,",
+    )
+    result = validate_dependencies(data, ELEMENT_IDS, name_to_id=names)
+    assert len(result.data) == 1
+    assert "勤怠管理システム → DAT-001" in result.warnings[0].message
+
+
 def test_cycle_is_allowed_at_csv_stage():
     # 循環参照（A→B→A）はCSVとしては正しい。無限ループ対策はグラフ探索側で行う
     data = deps_csv(
@@ -144,16 +187,17 @@ def test_cycle_is_allowed_at_csv_stage():
 
 # ---------- 依存関係CSV：異常系・不整合 ----------
 
-def test_missing_reference_is_excluded_with_warning():
+def test_missing_reference_is_error():
+    # 書き間違い1つで黙って影響が消えないよう、存在しない参照先は読み込みを止める
     data = deps_csv(
         "D-001,SYS-001,DAT-001,provides_data,one_way,根拠,confirmed,",
         "D-002,DAT-001,XXX-999,uses,one_way,根拠,confirmed,",
     )
     result = validate_dependencies(data, ELEMENT_IDS)
-    assert result.ok
-    assert list(result.data["dependency_id"]) == ["D-001"]
-    assert result.warnings[0].row == 3
-    assert "XXX-999" in result.warnings[0].message
+    assert not result.ok
+    assert result.data is None
+    assert (result.errors[0].row, result.errors[0].column) == (3, "to_id")
+    assert "XXX-999" in result.errors[0].message
 
 
 def test_duplicate_edge_is_merged_keeping_all_evidence():

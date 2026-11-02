@@ -39,7 +39,17 @@ def test_template_appearance():
         assert ws.column_dimensions["A"].width == cm_to_width(4.0) == 16.8  # A列＝4cm
     header_colors = {c.fill.fgColor.rgb for c in wb[ELEMENTS_SHEET][1]}
     assert not any(color.endswith("C55A11") for color in header_colors)  # 以前のオレンジは使わない
-    assert wb[ELEMENTS_SHEET]["A1"].fill.fgColor.rgb.endswith("1F3260")  # 必須の見出しは濃紺（黒に見える色は使わない）
+    assert wb[ELEMENTS_SHEET]["B1"].fill.fgColor.rgb.endswith("1F3260")  # 必須の見出し（名前）は濃紺（黒に見える色は使わない）
+    assert wb[ELEMENTS_SHEET].column_dimensions["D"].width == cm_to_width(6.0)  # 説明列＝6cm
+    choices = wb[CHOICES_SHEET]
+    assert [choices.column_dimensions[c].width for c in "ABCD"] == [cm_to_width(cm) for cm in (4.0, 7.0, 6.0, 5.61)]
+    assert all(choices.cell(row=1, column=c).alignment.horizontal == "center" for c in range(1, 5))
+    assert choices["F1"].alignment.vertical == "center"
+    for row in range(1, 6):  # 説明欄：F列は薄い黄緑、F・G列は罫線で囲む
+        assert choices.cell(row=row, column=6).fill.fgColor.rgb.endswith("E4EFA0")
+        for column in (6, 7):
+            border = choices.cell(row=row, column=column).border
+            assert all(side.style == "thin" for side in (border.left, border.right, border.top, border.bottom))
     guide = wb[GUIDE_SHEET]
     assert "A1:B1" in {str(r) for r in guide.merged_cells.ranges}  # タイトルがB列まで表示される
     # 見出し行のB列は空欄（空文字だとA列の文字がはみ出して表示されない）
@@ -50,8 +60,15 @@ def test_blank_template_can_be_loaded_as_is():
     # 記入例のままアップロードしても読み込める（＝記入例が正しい形式になっている）
     result = load_from_excel(build_template())
     assert result.dataset is not None, result.errors
-    assert len(result.dataset.elements) == 3
-    assert result.dataset.dependencies.loc[0, "relation_type"] == "uses"  # 日本語→コードに変換
+    elements = result.dataset.elements
+    assert len(elements) == 3
+    assert list(elements["element_id"]) == ["E-001", "E-002", "E-003"]  # 空欄のIDは自動で付く
+    assert elements.loc[0, "owner"] == "E-003"  # 責任部門は名前（経理部）で書いても、IDにそろう
+    deps = result.dataset.dependencies
+    assert deps.loc[0, "relation_type"] == "uses"  # 日本語→コードに変換
+    assert (deps.loc[0, "from_id"], deps.loc[0, "to_id"]) == ("E-001", "E-002")  # 名前→ID
+    assert list(deps["dependency_id"]) == ["D-001", "D-002"]
+    assert result.warnings == []
 
 
 def test_sample_round_trip():
@@ -126,8 +143,8 @@ def test_choices_sheet_explains_what_can_be_changed():
 def test_custom_type_and_relation_can_be_used():
     wb = open_book(build_template())
     add_custom_choices(wb, types=["設備"], relations=["保守する"])
-    wb[ELEMENTS_SHEET].append(["EQ-001", "製造ライン1", "設備"])
-    wb[DEPENDENCIES_SHEET].append(["D-003", "PRC-001", "EQ-001", "保守する", "一方向", "設備台帳", "確認済"])
+    wb[ELEMENTS_SHEET].append(["", "製造ライン1", "設備"])
+    wb[DEPENDENCIES_SHEET].append(["", "経費精算業務", "製造ライン1", "保守する", "一方向", "設備台帳", "確認済"])
     result = load_from_excel(save(wb))
     assert result.dataset is not None, result.errors
     assert "設備" in set(result.dataset.elements["element_type"])
@@ -167,6 +184,47 @@ def test_custom_choices_round_trip():
     again = load_from_excel(build_template(first.elements, first.dependencies))
     assert again.dataset is not None, again.errors
     assert "設備" in [c.value for c in open_book(build_template(first.elements, first.dependencies))[CHOICES_SHEET]["A"]]
+
+
+# ---------- 名前で選ぶ ----------
+
+def test_dropdowns_list_element_names():
+    wb = open_book(build_template())
+    formulas = {str(dv.sqref).split(":")[0]: dv.formula1 for dv in wb[DEPENDENCIES_SHEET].data_validations.dataValidation}
+    for cell in ("B2", "C2"):  # 影響元・影響先
+        assert "'要素'!$B$2" in formulas[cell] and "COUNTA" in formulas[cell]
+    assert [c.value for c in wb[DEPENDENCIES_SHEET][1]][1:3] == ["影響元", "影響先"]
+    assert wb[DEPENDENCIES_SHEET]["B2"].value == "経費精算システム"  # 記入例は名前で書かれている
+
+
+def test_legacy_headers_with_ids_still_load():
+    # 以前のテンプレート（見出し「影響元の要素ID」、IDで指定）で作ったファイルも読み込める
+    wb = open_book(build_template())
+    ws_e, ws_d = wb[ELEMENTS_SHEET], wb[DEPENDENCIES_SHEET]
+    for row, element_id in zip(range(2, 5), ["SYS-001", "PRC-001", "DEP-001"]):
+        ws_e.cell(row=row, column=1, value=element_id)
+    ws_e["E1"], ws_d["B1"], ws_d["C1"] = "責任部門・担当（要素ID）", "影響元の要素ID", "影響先の要素ID"
+    ws_d["B2"], ws_d["C2"], ws_d["B3"], ws_d["C3"] = "SYS-001", "PRC-001", "PRC-001", "DEP-001"
+    result = load_from_excel(save(wb))
+    assert result.dataset is not None, result.errors
+    assert len(result.dataset.dependencies) == 2
+
+
+def test_unknown_name_in_dependency_is_error():
+    wb = open_book(build_template())
+    wb[DEPENDENCIES_SHEET]["C3"] = "経理課"  # 登録されていない名前（書き間違い）
+    result = load_from_excel(save(wb))
+    assert result.dataset is None
+    # Excelの行番号と日本語の列名で、直す場所が分かる
+    assert any("経理課" in e and "3行目" in e and "影響先" in e and "書き間違い" in e for e in result.errors)
+
+
+def test_duplicate_names_are_error():
+    wb = open_book(build_template())
+    wb[ELEMENTS_SHEET].append(["", "経理部", "部門"])
+    result = load_from_excel(save(wb))
+    assert result.dataset is None
+    assert any("経理部" in e and "重複" in e for e in result.errors)
 
 
 def test_not_an_excel_file():

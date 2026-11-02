@@ -55,7 +55,9 @@ def load_from_csv(elements_csv: bytes, dependencies_csv: bytes, source: str = "u
     if not elements.ok:
         return LoadResult(None, errors, warnings)
 
-    dependencies = validate_dependencies(dependencies_csv, set(elements.data["element_id"]), extra_relations)
+    name_to_id = dict(zip(elements.data["name"], elements.data["element_id"]))
+    dependencies = validate_dependencies(dependencies_csv, set(elements.data["element_id"]), extra_relations,
+                                         name_to_id)
     errors += _format(dependencies.errors, labels[1], column_labels)
     warnings += _format(dependencies.warnings, labels[1], column_labels)
     if not dependencies.ok:

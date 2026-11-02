@@ -1,8 +1,9 @@
 """CSVの読み込みと検証。
 
 グラフ探索より前の「入口」で不正なデータを止める。方針は次の2つ。
-- 形式の誤り（列不足・区分値の誤り・ID重複など）→ エラー。取り込みを止め、利用者に修正してもらう
-- データの不整合（存在しない参照先・重複した依存関係）→ 警告。その行を除外・統合して取り込む
+- 形式の誤り（列不足・区分値の誤り・ID重複・名前の重複）と、存在しない参照先 → エラー。
+  取り込みを止め、利用者に修正してもらう（参照先の書き間違いを黙って除外すると、影響を見落とすため）
+- 重複した依存関係 → 警告。根拠を残して1行に統合して取り込む
 """
 
 from __future__ import annotations
@@ -137,6 +138,42 @@ def _check_duplicate_ids(df: pd.DataFrame, column: str, result: ValidationResult
         result.errors.append(Issue(f"ID「{value}」が重複しています。", _csv_row(index), column))
 
 
+def _assign_missing_ids(df: pd.DataFrame, column: str, prefix: str) -> pd.DataFrame:
+    """IDが空欄の行に、使われていない番号のIDを付ける（例：E-001）。行の順に付けるので、毎回同じIDになる。"""
+    if column not in df.columns:
+        df = df.assign(**{column: ""})
+    used = set(df[column])
+    number = 0
+    ids = []
+    for value in df[column]:
+        if not value:
+            number += 1
+            while f"{prefix}-{number:03d}" in used:
+                number += 1
+            value = f"{prefix}-{number:03d}"
+            used.add(value)
+        ids.append(value)
+    return df.assign(**{column: ids})
+
+
+def _check_duplicate_names(df: pd.DataFrame, result: ValidationResult) -> None:
+    """依存関係や責任部門を名前で指定できるよう、同じ名前の要素は登録できないようにする。"""
+    duplicated = df[df["name"].duplicated(keep="first") & (df["name"] != "")]
+    for index, value in duplicated["name"].items():
+        result.errors.append(Issue(
+            f"名前「{value}」が重複しています。同じ名前の要素は登録できません"
+            "（例：「人事部（本社）」「人事部（工場）」のように区別してください）。",
+            _csv_row(index), "name",
+        ))
+
+
+def resolve_reference(value: str, element_ids: set[str], name_to_id: dict[str, str]) -> str:
+    """要素の指定（IDまたは名前）をIDにそろえる。IDとして登録されていればID、名前ならそのID、どちらでもなければそのまま。"""
+    if value in element_ids:
+        return value
+    return name_to_id.get(value, value)
+
+
 def validate_elements(data: bytes, extra_types: frozenset[str] = frozenset()) -> ValidationResult:
     """要素CSVを検証する。extra_types は利用者が追加した種類（Excelの選択肢シートで追加したもの）。"""
     df, read_errors = read_csv(data)
@@ -149,17 +186,30 @@ def validate_elements(data: bytes, extra_types: frozenset[str] = frozenset()) ->
     ):
         return result
     _check_choice(df, "element_type", models.ELEMENT_TYPES, result, extra_types)
-    _check_duplicate_ids(df, "element_id", result)
+    if "element_id" in df.columns:
+        _check_duplicate_ids(df, "element_id", result)
+    _check_duplicate_names(df, result)
+    if not result.ok:
+        return result
 
-    if result.ok:
-        result.data = df
+    df = _assign_missing_ids(df, "element_id", "E")
+    # 責任部門・担当は名前でも書けるため、登録された要素の名前ならIDにそろえる（それ以外の文字はそのまま）
+    if "owner" in df.columns:
+        ids = set(df["element_id"])
+        name_to_id = dict(zip(df["name"], df["element_id"]))
+        df = df.assign(owner=df["owner"].map(lambda v: resolve_reference(v, ids, name_to_id)))
+    result.data = df
     return result
 
 
 def validate_dependencies(data: bytes, element_ids: set[str],
-                          extra_relations: frozenset[str] = frozenset()) -> ValidationResult:
+                          extra_relations: frozenset[str] = frozenset(),
+                          name_to_id: dict[str, str] | None = None) -> ValidationResult:
     """依存関係CSVを検証する。element_ids は検証済みの要素CSVに含まれるIDの集合。
-    extra_relations は利用者が追加した関係の種類（Excelの選択肢シートで追加したもの）。"""
+    extra_relations は利用者が追加した関係の種類（Excelの選択肢シートで追加したもの）。
+    name_to_id は要素の名前→IDの対応。影響元・影響先は名前でもIDでも指定できる。"""
+    name_to_id = name_to_id or {}
+    id_to_name = {v: k for k, v in name_to_id.items()}
     df, read_errors = read_csv(data)
     result = ValidationResult(data=None, errors=read_errors)
     if df is None:
@@ -172,27 +222,34 @@ def validate_dependencies(data: bytes, element_ids: set[str],
     _check_choice(df, "relation_type", models.RELATION_TYPES, result, extra_relations)
     _check_choice(df, "direction", models.DIRECTIONS, result)
     _check_choice(df, "status", models.STATUSES, result)
-    _check_duplicate_ids(df, "dependency_id", result)
+    if "dependency_id" in df.columns:
+        _check_duplicate_ids(df, "dependency_id", result)
+
+    # 影響元・影響先は名前でもIDでも書けるため、IDにそろえる
+    for column in ("from_id", "to_id"):
+        df[column] = df[column].map(lambda v: resolve_reference(v, element_ids, name_to_id))
 
     for index, row in df.iterrows():
         if row["from_id"] and row["from_id"] == row["to_id"]:
-            result.errors.append(Issue("from_id と to_id が同じです（自分自身への依存）。", _csv_row(index)))
+            result.errors.append(Issue("影響元と影響先が同じです（自分自身への依存）。", _csv_row(index)))
 
     if not result.ok:
         return result
+    df = _assign_missing_ids(df, "dependency_id", "D")
 
-    # 存在しない要素を参照している行は、警告して除外する
-    keep = []
+    # 存在しない要素を参照している行はエラーにする。
+    # 黙って除外すると、書き間違い1つで影響を見落とすため（このツールで最も避けたい失敗）
     for index, row in df.iterrows():
-        missing = [c for c in ("from_id", "to_id") if row[c] not in element_ids]
-        for column in missing:
-            result.warnings.append(
-                Issue(f"要素「{row[column]}」は登録されていないため、この依存関係を除外します。", _csv_row(index), column)
-            )
-        keep.append(not missing)
-    df = df[keep]
+        for column in ("from_id", "to_id"):
+            if row[column] not in element_ids:
+                result.errors.append(Issue(
+                    f"要素「{row[column]}」は登録されていません。名前の書き間違いや、"
+                    "要素シートでの名前の変更がないか確認してください。", _csv_row(index), column,
+                ))
+    if not result.ok:
+        return result
 
-    result.data = _merge_duplicate_edges(df, result)
+    result.data = _merge_duplicate_edges(df, result, id_to_name)
     return result
 
 
@@ -205,7 +262,8 @@ def _join_unique(values: pd.Series) -> str:
     return "／".join(dict.fromkeys(v for v in values if v))
 
 
-def _merge_duplicate_edges(df: pd.DataFrame, result: ValidationResult) -> pd.DataFrame:
+def _merge_duplicate_edges(df: pd.DataFrame, result: ValidationResult,
+                           id_to_name: dict[str, str] | None = None) -> pd.DataFrame:
     """同じ from・to・関係の種類の行を1行に統合する。根拠を失わないよう、情報は合わせて残す。
 
     - 根拠・補足：重複を除いてつなぐ
@@ -227,7 +285,9 @@ def _merge_duplicate_edges(df: pd.DataFrame, result: ValidationResult) -> pd.Dat
             first["direction"] = "both" if (group["direction"] == "both").any() else "one_way"
 
             rows = "、".join(str(_csv_row(i)) for i in group.index)
-            message = f"{first['from_id']} → {first['to_id']}（{first['relation_type']}）が重複しているため統合しました（{rows}行目）。"
+            names = id_to_name or {}
+            message = (f"{names.get(first['from_id'], first['from_id'])} → {names.get(first['to_id'], first['to_id'])}"
+                       f"（{models.relation_type_label(first['relation_type'])}）が重複しているため統合しました（{rows}行目）。")
             if group["status"].nunique() > 1:
                 message += f"確認状態が異なるため「{first['status']}」を採用しました。内容を確認してください。"
             if group["direction"].nunique() > 1:

@@ -35,6 +35,10 @@ _OPTIONAL_FONT = Font(name=FONT_NAME, bold=True, color=INK)
 GOLD = "B8963E"  # 差し色（金）
 _HEADER_BORDER = Border(bottom=Side(style="medium", color=GOLD))
 _BUILTIN_FILL = PatternFill("solid", fgColor="EEF1F3")  # 選択肢シートの、もとからある値（変更しない）
+# 選択肢シートの説明欄（F・G列）：項目名は薄い黄緑、F・G列とも細い罫線で囲む（利用者の指定）
+_GUIDE_LABEL_FILL = PatternFill("solid", fgColor="E4EFA0")
+_THIN = Side(style="thin", color="404040")
+_GUIDE_BORDER = Border(left=_THIN, right=_THIN, top=_THIN, bottom=_THIN)
 
 # 選択肢シートの見出し（列の位置で読み込むため、順番を変えない）
 CHOICE_HEADERS = ("種類（行を追加できます）", "関係の種類（行を追加できます）",
@@ -55,26 +59,32 @@ _CHOICES_GUIDE = [
 # 列幅：Excelの列幅は「標準フォントの数字1文字の幅」が単位。メイリオ11ptの数字の幅は 9px（96dpiで実測）
 _DIGIT_WIDTH_PX = 9
 FIRST_COLUMN_CM = 4.0
+# シートごとに指定する列幅（cm）
+COLUMN_WIDTHS_CM = {
+    "要素": {"D": 6.0},  # 説明
+    "選択肢": {"B": 7.0, "C": 6.0, "D": 5.61},
+}
 
 
 def cm_to_width(cm: float) -> float:
     """cmをExcelの列幅に換算する（96dpi基準。画面の拡大率により多少の誤差がある）。"""
     return round(cm / 2.54 * 96 / _DIGIT_WIDTH_PX, 2)
 
-# 白紙テンプレートに入れる記入例（架空）
+
+# 白紙テンプレートに入れる記入例（架空）。IDは空欄でよいことが伝わるよう空欄にし、要素は名前で指定する
 _EXAMPLE_ELEMENTS = pd.DataFrame([
-    {"element_id": "SYS-001", "name": "経費精算システム", "element_type": "system",
-     "description": "経費申請と承認を行うシステム", "owner": "DEP-001", "aliases": "経費システム"},
-    {"element_id": "PRC-001", "name": "経費精算業務", "element_type": "process",
-     "description": "申請→上長承認→経理確認", "owner": "DEP-001", "aliases": "経費精算"},
-    {"element_id": "DEP-001", "name": "経理部", "element_type": "department",
+    {"element_id": "", "name": "経費精算システム", "element_type": "system",
+     "description": "経費申請と承認を行うシステム", "owner": "経理部", "aliases": "経費システム"},
+    {"element_id": "", "name": "経費精算業務", "element_type": "process",
+     "description": "申請→上長承認→経理確認", "owner": "経理部", "aliases": "経費精算"},
+    {"element_id": "", "name": "経理部", "element_type": "department",
      "description": "", "owner": "", "aliases": "経理"},
 ])
 _EXAMPLE_DEPENDENCIES = pd.DataFrame([
-    {"dependency_id": "D-001", "from_id": "SYS-001", "to_id": "PRC-001", "relation_type": "uses",
+    {"dependency_id": "", "from_id": "経費精算システム", "to_id": "経費精算業務", "relation_type": "uses",
      "direction": "both", "evidence": "経費精算システム操作マニュアル", "status": "confirmed",
      "note": "承認ルートはシステムの設定で管理"},
-    {"dependency_id": "D-002", "from_id": "PRC-001", "to_id": "DEP-001", "relation_type": "performs",
+    {"dependency_id": "", "from_id": "経費精算業務", "to_id": "経理部", "relation_type": "performs",
      "direction": "one_way", "evidence": "経理部ヒアリング", "status": "unconfirmed", "note": ""},
 ])
 
@@ -89,7 +99,10 @@ _GUIDE = [
     ("", ""),
     ("【大切なルール】", ""),
     ("見出しの色", "濃紺の見出しは必須、薄いグレーの見出しは任意です。見出しの文字は変更しないでください。"),
-    ("要素ID", "重複しない記号を付けます（例：SYS-001）。依存関係シートではこのIDで要素を指定します。"),
+    ("要素ID", "空欄で構いません（自動で付けます）。付ける場合は、重複しない記号にします（例：SYS-001）。"),
+    ("名前", "依存関係シートの「影響元」「影響先」や「責任部門・担当」は、要素の名前をプルダウンで選びます。"
+            "同じ名前の要素は登録できません（例：「人事部（本社）」「人事部（工場）」のように区別します）。"
+            "要素の名前を後から変えた場合は、依存関係シートの名前も直してください。"),
     ("影響の向き", "「影響元が変わると、影響先に対応や確認が必要になる」向きで登録します。"
                   "分析はこの向きにだけ影響をたどるため、逆に書くと影響を見落とします。"),
     ("向きの決め方", "「Aが変わったら、Bに対応や確認が必要になるか？」と考え、必要になるなら A が影響元、B が影響先です。"
@@ -139,9 +152,10 @@ def _write_sheet(ws, df: pd.DataFrame, headers: dict[str, str], required: list[s
     ws.freeze_panes = "A2"
 
 
-def _add_list_validation(ws, column_letter: str, formula: str, max_rows: int, title: str) -> None:
+def _add_list_validation(ws, column_letter: str, formula: str, max_rows: int, title: str,
+                         error: str = "一覧から選んでください。") -> None:
     dv = DataValidation(type="list", formula1=formula, allow_blank=True, showErrorMessage=True,
-                        errorTitle=title, error="一覧から選んでください。")
+                        errorTitle=title, error=error)
     dv.add(f"{column_letter}2:{column_letter}{max_rows + 1}")
     ws.add_data_validation(dv)
 
@@ -150,6 +164,12 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
     """Excelテンプレートを作る。データを渡すとその内容入り（サンプルの記入例など）、省略すると記入例3行入り。"""
     elements = _EXAMPLE_ELEMENTS if elements is None else elements
     dependencies = _EXAMPLE_DEPENDENCIES if dependencies is None else dependencies
+    # 利用者が名前で選べるよう、要素の指定（ID）を名前に置き換えて書き出す
+    id_to_name = {i: n for i, n in zip(elements["element_id"], elements["name"]) if i}  # 空欄のIDは対応させない
+    to_name = lambda v: id_to_name.get(v, v)  # noqa: E731
+    elements = elements.assign(owner=elements.get("owner", pd.Series("", index=elements.index)).map(to_name))
+    dependencies = dependencies.assign(from_id=dependencies["from_id"].map(to_name),
+                                       to_id=dependencies["to_id"].map(to_name))
 
     wb = Workbook()
     _set_default_font(wb)
@@ -198,14 +218,19 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
         header.font = _REQUIRED_FONT if addable else _OPTIONAL_FONT
         header.fill = _REQUIRED_FILL if addable else _OPTIONAL_FILL
         header.border = _HEADER_BORDER
-        ws_c.column_dimensions[header.column_letter].width = 30
+        header.alignment = Alignment(horizontal="center", vertical="center")  # 見出しは左右中央揃え
         for r, label in enumerate(choice.values(), start=2):
             ws_c.cell(row=r, column=col, value=label).fill = _BUILTIN_FILL  # もとからある値（変更しない）
         for r, label in enumerate(extras, start=len(choice) + 2):
             ws_c.cell(row=r, column=col, value=label)  # 利用者が追加した値
     for r, (label, text) in enumerate(_CHOICES_GUIDE, start=1):
-        ws_c.cell(row=r, column=6, value=label).font = Font(name=FONT_NAME, bold=True, color=INK)
-        ws_c.cell(row=r, column=7, value=text).alignment = Alignment(wrap_text=True, vertical="top")
+        label_cell = ws_c.cell(row=r, column=6, value=label)
+        label_cell.font = Font(name=FONT_NAME, bold=True, color=INK)
+        label_cell.alignment = Alignment(vertical="center")  # 項目名は上下中央揃え
+        label_cell.fill = _GUIDE_LABEL_FILL
+        text_cell = ws_c.cell(row=r, column=7, value=text)
+        text_cell.alignment = Alignment(wrap_text=True, vertical="top")
+        label_cell.border = text_cell.border = _GUIDE_BORDER
     ws_c.column_dimensions["F"].width = 18
     ws_c.column_dimensions["G"].width = 70
     letters = {title: chr(ord("A") + i) for i, (title, *_rest) in enumerate(lists)}
@@ -217,11 +242,15 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
             return f"OFFSET('{CHOICES_SHEET}'!${letter}$2,0,0,COUNTA('{CHOICES_SHEET}'!${letter}:${letter})-1,1)"
         return f"'{CHOICES_SHEET}'!${letter}$2:${letter}${len(choice) + 1}"
 
-    id_list = f"'{ELEMENTS_SHEET}'!$A$2:$A${MAX_ELEMENT_ROWS + 1}"
+    # 要素の名前の一覧（B列）。要素を追加するとプルダウンにも自動で出るよう、入力されている行数に合わせて広げる
+    name_list = f"OFFSET('{ELEMENTS_SHEET}'!$B$2,0,0,COUNTA('{ELEMENTS_SHEET}'!$B:$B)-1,1)"
     _add_list_validation(ws_e, "C", choice_formula(CHOICE_HEADERS[0], models.ELEMENT_TYPES), MAX_ELEMENT_ROWS, "種類")
-    _add_list_validation(ws_e, "E", id_list, MAX_ELEMENT_ROWS, "責任部門・担当")
-    _add_list_validation(ws_d, "B", id_list, MAX_DEPENDENCY_ROWS, "影響元の要素ID")
-    _add_list_validation(ws_d, "C", id_list, MAX_DEPENDENCY_ROWS, "影響先の要素ID")
+    _add_list_validation(ws_e, "E", name_list, MAX_ELEMENT_ROWS, "責任部門・担当",
+                         "「要素」シートに登録した名前から選んでください。")
+    _add_list_validation(ws_d, "B", name_list, MAX_DEPENDENCY_ROWS, "影響元",
+                         "「要素」シートに登録した名前から選んでください。")
+    _add_list_validation(ws_d, "C", name_list, MAX_DEPENDENCY_ROWS, "影響先",
+                         "「要素」シートに登録した名前から選んでください。")
     _add_list_validation(ws_d, "D", choice_formula(CHOICE_HEADERS[1], models.RELATION_TYPES), MAX_DEPENDENCY_ROWS, "関係の種類")
     _add_list_validation(ws_d, "E", choice_formula(CHOICE_HEADERS[2], models.DIRECTIONS), MAX_DEPENDENCY_ROWS, "影響の向き")
     _add_list_validation(ws_d, "G", choice_formula(CHOICE_HEADERS[3], models.STATUSES), MAX_DEPENDENCY_ROWS, "確認状態")
@@ -229,6 +258,10 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
     for ws in wb.worksheets:
         ws.sheet_view.showGridLines = False
         ws.column_dimensions["A"].width = cm_to_width(FIRST_COLUMN_CM)
+    # 個別に指定した列幅（cm）。A列の共通設定のあとに設定し、上書きされないようにする
+    for sheet, widths in COLUMN_WIDTHS_CM.items():
+        for letter, cm in widths.items():
+            wb[sheet].column_dimensions[letter].width = cm_to_width(cm)
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -251,6 +284,7 @@ def _sheet_to_csv(df: pd.DataFrame, headers: dict[str, str], choices: dict[str, 
                   sheet: str) -> tuple[bytes | None, list[str]]:
     """日本語の見出し・選択肢をCSVの形式に変換する。"""
     reverse = {ja: en for en, ja in headers.items()}
+    reverse.update({ja: en for ja, en in models.LEGACY_HEADERS_JA.items() if en in headers})
     df = df.rename(columns=lambda c: reverse.get(str(c).strip(), str(c).strip()))
     missing = [headers[c] for c in headers if c not in df.columns and c in
                (models.ELEMENT_REQUIRED_COLUMNS + models.DEPENDENCY_REQUIRED_COLUMNS)]

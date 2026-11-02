@@ -54,12 +54,13 @@ STATUSES = {
 }
 
 # 要素CSVの列
-ELEMENT_REQUIRED_COLUMNS = ["element_id", "name", "element_type"]
-ELEMENT_OPTIONAL_COLUMNS = ["description", "owner", "aliases"]
+# 要素IDは任意（空欄なら自動で付ける）。名前は重複できず、依存関係・責任部門は名前でもIDでも指定できる
+ELEMENT_REQUIRED_COLUMNS = ["name", "element_type"]
+ELEMENT_OPTIONAL_COLUMNS = ["element_id", "description", "owner", "aliases"]
 
 # 依存関係CSVの列
+# 依存関係IDは任意（空欄なら自動で付ける）。影響元・影響先は、要素の名前でもIDでも指定できる
 DEPENDENCY_REQUIRED_COLUMNS = [
-    "dependency_id",
     "from_id",
     "to_id",
     "relation_type",
@@ -67,7 +68,7 @@ DEPENDENCY_REQUIRED_COLUMNS = [
     "evidence",
     "status",
 ]
-DEPENDENCY_OPTIONAL_COLUMNS = ["note"]
+DEPENDENCY_OPTIONAL_COLUMNS = ["dependency_id", "note"]
 
 # Excelテンプレートで使う日本語の列名（CSVの列名 → Excelの見出し）
 ELEMENT_HEADERS_JA = {
@@ -75,13 +76,13 @@ ELEMENT_HEADERS_JA = {
     "name": "名前",
     "element_type": "種類",
     "description": "説明",
-    "owner": "責任部門・担当（要素ID）",
+    "owner": "責任部門・担当",
     "aliases": "別名（;区切り）",
 }
 DEPENDENCY_HEADERS_JA = {
     "dependency_id": "依存関係ID",
-    "from_id": "影響元の要素ID",
-    "to_id": "影響先の要素ID",
+    "from_id": "影響元",
+    "to_id": "影響先",
     "relation_type": "関係の種類",
     "direction": "影響の向き",
     "evidence": "根拠（資料名・ヒアリング等）",
@@ -102,6 +103,13 @@ def relation_type_label(code: str) -> str:
     """関係の種類の表示名。利用者が追加した関係は、その名前のまま表示する。"""
     return RELATION_TYPES.get(code, code)
 
+
+# 以前のテンプレートの見出し（古いExcelも読み込めるようにする）
+LEGACY_HEADERS_JA = {
+    "責任部門・担当（要素ID）": "owner",
+    "影響元の要素ID": "from_id",
+    "影響先の要素ID": "to_id",
+}
 
 # 区分値の列と、その選択肢（Excelでは日本語で選び、読み込み時にCSVの値へ変換する）
 ELEMENT_CHOICE_COLUMNS = {"element_type": ELEMENT_TYPES}

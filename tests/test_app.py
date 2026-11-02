@@ -108,14 +108,15 @@ def test_analysis_page_with_custom_type():
 
     wb = load_workbook(io.BytesIO(build_template()))
     wb[CHOICES_SHEET]["A10"] = "設備"
-    wb[ELEMENTS_SHEET].append(["EQ-001", "製造ライン1", "設備", "", "DEP-001"])
-    wb[DEPENDENCIES_SHEET].append(["D-003", "SYS-001", "EQ-001", "利用する", "一方向", "設備台帳", "確認済"])
+    wb[ELEMENTS_SHEET].append(["", "製造ライン1", "設備", "", "経理部"])
+    wb[DEPENDENCIES_SHEET].append(["", "経費精算システム", "製造ライン1", "利用する", "一方向", "設備台帳", "確認済"])
     buffer = io.BytesIO()
     wb.save(buffer)
     dataset = load_from_excel(buffer.getvalue()).dataset
 
     at = run_page("analysis.py", dataset)
-    at.multiselect[0].set_value(["SYS-001"]).run()
+    system_id = dataset.elements.set_index("name").loc["経費精算システム", "element_id"]
+    at.multiselect[0].set_value([system_id]).run()
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     assert not at.exception
     assert any("製造ライン1" in m.value and "設備" in m.value for m in at.markdown)
