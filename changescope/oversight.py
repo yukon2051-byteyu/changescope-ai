@@ -8,6 +8,7 @@ AIには登録データそのものではなく、Pythonで分析した結果（
 - 根拠に挙げたつながりの番号が実在するか → 実在すれば「登録情報にもとづく」、なければ「AIの推測」
 - 確認先が登録された部門・担当者か → なければ「未登録の部門候補」
 - 費用・期間の数字が入っていないか → 入っていれば「要見積もり」に置き換える（数字を作らせない）
+- 文章にD番号が書かれていないか → 画面ではIDを見せないため、つながりの名前（「A → B」）に置き換える
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from changescope.next_actions import find_uncertain_links
 from changescope.stakeholders import PERSON_TYPES, Stakeholder
 
 FEATURE = "確認漏れ"
-VIEWPOINTS = ["コスト", "契約", "業務手順", "システム", "データ", "セキュリティ", "内部統制", "教育・周知", "スケジュール"]
+VIEWPOINTS = ["コスト", "契約", "業務手順", "システム", "データ", "セキュリティ", "規程・ルール", "内部統制", "教育・周知", "スケジュール"]
 IMPORTANCE = ["高", "中", "低"]
 REGISTERED = "登録情報にもとづく"
 GUESS = "AIの推測"
@@ -38,6 +39,12 @@ _MONEY_OR_PERIOD = re.compile(
     r"(約|およそ|最大|最低|少なくとも)?[0-9０-９][0-9０-９,，.．]*\s*"
     r"(億円|万円|千円|円|ドル|人日|人月|日間|週間|か月|ヶ月|カ月|ヵ月|箇月|年間|時間)"
 )
+# 文章中のつながりの番号。かっこの中が番号だけなら、かっこごと消す
+_ID = r"D-\d+"
+_SEP = r"\s*[、,，・]\s*"
+_PAREN_IDS_ONLY = re.compile(rf"[（(]\s*{_ID}(?:{_SEP}{_ID})*\s*[）)]")
+_PAREN_IDS_LEAD = re.compile(rf"(?<=[（(])\s*{_ID}(?:{_SEP}{_ID})*{_SEP}")
+_BARE_ID = re.compile(_ID)
 
 
 def _str(v) -> str:
@@ -77,11 +84,12 @@ SCHEMA = _object({
         "detail": {"type": "string", "description": "なぜ見落としやすいか。金額は書かない"},
     })),
     "approach": _array(_object({"step": {"type": "string"}, "detail": {"type": "string"}})),
-    "unregistered": _array(_object({
+    # 「必ず挙げる」と指示しても0件で返すことがあったため、1件以上を形で必須にする（APIが使える値は0か1だけ）
+    "unregistered": {**_array(_object({
         "name": {"type": "string", "description": "登録データにないが、関係しそうな要素"},
         "element_type": {"type": "string", "enum": list(models.ELEMENT_TYPES.values())},
         "reason": {"type": "string"},
-    })),
+    })), "minItems": 1},
 })
 
 SYSTEM = (
@@ -89,13 +97,15 @@ SYSTEM = (
     "経験豊富なITコンサルタントがヒアリングで指摘するように、次の点に注意して回答してください。\n"
     "- findings（確認漏れ）を最も重視し、6〜10件挙げる。登録データの「推定」「未確認」のつながり、"
     "変更の種類から当然確認すべきなのにデータにないこと（データ移行、連携、権限、規程、契約、教育、切り戻しなど）を優先する。\n"
+    "- 変更内容と関係が薄いつながり（経路の先にあるだけで、今回の変更で何も変わらないもの）は挙げない。\n"
     "- 確認先は、登録された部門・担当者の名前を使う。該当がなければ、部門の候補を書く。\n"
     "- question は、確認先にそのまま聞ける具体的な質問文にする（例：「新しい勤怠システムから給与計算システムへの連携は、"
     "今と同じCSV形式で可能ですか？」）。\n"
     "- 登録データのつながりを根拠にした指摘は、evidence_ids にそのつながりの番号（D-で始まる）を入れる。"
-    "推測にもとづく指摘は evidence_ids を空にする。存在しない番号を書かない。\n"
+    "推測にもとづく指摘は evidence_ids を空にする。存在しない番号を書かない。"
+    "番号は evidence_ids にだけ書き、文章（title・detail・question など）には書かない。\n"
     "- department_points は関係する部門ごとに、risks は3〜5件、hidden_costs は3〜5件（金額は書かない）、"
-    "approach は3〜5段階、unregistered は2〜5件。\n"
+    "approach は3〜5段階、unregistered は必ず2件以上（最大5件）挙げる。登録データにない業務・システム・外部サービス・規程・担当者を、変更の種類から推測する。\n"
     "- すべて日本語で、簡潔に書く。"
 )
 
@@ -179,9 +189,26 @@ def scrub_numbers(text: str) -> str:
     return _MONEY_OR_PERIOD.sub(ESTIMATE, text)
 
 
+def link_names(graph: nx.MultiDiGraph) -> dict[str, str]:
+    """つながりの番号 → 「影響元 → 影響先」（逆向きに追加した線は除く）。"""
+    return {d["dependency_id"]: f"「{graph.nodes[u]['name']} → {graph.nodes[v]['name']}」"
+            for u, v, d in graph.edges(data=True) if not d.get("reversed")}
+
+
+def replace_ids(text: str, names: dict[str, str]) -> str:
+    """文章中のD番号を、つながりの名前に置き換える（存在しない番号は消す）。"""
+    text = _PAREN_IDS_LEAD.sub("", _PAREN_IDS_ONLY.sub("", text))
+    return _BARE_ID.sub(lambda m: names.get(m.group(), ""), text)
+
+
 def validate(raw: dict, graph: nx.MultiDiGraph, result: ImpactResult) -> OversightReport:
     """AIの回答を確かめて、表示できる形にする。"""
     steps = collect_steps(result)
+    names = link_names(graph)
+
+    def clean(text) -> str:
+        return scrub_numbers(replace_ids(_str(text), names))
+
     person_names = {d["name"] for _, d in graph.nodes(data=True) if d["element_type"] in PERSON_TYPES}
     element_names = {d["name"] for _, d in graph.nodes(data=True)}
 
@@ -190,13 +217,13 @@ def validate(raw: dict, graph: nx.MultiDiGraph, result: ImpactResult) -> Oversig
         cited = [i for i in f.get("evidence_ids", []) if i in steps]  # 実在する番号だけ残す
         contact = _str(f.get("contact")).strip()
         findings.append(OversightFinding(
-            title=scrub_numbers(_str(f.get("title"))),
-            detail=scrub_numbers(_str(f.get("detail"))),
+            title=clean(f.get("title")),
+            detail=clean(f.get("detail")),
             viewpoint=f.get("viewpoint") if f.get("viewpoint") in VIEWPOINTS else "業務手順",
             importance=f.get("importance") if f.get("importance") in IMPORTANCE else "中",
             contact=contact,
             contact_registered=any(name in contact for name in person_names),
-            question=scrub_numbers(_str(f.get("question"))),
+            question=clean(f.get("question")),
             basis=REGISTERED if cited else GUESS,
             evidence=[_step_text(graph, steps[i]) for i in cited],
         ))
@@ -204,7 +231,7 @@ def validate(raw: dict, graph: nx.MultiDiGraph, result: ImpactResult) -> Oversig
     findings.sort(key=lambda f: (order[f.importance], f.basis != REGISTERED))
 
     def scrub_all(items: list[dict]) -> list[dict]:
-        return [{k: scrub_numbers(v) if isinstance(v, str) else v for k, v in item.items()} for item in items]
+        return [{k: clean(v) if isinstance(v, str) else v for k, v in item.items()} for item in items]
 
     department_points = [
         {"department": _str(d.get("department")),

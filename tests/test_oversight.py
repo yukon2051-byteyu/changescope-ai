@@ -76,6 +76,17 @@ def test_money_and_period_numbers_are_replaced():
     assert "3段階" in scrubbed  # 費用・期間ではない数字は残す
 
 
+def test_link_ids_in_text_are_replaced_with_names(scenario_a):
+    # 画面ではIDを見せないため、文章中のD番号はつながりの名前にする
+    graph, result, *_ = scenario_a
+    report = validate(raw_answer([finding(
+        detail="D-006で連携が未確認（D-003、D-001）。給与仕訳（D-021、推定）も確認。D-999は存在しない")]), graph, result)
+    detail = report.findings[0].detail
+    assert "D-" not in detail
+    assert detail.startswith("「勤怠管理システム → 社内認証基盤」で連携が未確認。")
+    assert "給与仕訳（推定）" in detail
+
+
 def test_findings_sorted_by_importance_then_registered_first(scenario_a):
     graph, result, *_ = scenario_a
     report = validate(raw_answer([
