@@ -32,6 +32,8 @@ class Action:
     title: str
     detail: str
     items: list[str] = field(default_factory=list)
+    # 要確認のつながり。重要なため、画面では1本ずつ枠で囲んで目立たせて表示する
+    links: list["UncertainLink"] = field(default_factory=list)
 
 
 @dataclass
@@ -110,13 +112,6 @@ def build_next_actions(graph: nx.MultiDiGraph, result: ImpactResult,
     links = find_uncertain_links(graph, result)
     if links:
         items = []
-        for link in links[:MAX_ITEMS]:
-            contacts = "、".join(link.contacts) if link.contacts else "責任部門が未登録"
-            line = (f"{link.text}【{models.STATUSES[link.status]}】　確認先：{contacts}　"
-                    f"→ {link.affected}件の影響の有無がはっきりする")
-            if link.note:
-                line += f"（補足：{link.note}）"
-            items.append(line)
         if len(links) > MAX_ITEMS:
             items.append(f"ほか{len(links) - MAX_ITEMS}本（「要確認のつながり」タブで確認できます）")
         uncertain = sum(i.path_status != "confirmed" for i in result.impacts)
@@ -127,6 +122,7 @@ def build_next_actions(graph: nx.MultiDiGraph, result: ImpactResult,
             f"この{len(links)}本を確かめれば、要確認の影響{uncertain}件の有無がまとめてはっきりします。"
             "上から順に確認すると、少ない確認で多くの影響の有無をはっきりさせられます。",
             items,
+            links[:MAX_ITEMS],
         ))
 
     hidden = hard_to_notice(graph, result)

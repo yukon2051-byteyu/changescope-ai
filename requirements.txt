@@ -3,4 +3,5 @@ streamlit>=1.40
 networkx>=3.3
 pandas>=2.2
 openpyxl>=3.1  # Excelテンプレートの作成・読み込み
+anthropic>=2.3  # Claude API（Phase 2：AI分析）
 pytest>=8.0

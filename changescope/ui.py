@@ -127,6 +127,27 @@ _GLOBAL_CSS = """
 }
 .cs-action-list { margin: 6px 0 0 0; padding-left: 1.2em; color: var(--cs-sub); font-size: .9rem; }
 .cs-action-list li { margin: 2px 0; }
+.cs-step-main { flex: 1; min-width: 0; }
+
+/* 要確認のつながり：重要なため1本ずつ枠で囲んで目立たせる */
+.cs-link-cards { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.cs-link-card {
+  background: var(--cs-cream); border: 1px solid #E9DFC4; border-left: 5px solid var(--cs-gold);
+  border-radius: 4px; padding: 10px 14px;
+}
+.cs-link-unconfirmed { border-left-color: #A6741A; }
+.cs-link-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cs-link-status {
+  background: var(--cs-navy); color: var(--cs-gold-light); font-size: .78rem; font-weight: 700;
+  padding: 2px 10px; border-radius: 3px; white-space: nowrap;
+}
+.cs-link-unconfirmed .cs-link-status { background: #A6741A; color: #fff; }
+.cs-link-text { font-weight: 700; color: var(--cs-navy); font-size: 1.02rem; }
+.cs-link-meta { margin-top: 6px; color: var(--cs-ink); font-size: .92rem; }
+.cs-link-meta b { color: var(--cs-navy); }
+.cs-link-arrow { color: var(--cs-gold); margin: 0 8px; }
+.cs-link-count { font-weight: 700; color: var(--cs-navy); font-size: 1.05rem; margin: 0 2px; }
+.cs-link-note { margin-top: 4px; color: var(--cs-sub); font-size: .85rem; }
 
 .cs-conclusion {
   background: linear-gradient(135deg, var(--cs-navy) 0%, var(--cs-navy-2) 100%); color: #fff;
@@ -277,12 +298,31 @@ def action_steps(actions) -> None:
     for n, action in enumerate(actions, start=1):
         items = "".join(f"<li>{escape(item)}</li>" for item in action.items)
         body += (
-            f'<div class="cs-step"><div class="cs-step-num">{n}</div><div>'
+            f'<div class="cs-step"><div class="cs-step-num">{n}</div><div class="cs-step-main">'
             f'<div class="cs-step-title">{escape(action.title)}</div>'
             f'<div class="cs-step-text">{escape(action.detail)}'
+            f'{_link_cards(action.links)}'
             f'{f"<ul class=cs-action-list>{items}</ul>" if items else ""}</div></div></div>'
         )
     html(f'<div class="cs-actions">{body}</div>')
+
+
+def _link_cards(links) -> str:
+    """要確認のつながりを、1本ずつ枠で囲んで目立たせる（つながり・確認状態・確認先・はっきりする影響の件数）。"""
+    cards = ""
+    for link in links:
+        status = models.STATUSES[link.status]
+        contacts = "、".join(link.contacts) if link.contacts else "責任部門が未登録"
+        note_line = f'<div class="cs-link-note">補足：{escape(link.note)}</div>' if link.note else ""
+        cards += (
+            f'<div class="cs-link-card cs-link-{escape(link.status)}">'
+            f'<div class="cs-link-head"><span class="cs-link-status">{escape(status)}</span>'
+            f'<span class="cs-link-text">{escape(link.text)}</span></div>'
+            f'<div class="cs-link-meta">確認先：<b>{escape(contacts)}</b>'
+            f'<span class="cs-link-arrow">→</span>確かめると<span class="cs-link-count">{link.affected}件</span>'
+            f'の影響の有無がはっきりする</div>{note_line}</div>'
+        )
+    return f'<div class="cs-link-cards">{cards}</div>' if cards else ""
 
 
 def conclusion(assessment) -> None:

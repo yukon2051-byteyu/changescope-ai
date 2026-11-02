@@ -74,6 +74,28 @@ def test_action_steps_escape_uploaded_text(monkeypatch):
     assert "&lt;script&gt;" in captured[0]
 
 
+def test_uncertain_links_are_shown_as_highlighted_cards(monkeypatch):
+    from changescope import ui
+
+    ds = load_sample()
+    actions = actions_for(ds.graph, ["SYS-ATT"])
+    link_action = actions[1]
+    assert len(link_action.links) == 4 and link_action.items == []  # 4本すべてを枠で表示（5本以下なので「ほか」はない）
+
+    captured = []
+    monkeypatch.setattr(ui, "html", captured.append)
+    ui.action_steps([link_action])
+    out = captured[0]
+    assert out.count('class="cs-link-card ') == 4  # 1本ごとの枠（全体を囲む cs-link-cards は数えない）
+    assert "勤怠管理システム → 社内認証基盤（連携先）" in out
+    assert '<span class="cs-link-count">3件</span>' in out
+
+    link_action.links[0].text = "<script>x</script>"  # データ内のHTMLは文字として表示する
+    captured.clear()
+    ui.action_steps([link_action])
+    assert "<script>" not in captured[0]
+
+
 def test_data_table_shows_full_text_escaped(monkeypatch):
     from changescope import ui
 
