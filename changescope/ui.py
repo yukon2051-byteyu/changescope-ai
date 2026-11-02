@@ -90,7 +90,7 @@ _GLOBAL_CSS = """
   margin: 10px 0 18px; color: #fff; letter-spacing: .02em;
 }
 .cs-hero-lead { font-size: 1.3rem; font-weight: 700; letter-spacing: .06em; margin-bottom: 10px; }
-.cs-hero-sub { color: #C9CFDB; line-height: 1.9; max-width: 720px; }
+.cs-hero-sub { color: #C9CFDB; line-height: 1.9; }
 .cs-hero-rule { width: 56px; height: 2px; background: var(--cs-gold); margin: 0 0 18px; }
 
 .cs-section { margin: 36px 0 14px; }
@@ -127,6 +127,28 @@ _GLOBAL_CSS = """
 }
 .cs-action-list { margin: 6px 0 0 0; padding-left: 1.2em; color: var(--cs-sub); font-size: .9rem; }
 .cs-action-list li { margin: 2px 0; }
+
+.cs-conclusion {
+  background: linear-gradient(135deg, var(--cs-navy) 0%, var(--cs-navy-2) 100%); color: #fff;
+  border-radius: 6px; border-bottom: 3px solid var(--cs-gold); padding: 20px 28px; margin: 8px 0 18px;
+}
+.cs-conclusion .cs-eyebrow { color: var(--cs-gold-light); }
+.cs-conclusion-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 8px 0 6px; }
+.cs-level { font-weight: 700; padding: 4px 14px; border-radius: 3px; letter-spacing: .08em; white-space: nowrap; }
+.cs-level-大 { background: var(--cs-gold); color: var(--cs-navy); }
+.cs-level-中 { background: var(--cs-gold-light); color: var(--cs-navy); }
+.cs-level-小 { background: #fff; color: var(--cs-navy); }
+.cs-conclusion-headline { font-size: 1.2rem; font-weight: 700; letter-spacing: .04em; }
+.cs-conclusion-meaning { color: #C9CFDB; margin-bottom: 12px; }
+.cs-conclusion-first {
+  background: rgba(255,255,255,.08); border-left: 3px solid var(--cs-gold); padding: 10px 14px;
+  border-radius: 3px; line-height: 1.8;
+}
+.cs-conclusion-first b { color: var(--cs-gold-light); margin-right: 12px; }
+.cs-conclusion-caution { margin-top: 10px; color: var(--cs-gold-light); font-size: .92rem; line-height: 1.8; }
+.cs-conclusion-label { margin-top: 14px; color: var(--cs-gold-light); font-weight: 700; font-size: .9rem; }
+.cs-conclusion-stance { margin: 4px 0 0; padding-left: 1.2em; line-height: 1.9; }
+.cs-conclusion-basis { margin-top: 12px; color: #9AA4B8; font-size: .8rem; }
 
 .cs-finding {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-radius: 4px; padding: 14px 18px; margin: 10px 0;
@@ -261,6 +283,28 @@ def action_steps(actions) -> None:
             f'{f"<ul class=cs-action-list>{items}</ul>" if items else ""}</div></div></div>'
         )
     html(f'<div class="cs-actions">{body}</div>')
+
+
+def conclusion(assessment) -> None:
+    """分析結果の結論（総合判定・まずやること・意識すること）を、結果のいちばん上に表示する。
+
+    責任部門の名前などアップロードされたデータを含むため、すべてエスケープする。
+    """
+    a = assessment
+    stance = "".join(f"<li>{escape(s)}</li>" for s in a.stance)
+    caution = f'<div class="cs-conclusion-caution">{escape(a.caution)}</div>' if a.caution else ""
+    html(
+        f'<div class="cs-conclusion">'
+        f'<div class="cs-eyebrow">CONCLUSION</div>'
+        f'<div class="cs-conclusion-head"><span class="cs-level cs-level-{escape(a.level)}">影響 {escape(a.level)}</span>'
+        f'<span class="cs-conclusion-headline">{escape(a.headline)}</span></div>'
+        f'<div class="cs-conclusion-meaning">{escape(a.meaning)}</div>'
+        f'<div class="cs-conclusion-first"><b>まずやること</b>{escape(a.first_step)}</div>'
+        f'{caution}'
+        f'<div class="cs-conclusion-label">意識すること</div><ul class="cs-conclusion-stance">{stance}</ul>'
+        f'<div class="cs-conclusion-basis">{escape(a.basis)}</div>'
+        f'</div>'
+    )
 
 
 def findings_list(findings) -> None:

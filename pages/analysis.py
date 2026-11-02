@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from changescope import models
+from changescope.assessment import assess
 from changescope.datasets import load_scenarios
 from changescope.graph_engine import (
     DEFAULT_MAX_DEPTH, PROXIMITY_POINTS, analyze_impact, describe_path, step_label,
@@ -14,11 +15,12 @@ from changescope.matcher import find_candidates
 from changescope.next_actions import build_next_actions
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
-    STATUS_LABELS, action_steps, data_table, element_label, findings_list, get_dataset, section,
+    STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, section,
     show_mode_banner,
 )
 
 MAX_INPUT_CHARS = 1000
+MAX_DEPTH_LIMIT = 8  # 選べる段数の上限
 
 st.title("影響分析")
 dataset = get_dataset()
@@ -74,7 +76,7 @@ elif candidates:
     st.caption("入力文から候補を自動で選びました。誤りがあれば修正してください。")
 
 max_depth = st.slider(
-    "何段先までたどるか", 1, 5, DEFAULT_MAX_DEPTH,
+    "何段先までたどるか", 1, MAX_DEPTH_LIMIT, DEFAULT_MAX_DEPTH,
     help="段数を増やすと遠くの影響まで確認できますが、関係の薄い要素も増えます。",
 )
 
@@ -98,6 +100,10 @@ stakeholders = find_stakeholders(dataset.graph, result)
 tags = impact_tags(dataset.graph, result)
 hidden = hard_to_notice(dataset.graph, result)
 gaps = find_gaps(dataset.graph, result)
+
+if result.impacts:
+    conclusion(assess(dataset.graph, result, stakeholders))
+
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("影響を受ける関係者", f"{len(stakeholders)} 件", help="影響を受ける部門・役割")
 c2.metric("直接影響", f"{len(result.direct)} 件", help="変更対象と直接つながっている要素")

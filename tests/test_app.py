@@ -83,6 +83,8 @@ def test_analysis_page_scenario_a_flow():
     assert metrics["間接影響"] == "14 件"
     assert metrics["影響を受ける関係者"] == "7 件"
     assert metrics["見落としやすい"] == "5 件"
+    assert at.slider[0].max == 8  # 8段までたどれる
+    assert any("影響範囲は「大」です" in m.value and "まずやること" in m.value for m in at.markdown)
     assert any(t.label.startswith("見落としチェック") for t in at.tabs)
     assert any("データの移行・引き継ぎ" in m.value for m in at.markdown)
     assert any("次にやること" in m.value for m in at.markdown)
