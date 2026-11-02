@@ -64,7 +64,7 @@ def find_gaps(graph: nx.MultiDiGraph, result: ImpactResult) -> list[Finding]:
         findings.append(Finding(
             REGISTRATION, "担当が登録されていない業務",
             "この業務を誰が行っているかが分からないため、影響を受ける人を見落とすおそれがあります。"
-            "「依存関係」シートに、業務 → 部門・役割（業務を担当する）を登録してください。",
+            "「依存関係」シートに、業務 → 部門・役割（担当される）を登録してください。",
             _names(graph, no_performer),
         ))
 

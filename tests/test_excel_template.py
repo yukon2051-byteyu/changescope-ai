@@ -249,6 +249,28 @@ def test_legacy_headers_with_ids_still_load():
     assert len(result.dataset.dependencies) == 2
 
 
+def test_relation_names_read_along_the_arrow():
+    # 関係の名前は、矢印（影響元 → 影響先）に沿って読める（例：データは業務に「利用される」）
+    choices = [c.value for c in open_book(build_template())[CHOICES_SHEET]["B"]][1:]
+    assert {"利用される", "担当される", "承認を受ける", "土台になる"} <= set(choices)
+    assert not {"利用する", "業務を担当する", "承認する", "その他の依存"} & set(choices)
+
+
+def test_old_relation_names_still_load():
+    # 以前の名前（利用する・業務を担当する など）で書かれたExcelも、警告なしで読み込める
+    old = {"利用される": "利用する", "担当される": "業務を担当する", "承認を受ける": "承認する", "土台になる": "その他の依存"}
+    wb = open_book(build_template(load_sample().elements, load_sample().dependencies))
+    for ws in (wb[DEPENDENCIES_SHEET], wb[CHOICES_SHEET]):
+        for row in ws.iter_rows():
+            for cell in row:
+                if cell.value in old:
+                    cell.value = old[cell.value]
+    result = load_from_excel(save(wb))
+    assert result.dataset is not None, result.errors
+    assert result.warnings == []
+    assert {"uses", "performs", "approves", "depends_on"} <= set(result.dataset.dependencies["relation_type"])
+
+
 def test_unknown_name_in_dependency_is_error():
     wb = open_book(build_template())
     wb[DEPENDENCIES_SHEET]["B3"] = "経理課"  # 影響先に、登録されていない名前（書き間違い）

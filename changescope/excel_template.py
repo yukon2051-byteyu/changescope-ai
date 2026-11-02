@@ -127,13 +127,13 @@ _GUIDE = [
     ("【関係の種類】", "（影響元 → 影響先 の例）"),
     *[(label, example) for label, example in [
         ("データを提供する", "勤怠管理システム → 勤怠実績データ"),
-        ("利用する", "勤怠実績データ → 月次給与計算（データを業務で使う）"),
+        ("利用される", "勤怠実績データ → 月次給与計算（データは業務に利用される）"),
         ("システム連携する", "経費精算システム → 会計システム"),
-        ("業務を担当する", "月次給与計算 → 人事部（業務の担当部門・担当者）"),
-        ("承認する", "経費精算業務 → 承認者（課長）"),
+        ("担当される", "月次給与計算 → 人事部（業務は担当部門・担当者に担当される）"),
+        ("承認を受ける", "経費精算業務 → 承認者（課長）（業務は承認者の承認を受ける）"),
         ("規程に従う", "経費精算業務 → 経費規程"),
         ("帳票を作成する", "給与計算システム → 給与明細"),
-        ("その他の依存", "社内ファイルサーバー → 顧客管理Excel（保存場所）"),
+        ("土台になる", "社内ファイルサーバー → 顧客管理Excel（保存場所としての土台になる）"),
     ]],
 ]
 
@@ -322,6 +322,8 @@ def _sheet_to_csv(df: pd.DataFrame, headers: dict[str, str], choices: dict[str, 
     for column, choice in choices.items():
         if column in df.columns:
             label_to_code = {label: code for code, label in choice.items()}
+            if choice is models.RELATION_TYPES:
+                label_to_code.update(models.LEGACY_RELATION_LABELS)  # 以前の名前で書かれたExcelも読めるように
             df[column] = df[column].map(lambda v: label_to_code.get(v, v))
     return df.to_csv(index=False).encode("utf-8"), []
 
@@ -344,15 +346,17 @@ def _read_extra_choices(df: pd.DataFrame, column: int, builtin: dict[str, str], 
     if df.shape[1] <= column:
         return frozenset()
     values = [str(v).strip() for v in df.iloc[:, column] if str(v).strip()]
-    for label in builtin.values():
-        if label not in values:
+    legacy = models.LEGACY_RELATION_LABELS if builtin is models.RELATION_TYPES else {}
+    present_codes = {legacy.get(v, v) for v in values} | {c for c, label in builtin.items() if label in values}
+    for code, label in builtin.items():
+        if code not in present_codes:
             result.warnings.append(
                 f"シート「{CHOICES_SHEET}」の「{title}」に、もとからある選択肢「{label}」が見つかりません。"
                 "もとからある選択肢は変更・削除しないでください（分析の判定には引き続き使えます）。"
             )
     extras = []
     for value in values:
-        if value in builtin.values() or value in builtin:
+        if value in builtin.values() or value in builtin or value in legacy:
             continue
         if len(value) > models.MAX_CUSTOM_CHOICE_LENGTH:
             result.errors.append(

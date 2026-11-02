@@ -70,7 +70,7 @@ def test_path_records_evidence():
 def test_describe_reversed_step():
     g = make_graph(list("AB"), [("1", "A", "B", "both", "confirmed")])
     item = analyze_impact(g, ["B"]).impacts[0]
-    assert describe_path(g, item) == "要素B → 要素A（利用する・双方向）"
+    assert describe_path(g, item) == "要素B → 要素A（利用される・双方向）"
 
 
 def test_shortest_path_is_used():

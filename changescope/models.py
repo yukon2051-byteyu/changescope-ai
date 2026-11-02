@@ -16,16 +16,24 @@ ELEMENT_TYPES = {
     "rule": "社内規程・ルール",
 }
 
-# 依存関係の種類。向きは常に「from が変わると to に影響しうる」
+# 依存関係の種類。向きは常に「from が変わると to に影響しうる」（影響が伝わる向き）。
+# 名前は、矢印に沿って「影響元は 影響先に（を）〜」と読めるようにする（例：データは業務に利用される）
 RELATION_TYPES = {
     "provides_data": "データを提供する",
-    "uses": "利用する",
+    "uses": "利用される",
     "integrates_with": "システム連携する",
-    "performs": "業務を担当する",
-    "approves": "承認する",
+    "performs": "担当される",
+    "approves": "承認を受ける",
     "governed_by": "規程に従う",
     "produces": "帳票を作成する",
-    "depends_on": "その他の依存",
+    "depends_on": "土台になる",
+}
+# 以前の名前（矢印と逆の意味に読めたため 2026-11-02 に変更）。古いExcelも読み込めるようにする
+LEGACY_RELATION_LABELS = {
+    "利用する": "uses",
+    "業務を担当する": "performs",
+    "承認する": "approves",
+    "その他の依存": "depends_on",
 }
 
 # 経路の表示用：「from → to（ここ）」の形で、to が from から見て何にあたるかを表す
