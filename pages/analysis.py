@@ -1,5 +1,7 @@
 """影響分析画面：変更内容を入力し、変更対象を確定して、直接・間接影響と根拠を表示する。"""
 
+from html import escape
+
 import pandas as pd
 import streamlit as st
 
@@ -12,10 +14,10 @@ from changescope.graph_engine import (
 from changescope.gaps import find_gaps
 from changescope.insights import department_of, hard_to_notice, impact_tags, target_departments
 from changescope.matcher import find_candidates
-from changescope.next_actions import build_next_actions
+from changescope.next_actions import build_next_actions, find_uncertain_links
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
-    STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, section,
+    STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, note, section,
     show_mode_banner,
 )
 
@@ -100,16 +102,27 @@ stakeholders = find_stakeholders(dataset.graph, result)
 tags = impact_tags(dataset.graph, result)
 hidden = hard_to_notice(dataset.graph, result)
 gaps = find_gaps(dataset.graph, result)
+links = find_uncertain_links(dataset.graph, result)
 
 if result.impacts:
     conclusion(assess(dataset.graph, result, stakeholders))
 
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric("影響を受ける関係者", f"{len(stakeholders)} 件", help="影響を受ける部門・役割")
-c2.metric("直接影響", f"{len(result.direct)} 件", help="変更対象と直接つながっている要素")
-c3.metric("間接影響", f"{len(result.indirect)} 件", help="他の要素を経由して影響が伝わる要素")
-c4.metric("見落としやすい", f"{len(hidden)} 件", help="変更対象の責任部門とは別の部門に、2段以上先で伝わる影響")
-c5.metric("要確認", f"{len(uncertain)} 件", help="経路に「推定」または「未確認」の依存関係を含む影響。関係者への確認が必要です")
+c1.metric("関係者", f"{len(stakeholders)} 件", help="影響を受ける部門・役割の数")
+c2.metric("直接影響", f"{len(result.direct)} 件", help="変更対象と直接つながっている要素の数")
+c3.metric("間接影響", f"{len(result.indirect)} 件", help="他の要素を経由して影響が伝わる要素の数")
+c4.metric("見落とし注意", f"{len(hidden)} 件", help="変更対象の責任部門とは別の部門に、2段以上先で伝わる影響の数")
+c5.metric("要確認", f"{len(uncertain)} 件",
+          help="経路に「推定」または「未確認」のつながりを含む影響（要素）の数。確かめるつながりの本数とは違います")
+
+if links:
+    # 要確認の影響（件）と、確かめるつながり（本）の数が違う理由を、数字のすぐ下で説明する
+    note(
+        f"<b>要確認 {len(uncertain)}件と、確かめるつながり {len(links)}本の関係</b>　"
+        "「要確認」は、影響を受ける<b>要素</b>の数です。1本のつながりが未確認だと、その先にある要素はすべて要確認になります。"
+        f"そのため、<b>確かめるのはつながり {len(links)}本</b>で、それを確かめれば {len(uncertain)}件の影響の有無がまとめてはっきりします。"
+        "一覧は、下の「要確認のつながり」タブで確認できます。"
+    )
 
 if not result.impacts:
     st.info("登録された依存関係からは、影響を受ける要素が見つかりませんでした。依存関係の登録漏れがないか確認してください。")
@@ -168,8 +181,9 @@ def stakeholder_table(items) -> pd.DataFrame:
     })
 
 
-tab0, tab_hidden, tab_gaps, tab1, tab2, tab3 = st.tabs([
-    f"誰に影響するか（{len(stakeholders)}）", f"見落としやすい影響（{len(hidden)}）", f"見落としチェック（{len(gaps)}）",
+tab0, tab_links, tab_hidden, tab_gaps, tab1, tab2, tab3 = st.tabs([
+    f"誰に影響するか（{len(stakeholders)}）", f"要確認のつながり（{len(links)}本）",
+    f"見落としやすい影響（{len(hidden)}）", f"見落としチェック（{len(gaps)}）",
     f"直接影響（{len(result.direct)}）", f"間接影響（{len(result.indirect)}）", "要素ごとの根拠",
 ])
 with tab0:
@@ -181,6 +195,27 @@ with tab0:
         data_table(stakeholder_table(stakeholders), numeric_columns=("影響度（最大）",))
     else:
         st.info("登録データからは、影響を受ける部門・役割が見つかりませんでした。要素の責任部門（owner）が登録されているか確認してください。")
+with tab_links:
+    if links:
+        first = links[0]
+        examples = "、".join(first.affected_names[:3]) + (" など" if first.affected > 3 else "")
+        # 例の文には登録データの名前が入るため、エスケープしてから表示する
+        note(
+            "推定・未確認のつながりの一覧です。<b>1本のつながりが未確認だと、その先にある要素はすべて要確認</b>になります。"
+            f"例えば「{escape(first.text)}」を確かめると、{escape(examples)}の"
+            f"{first.affected}件の影響の有無がはっきりします。"
+            "確かめると分かることが多い順に並んでいるので、上から確認先に問い合わせてください。"
+        )
+        data_table(pd.DataFrame({
+            "確かめるつながり": [link.text for link in links],
+            "確認状態": [STATUS_LABELS[link.status] for link in links],
+            "確認先": ["、".join(link.contacts) or "責任部門が未登録" for link in links],
+            "有無がはっきりする影響": [[f"{link.affected}件："] + link.affected_names for link in links],
+            "補足": [link.note for link in links],
+            "根拠": [link.evidence for link in links],
+        }))
+    else:
+        st.write("確かめる必要があるつながりはありません（経路のつながりはすべて確認済みです）。")
 with tab_hidden:
     st.caption(
         "変更対象の責任部門とは別の部門に、2段以上先で伝わる影響です。"

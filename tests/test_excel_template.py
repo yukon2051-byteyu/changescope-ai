@@ -74,6 +74,19 @@ def test_template_appearance():
             assert all(side.style == "thin" for side in (border.left, border.right, border.top, border.bottom))
     guide = wb[GUIDE_SHEET]
     assert "A1:B1" in {str(r) for r in guide.merged_cells.ranges}  # タイトルがB列まで表示される
+    assert guide["A1"].fill.fgColor.rgb.endswith("1F3260")  # タイトル行は濃紺の塗り
+    assert guide["A1"].font.color.rgb.endswith("FFFFFF")  # 白文字
+    for row in guide.iter_rows(min_row=2):
+        label, text = row[0], row[1]
+        is_section = isinstance(label.value, str) and label.value.startswith("【")
+        if (label.value or text.value) and not is_section:
+            # 手順・ルール・関係の種類の行：A列は上下中央、A・B列とも金色の細い罫線で囲む
+            assert label.alignment.vertical == "center"
+            for cell in (label, text):
+                assert cell.border.left.style == "thin" and cell.border.left.color.rgb.endswith("E0B14A")
+                assert cell.border.bottom.style == "thin"
+        else:
+            assert label.border.left is None or label.border.left.style is None  # 節見出し・空行は罫線なし
     # 見出し行のB列は空欄（空文字だとA列の文字がはみ出して表示されない）
     assert all(row[1].value != "" for row in guide.iter_rows())
 

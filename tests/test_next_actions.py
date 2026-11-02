@@ -19,7 +19,8 @@ def test_sample_scenario_a_actions_in_order():
     titles = [a.title for a in actions]
     assert titles[0] == "変更対象の責任部門と、変更の方針を共有する"
     assert actions[0].items == ["人事部"]
-    assert titles[1] == "要確認のつながりを確かめる（4件）"
+    assert titles[1] == "要確認のつながりを確かめる（4本）"
+    assert "この4本を確かめれば、要確認の影響6件の有無がまとめてはっきりします" in actions[1].detail
     assert titles[2] == "見落としやすい影響を、その部門に共有する（5件）"
     assert actions[2].items == [
         "情報システム部：アカウント管理業務、メールサービス、システム管理者",
@@ -35,6 +36,7 @@ def test_uncertain_links_sorted_by_affected_with_contacts():
     # 勤怠管理システム → 社内認証基盤（未確認）を確かめると、その先の3件の有無が分かる
     assert first.dependency_id == "D-006"
     assert first.affected == 3
+    assert first.affected_names == ["社内認証基盤", "アカウント管理業務", "システム管理者"]
     assert first.contacts == ["人事部", "情報システム部"]
     assert [link.affected for link in links] == sorted((link.affected for link in links), reverse=True)
 

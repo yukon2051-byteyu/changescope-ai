@@ -36,14 +36,23 @@ class Action:
 
 @dataclass
 class UncertainLink:
-    """推定・未確認のつながり1本と、それを確かめると有無がはっきりする影響の数。"""
+    """推定・未確認のつながり1本と、それを確かめると有無がはっきりする影響。
+
+    1本のつながりが未確認だと、その先にある要素はすべて「要確認」になる。
+    そのため、確かめるつながりの本数（本）と、要確認の影響の数（件）は一致しない。
+    """
 
     dependency_id: str
     text: str  # 例：勤怠管理システム → 社内認証基盤（連携先）
     status: str
     note: str
+    evidence: str
     contacts: list[str]
-    affected: int
+    affected_names: list[str] = field(default_factory=list)  # 確かめると有無がはっきりする影響（要素名）
+
+    @property
+    def affected(self) -> int:
+        return len(self.affected_names)
 
 
 def _contact_names(graph: nx.MultiDiGraph, element_ids: list[str]) -> list[str]:
@@ -73,10 +82,10 @@ def find_uncertain_links(graph: nx.MultiDiGraph, result: ImpactResult) -> list[U
                 text = (f"{graph.nodes[step.from_id]['name']} → "
                         f"{graph.nodes[step.to_id]['name']}（{step_label(step)}）")
                 links[step.dependency_id] = UncertainLink(
-                    step.dependency_id, text, step.status, step.note,
-                    _contact_names(graph, [step.from_id, step.to_id]), 0,
+                    step.dependency_id, text, step.status, step.note, step.evidence,
+                    _contact_names(graph, [step.from_id, step.to_id]),
                 )
-            links[step.dependency_id].affected += 1
+            links[step.dependency_id].affected_names.append(item.name)
     return sorted(links.values(), key=lambda link: (-link.affected, link.dependency_id))
 
 
@@ -109,10 +118,13 @@ def build_next_actions(graph: nx.MultiDiGraph, result: ImpactResult,
                 line += f"（補足：{link.note}）"
             items.append(line)
         if len(links) > MAX_ITEMS:
-            items.append(f"ほか{len(links) - MAX_ITEMS}件（「要素ごとの根拠」タブで確認できます）")
+            items.append(f"ほか{len(links) - MAX_ITEMS}本（「要確認のつながり」タブで確認できます）")
+        uncertain = sum(i.path_status != "confirmed" for i in result.impacts)
         actions.append(Action(
-            f"要確認のつながりを確かめる（{len(links)}件）",
+            f"要確認のつながりを確かめる（{len(links)}本）",
             "推定・未確認のつながりを、確認先の部門に事実確認します。"
+            f"1本のつながりが未確認だと、その先にある要素はすべて要確認になるため、"
+            f"この{len(links)}本を確かめれば、要確認の影響{uncertain}件の有無がまとめてはっきりします。"
             "上から順に確認すると、少ない確認で多くの影響の有無をはっきりさせられます。",
             items,
         ))

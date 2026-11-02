@@ -39,7 +39,8 @@ def test_level_by_number_of_departments():
 def test_first_step_names_owner_and_uncertain_links():
     g = make_graph(DEPARTMENTS + [("S", "system", "D1"), ("A", "process", "D1")], [("1", "S", "A", "unconfirmed")])
     a = assess_for(g, ["S"])
-    assert a.first_step == "まず、名D1と変更の方針を共有し、要確認のつながり1件を確かめてください。"
+    assert a.first_step == ("まず、名D1と変更の方針を共有し、要確認のつながり1本を確かめてください"
+                            "（「要確認のつながり」タブで一覧を確認できます）。")
 
 
 def test_low_certainty_caution():
@@ -56,8 +57,9 @@ def test_sample_scenarios():
     a = assess_for(ds.graph, ["SYS-ATT"])
     assert a.level == "大"
     assert a.headline == "影響範囲は「大」です。3部門・21件に影響が及ぶ可能性があります。"
-    # 「次にやること」の要確認のつながり（4件）と件数をそろえる
-    assert a.first_step == "まず、人事部と変更の方針を共有し、要確認のつながり4件を確かめてください。"
+    # 確かめる単位はつながり（本）。「次にやること」の本数とそろえる
+    assert a.first_step.startswith("まず、人事部と変更の方針を共有し、要確認のつながり4本を確かめてください")
+    assert "要確認の影響 6件（確認が必要なつながり 4本）" in a.basis
     assert assess_for(ds.graph, ["PRC-EXP"]).level == "中"
 
 

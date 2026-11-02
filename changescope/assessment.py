@@ -75,17 +75,19 @@ def assess(graph: nx.MultiDiGraph, result: ImpactResult, stakeholders: list[Stak
     n_impacts = len(result.impacts)
     uncertain = sum(i.path_status != "confirmed" for i in result.impacts)
     hidden = len(hard_to_notice(graph, result))
+    # 確かめる単位は「つながり（本）」。「次にやること」の本数と合わせる
+    n_links = len(find_uncertain_links(graph, result))
 
     headline = f"影響範囲は「{level}」です。{n_departments}部門・{n_impacts}件に影響が及ぶ可能性があります。"
     basis = (f"判定の根拠：影響を受ける部門 {n_departments}（3部門以上＝大、2部門＝中、1部門＝小）"
-             f"／影響 {n_impacts}件／見落としやすい影響 {hidden}件／要確認 {uncertain}件")
+             f"／影響 {n_impacts}件／見落としやすい影響 {hidden}件"
+             f"／要確認の影響 {uncertain}件（確認が必要なつながり {n_links}本）")
 
     owners = [s.name for s in stakeholders if s.is_target_owner]
     share = f"{'・'.join(owners)}と変更の方針を共有し" if owners else "変更対象の責任部門を決めて方針を共有し"
-    # 確かめる単位は「つながり」。「次にやること」の件数と合わせる
-    n_links = len(find_uncertain_links(graph, result))
     if n_links:
-        first_step = f"まず、{share}、要確認のつながり{n_links}件を確かめてください。"
+        first_step = (f"まず、{share}、要確認のつながり{n_links}本を確かめてください"
+                      "（「要確認のつながり」タブで一覧を確認できます）。")
     elif hidden:
         first_step = f"まず、{share}、見落としやすい影響{hidden}件をその部門に伝えてください。"
     else:

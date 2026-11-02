@@ -39,6 +39,9 @@ _BUILTIN_FILL = PatternFill("solid", fgColor="EEF1F3")  # 選択肢シートの�
 _GUIDE_LABEL_FILL = PatternFill("solid", fgColor="E4EFA0")
 _THIN = Side(style="thin", color="404040")
 _GUIDE_BORDER = Border(left=_THIN, right=_THIN, top=_THIN, bottom=_THIN)
+# 使い方シートの表の罫線（金色の細線。利用者の見本に合わせる）
+_GOLD_THIN = Side(style="thin", color="E0B14A")
+_GUIDE_ROW_BORDER = Border(left=_GOLD_THIN, right=_GOLD_THIN, top=_GOLD_THIN, bottom=_GOLD_THIN)
 
 # 選択肢シートの見出し（列の位置で読み込むため、順番を変えない）
 CHOICE_HEADERS = ("種類（行を追加できます）", "関係の種類（行を追加できます）",
@@ -108,16 +111,16 @@ _GUIDE = [
     ("名前", "依存関係シートの「影響元」「影響先」や「責任部門・担当」は、要素の名前をプルダウンで選びます。"
             "同じ名前の要素は登録できません（例：「人事部（本社）」「人事部（工場）」のように区別します）。"
             "要素の名前を後から変えた場合は、依存関係シートの名前も直してください。"),
-    ("影響の向き", "「影響元が変わると、影響先に対応や確認が必要になる」向きで登録します。"
+    ("影響の向き", "「影響元が変わると、影響先に対応や確認が必要になる」向きで登録します。\n"
                   "分析はこの向きにだけ影響をたどるため、逆に書くと影響を見落とします。"),
-    ("向きの決め方", "「Aが変わったら、Bに対応や確認が必要になるか？」と考え、必要になるなら A が影響元、B が影響先です。"
+    ("向きの決め方", "「Aが変わったら、Bに対応や確認が必要になるか？」と考え、必要になるなら A が影響元、B が影響先です。\n"
                     "文の主語ではなく「変わったときに困るのはどちらか」で決めます。"),
     ("向きの例", "勤怠実績データ（影響元）→ 月次給与計算（影響先）／月次給与計算（影響元）→ 人事部（影響先、業務の担当）"),
     ("双方向", "どちらが変わっても相手に対応が必要になる場合だけ「双方向」にします。迷ったら一方向で登録してください。"),
     ("根拠", "その関係を何で確認したか（資料名・ヒアリング相手など）を必ず書きます。"),
-    ("確認状態", "資料や関係者に確認済みなら「確認済」、推測なら「推定」、未確認なら「未確認」。"
+    ("確認状態", "資料や関係者に確認済みなら「確認済」、推測なら「推定」、未確認なら「未確認」。\n"
                 "未確認の関係も登録しておくと、確認が必要な事項として分析結果に表示されます。"),
-    ("選択肢の追加", "「選択肢」シートの「種類」と「関係の種類」は、下に行を追加すると新しい値を使えます（例：設備、店舗、取引先）。"
+    ("選択肢の追加", "「選択肢」シートの「種類」と「関係の種類」は、下に行を追加すると新しい値を使えます（例：設備、店舗、取引先）。\n"
                     "もとからある値は変更・削除しないでください。「影響の向き」と「確認状態」は変更できません。"),
     ("注意", "個人情報・機密情報は記入しないでください。"),
     ("", ""),
@@ -185,19 +188,23 @@ def build_template(elements: pd.DataFrame | None = None, dependencies: pd.DataFr
         # 空文字のセルがあると左のセルの文字がはみ出して表示されないため、空欄は None にする
         guide.append([value or None for value in row])
     guide.merge_cells("A1:B1")  # タイトルをB列にまたがって全文表示する
-    guide["A1"].font = Font(name=FONT_NAME, bold=True, size=14, color=INK)
+    guide["A1"].font = Font(name=FONT_NAME, bold=True, size=14, color="FFFFFF")
+    guide["A1"].fill = PatternFill("solid", fgColor=NAVY)  # タイトル行は濃紺の塗りに白文字
+    guide["A1"].alignment = Alignment(vertical="center")
+    guide["A1"].border = guide["B1"].border = Border(bottom=Side(style="medium", color=GOLD))
     guide.row_dimensions[1].height = 30
     for row in guide.iter_rows(min_row=2):
         label, text = row[0], row[1]
         if isinstance(label.value, str) and label.value.startswith("【"):
-            label.font = Font(name=FONT_NAME, bold=True, color=INK)  # 節の見出し
-            for cell in row:
-                cell.border = Border(bottom=Side(style="thin", color=GOLD))
+            label.font = Font(name=FONT_NAME, bold=True, color=INK)  # 節の見出し（罫線なし）
             if text.value:
                 text.font = Font(name=FONT_NAME, color=SUB_INK)
-        elif label.value:
+        elif label.value or text.value:
+            # 手順・ルール・関係の種類の各行：A・B列を金色の細い罫線で囲む
             label.font = Font(name=FONT_NAME, bold=True, color=INK)  # 項目名
-        text.alignment = Alignment(wrap_text=True, vertical="top")
+            label.alignment = Alignment(vertical="center")  # A列は上下中央揃え
+            text.alignment = Alignment(wrap_text=True, vertical="center")
+            label.border = text.border = _GUIDE_ROW_BORDER
     guide.column_dimensions["B"].width = 100
 
     ws_e = wb.create_sheet(ELEMENTS_SHEET)
