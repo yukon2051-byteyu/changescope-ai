@@ -52,6 +52,18 @@ def test_low_certainty_caution():
     assert assess_for(confirmed, ["S"]).caution == ""
 
 
+def test_all_confirmed_does_not_claim_completeness():
+    # すべて確認済みでも、「登録済みの範囲」での判定だと示し、組織全体の漏れがないとは言わない（レビュー C01）
+    from changescope.next_actions import build_next_actions
+
+    g = make_graph(DEPARTMENTS + [("S", "system", "D1"), ("A", "process", "D1")], [("1", "S", "A", "confirmed")])
+    a = assess_for(g, ["S"])
+    assert "登録済みのつながりだけで判定" in a.basis
+    result = analyze_impact(g, ["S"])
+    texts = " ".join(f"{x.title} {x.detail}" for x in build_next_actions(g, result, find_stakeholders(g, result)))
+    assert "漏れのない" not in texts and "登録していないつながり" in texts
+
+
 def test_sample_scenarios():
     ds = load_sample()
     a = assess_for(ds.graph, ["SYS-ATT"])

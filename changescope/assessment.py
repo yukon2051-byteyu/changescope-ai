@@ -81,7 +81,8 @@ def assess(graph: nx.MultiDiGraph, result: ImpactResult, stakeholders: list[Stak
     headline = f"影響範囲は「{level}」です。{n_departments}部門・{n_impacts}件に影響が及ぶ可能性があります。"
     basis = (f"判定の根拠：影響を受ける部門 {n_departments}（3部門以上＝大、2部門＝中、1部門＝小）"
              f"／影響 {n_impacts}件／見落としやすい影響 {hidden}件"
-             f"／要確認の影響 {uncertain}件（確認が必要なつながり {n_links}本）")
+             f"／要確認の影響 {uncertain}件（確認が必要なつながり {n_links}本）"
+             "。登録済みのつながりだけで判定しています（登録していないつながりは含みません）")
 
     owners = [s.name for s in stakeholders if s.is_target_owner]
     share = f"{'・'.join(owners)}と変更の方針を共有し" if owners else "変更対象の責任部門を決めて方針を共有し"

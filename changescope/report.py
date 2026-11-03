@@ -229,7 +229,8 @@ def analysis_report(graph: nx.MultiDiGraph, source: str, change_text: str, resul
                     [f"{l.affected}件："] + l.affected_names, l.evidence) for l in links],
                   (40, 12, 24, 40, 24))
     else:
-        pdf.paragraph("確かめる必要があるつながりはありません（経路のつながりはすべて確認済みです）。")
+        pdf.paragraph("登録済みのつながりの範囲では、確かめる必要があるつながりはありません（経路のつながりはすべて確認済みです）。"
+                      "登録していないつながり、たどった段数より先、情報が古くなったつながりは含まれません。")
 
     pdf.section("5. 見落としやすい影響")
     pdf.paragraph("変更対象の責任部門とは別の部門に、2段以上先で伝わる影響です。")
