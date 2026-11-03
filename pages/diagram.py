@@ -30,11 +30,13 @@ from changescope.ui import STATUS_LABELS, data_table, get_dataset, note, set_dat
 st.title("図で入力する")
 
 # ---------- 見た目 ----------
-NODE_W, NODE_H, ROW_GAP = 230, 58, 22
-COLUMN_X = {"left": 0, "center": 420, "first": 880, "second": 1340}  # 線の上の文字が収まるよう、列の間を空ける
+# 図は表示枠に収まるよう自動で縮小されるため、横幅を抑えて文字を読める大きさに保つ（レビュー C04）。
+# 1280pxの画面で、右の2段目を出さないとき、箱の文字が画面上でおよそ11px になる（変更前は約6px）
+NODE_W, NODE_H, ROW_GAP = 200, 58, 22
+COLUMN_X = {"left": 0, "center": 330, "first": 700, "second": 1030}  # 線の上の文字（関係の名前）が収まる間を空ける
 # 濃い色と差し色はテーマ（changescope/theme.py）に合わせる。規程の灰色・まとめたデータの青は、意味を表す色なので固定
 NAVY, GOLD, RULE_GRAY, DATA_BLUE = THEME.primary, diagram_color("diagram-accent"), "#8A94A6", "#2E5E8C"
-BASE = {"borderRadius": "6px", "padding": "4px 10px", "fontSize": "13px", "lineHeight": "1.35",
+BASE = {"borderRadius": "6px", "padding": "4px 8px", "fontSize": "16px", "lineHeight": "1.3",
         "width": f"{NODE_W}px", "height": f"{NODE_H}px", "boxSizing": "border-box", "display": "flex",
         "alignItems": "center", "justifyContent": "center", "overflow": "hidden"}
 NEIGHBOR_STYLE = {**BASE, "background": NAVY, "color": "#FFFFFF", "border": f"2px solid {GOLD}", "fontWeight": "bold"}
@@ -42,7 +44,7 @@ UNCERTAIN_STYLE = {**NEIGHBOR_STYLE, "border": f"2px dashed {GOLD}"}  # 推定�
 RULE_STYLE = {**BASE, "background": "#FFFFFF", "color": NAVY, "border": f"2px solid {RULE_GRAY}", "fontWeight": "bold"}
 CENTER_H = 72
 CENTER_STYLE = {**BASE, "background": diagram_color("diagram-center-bg"), "color": NAVY, "border": f"3px solid {NAVY}", "fontWeight": "bold",
-                "fontSize": "15px", "width": "260px", "height": f"{CENTER_H}px"}
+                "fontSize": "18px", "width": "240px", "height": f"{CENTER_H}px"}
 EMPTY_STYLE = {**BASE, "background": "#F4F1E8", "color": "#8A94A6", "border": "1px dashed #DDD8CC"}
 CANVAS_STYLE = {"border": f"2px solid {NAVY}", "borderRadius": "6px", "background": "#FFFFFF"}
 VIEWS = ["つながりを入力する", "全体図（見る）"]
@@ -150,12 +152,15 @@ def add_link(source: str, target: str, relation_type: str, status: str, evidence
 
 # ---------- 図の部品に渡す形にする ----------
 def edge_label(link: dict) -> dict:
-    """線の上の文字（関係の種類・確認状態）。推定・未確認は金の地で目立たせ、まとめたデータは青い地にする。"""
+    """線の上の文字（関係の種類だけ）。確認状態は線の形（点線）と文字の地の色で見せる（文字を短くして密集を防ぐ）。
+
+    推定・未確認は差し色の地で目立たせ、まとめたデータは青い地にする。
+    """
     uncertain = link["status"] != "confirmed"
     background = GOLD if uncertain else DATA_BLUE if link.get("via") else NAVY
     relation = link["relation_type"] if link.get("via") else models.relation_type_label(link["relation_type"])
-    return {"label": f"{relation}・{STATUS_LABELS.get(link['status'], link['status'])}", "label_show_bg": True,
-            "label_style": {"fill": NAVY if uncertain else "#FFFFFF", "fontSize": 11, "fontWeight": 700},
+    return {"label": relation, "label_show_bg": True,
+            "label_style": {"fill": NAVY if uncertain else "#FFFFFF", "fontSize": 14, "fontWeight": 700},
             "label_bg_style": {"fill": background}}
 
 
@@ -185,7 +190,9 @@ def refresh_lookups() -> None:
 def build_state(center: str) -> StreamlitFlowState:
     refresh_lookups()
     result = diagram.layout(st.session_state.dg_elements, st.session_state.dg_links, center,
-                            st.session_state.get("dg_collapse", False))
+                            st.session_state.get("dg_collapse", False),
+                            include_second=st.session_state.get("dg_second", False))
+    st.session_state.dg_second_count = result.second_count
     height = result.rows * (NODE_H + ROW_GAP) - ROW_GAP
     st.session_state.dg_height = max(260, height + 60)
     per_column = {c: sum(p.column == c for p in result.placements) + (1 if c in result.hidden else 0)
@@ -749,18 +756,24 @@ with main_col:
                        "この方法で、つながりを1つずつたどりながら、ヒアリングを進めていきます。")
             st.session_state.dg_coach = None  # 1回表示したら終わり（次の操作で消える）
 
-        st.toggle("データをまとめて表示する", key="dg_collapse",
-                  on_change=lambda: st.session_state.pop("dg_flow", None),  # 切り替えたら図を作り直す
-                  help="データの箱を、線の上の名前（青い地）にまとめます。登録の内容は変わりません。"
-                       "データと規程のつながりは、そのデータのつながりを見ると表示されます。")
-        # 操作の役割を分けて書く（同じことをする方法が複数あると迷うため）
-        st.markdown(
-            "<div style='font-size:.85rem;line-height:1.8;color:#3A4458'>"
-            "<b>つながりを増やす</b>　図にある箱どうし → 箱の右端の ● から相手の左端の ● へドラッグ　／　"
-            "新しい要素・図にない要素 → 上の「＋ 影響元を追加」「＋ 影響先を追加」<br>"
-            "<b>見る要素を変える</b>　箱をクリック　／　<b>つながりを直す</b>　線をクリック　／　"
-            "<b>名前・種類・責任部門の変更、削除</b>　真ん中の箱をクリック</div>",
-            unsafe_allow_html=True)
+        with st.container(horizontal=True, gap="medium"):
+            st.toggle("データをまとめて表示する", key="dg_collapse",
+                      on_change=lambda: st.session_state.pop("dg_flow", None),  # 切り替えたら図を作り直す
+                      help="データの箱を、線の上の名前（青い地）にまとめます。登録の内容は変わりません。"
+                           "データと規程のつながりは、そのデータのつながりを見ると表示されます。")
+            second_count = st.session_state.get("dg_second_count", 0)
+            st.toggle(f"2段先も表示する（{second_count}件）" if second_count else "2段先も表示する", key="dg_second",
+                      on_change=lambda: st.session_state.pop("dg_flow", None),
+                      help="右の相手の、さらに先の要素も並べます。図が横に広がるため、文字は小さくなります。")
+        # 操作の役割を分けて書く（同じことをする方法が複数あると迷うため）。図を上に出すため、折りたたむ
+        with st.expander("操作のしかた（つながりを増やす・見る要素を変える・直す）"):
+            st.markdown(
+                "<div style='font-size:.85rem;line-height:1.8;color:#3A4458'>"
+                "<b>つながりを増やす</b>　図にある箱どうし → 箱の右端の ● から相手の左端の ● へドラッグ　／　"
+                "新しい要素・図にない要素 → 上の「＋ 影響元を追加」「＋ 影響先を追加」<br>"
+                "<b>見る要素を変える</b>　箱をクリック　／　<b>つながりを直す</b>　線をクリック　／　"
+                "<b>名前・種類・責任部門の変更、削除</b>　真ん中の箱をクリック</div>",
+                unsafe_allow_html=True)
 
         if "dg_flow" not in st.session_state:
             set_center(center)
@@ -799,9 +812,10 @@ with main_col:
         chip = "display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px"
         st.markdown(
             "<div style='display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.8rem;color:#3A4458'>"
-            f"<span><span style='{chip};background:{GOLD};border:2px solid {NAVY}'></span>いま見ている要素</span>"
+            f"<span><span style='{chip};background:{diagram_color('diagram-center-bg')};border:2px solid {NAVY}'>"
+            "</span>いま見ている要素</span>"
             f"<span>{sample_line(GOLD, False)} 確認済</span>"
-            f"<span>{sample_line(GOLD, True)} <b>推定・未確認（確認が必要）</b></span>"
+            f"<span>{sample_line(GOLD, True)} <b>推定・未確認（確認が必要。線の上の名前も差し色の地）</b></span>"
             f"<span>{sample_line(RULE_GRAY, False)} 規程とのつながり</span>"
             f"<span><span style='{chip};background:{DATA_BLUE}'></span>まとめたデータ</span>"
             "</div>", unsafe_allow_html=True)

@@ -75,6 +75,15 @@ def test_layout_places_chain_left_to_right():
     assert {l["dependency_id"] for l in result.edges} == {"D-1", "D-2", "D-3"}
 
 
+def test_layout_without_second_column():
+    # 最初は右の2段目を出さない（図の幅を狭くして文字を読める大きさにする。レビュー C04）。件数は数えておく
+    result = layout(ELEMENTS, LINKS, "SYS", include_second=False)
+    columns = {p.element_id: p.column for p in result.placements}
+    assert columns == {"SYS": "center", "DATA": "first"}
+    assert result.second_count == 2
+    assert {l["dependency_id"] for l in result.edges} == {"D-1"}
+
+
 def test_layout_left_side_and_uncertain_first():
     links = LINKS + [link("D-4", "DATA", "SOLO", "uses", "confirmed")]
     result = layout(ELEMENTS, links, "DATA")

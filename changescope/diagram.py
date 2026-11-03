@@ -187,16 +187,19 @@ class Layout:
     edges: list[dict]  # 図に出ている箱どうしのつながり（すべて線で描く）
     hidden: dict[str, int] = field(default_factory=dict)  # 列ごとの「ほか〇件」の件数
     rows: int = 1  # いちばん多い列の行数（「ほか〇件」の箱を含む）
+    second_count: int = 0  # 右の2段目に並ぶ要素の数（2段目を表示しないときも数える）
 
 
 def layout(elements: list[dict], links: list[dict], center: str, collapse_data: bool = False,
-           max_rows: int = MAX_ROWS) -> Layout:
+           max_rows: int = MAX_ROWS, include_second: bool = True) -> Layout:
     """いま見ている要素を中心にした図の配置を計算する。
 
     - 右の1段目：真ん中から出るつながりの相手。2段目：1段目の相手から出るつながりの相手
     - 左：真ん中に入るつながりの相手（右に出ている要素は除く）
     - 各列では、推定・未確認のつながりの相手を先に並べる（確認すべきものを上に）
     - 1列が max_rows を超えたら、最後の1行を「ほか〇件」にまとめる
+    - include_second=False なら右の2段目を出さない（図の幅が狭くなり、文字が大きく表示される）。
+      2段目にしか出てこない要素が真ん中に入るつながりを持つときは、左に並べる
     """
     drawn = view_links(elements, links, center, collapse_data)
     first: dict[str, dict] = {}
@@ -209,6 +212,9 @@ def layout(elements: list[dict], links: list[dict], center: str, collapse_data: 
             target = link["to_id"]
             if link["from_id"] == element_id and target != center and target not in first:
                 second.setdefault(target, link)
+    second_count = len(second)
+    if not include_second:
+        second = {}
     left: dict[str, dict] = {}
     for link in drawn:
         source = link["from_id"]
@@ -227,7 +233,7 @@ def layout(elements: list[dict], links: list[dict], center: str, collapse_data: 
         rows = max(rows, len(ordered) + (1 if column in hidden else 0))
     placed = {p.element_id for p in placements}
     edges = [l for l in drawn if l["from_id"] in placed and l["to_id"] in placed]
-    return Layout(placements, edges, hidden, rows)
+    return Layout(placements, edges, hidden, rows, second_count)
 
 
 def update_trail(trail: list[str], element_id: str) -> list[str]:
