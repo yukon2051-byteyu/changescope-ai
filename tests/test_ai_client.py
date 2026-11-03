@@ -1,6 +1,7 @@
 """AIを呼び出す土台のテスト。本物のAIは呼ばず、決まった答えを返す偽物（モック）を使う（料金がかからない）。"""
 
 import dataclasses
+from datetime import datetime, timedelta
 import json
 from types import SimpleNamespace
 
@@ -65,6 +66,7 @@ def test_settings_file_values():
     assert settings.model == "claude-opus-5-5"
     assert (settings.price_input_per_mtok_usd, settings.price_output_per_mtok_usd) == (4.0, 20.0)
     assert settings.per_user_monthly_limit == 3 and settings.monthly_call_limit == 150
+    assert settings.free_daily_limit == 20
     assert settings.cost_usd(1000, 2000) == pytest.approx(0.044)  # 1000×4 + 2000×20（100万あたり）
     # 月150回すべて使っても、予算で止まる前に回数の上限に届く（1回約0.13ドルの見込み）
     assert 150 * 0.13 < settings.monthly_budget_usd * settings.stop_ratio
@@ -196,4 +198,20 @@ def test_free_feature_stops_at_its_own_budget(settings, store):
     free = client.call_json("文章から作る", "役割", "", SCHEMA, USER, "文", feature_budget_usd=10.0)
     assert not free.ok and "無料分の予算" in free.message and messages.calls == []
     paid = client.call_json("資料から作る", "役割", "", SCHEMA, USER, "文")  # 別の機能は使える
+    assert paid.ok
+
+
+def test_free_feature_stops_at_daily_limit_for_everyone(settings, store):
+    # アクセスコードなしで使える機能は、1人を確実に区別できないため、全員の1日の回数でも止める
+    settings = dataclasses.replace(settings, free_daily_limit=2, monthly_budget_usd=25.0)
+    for user in ("a", "b"):
+        store.record(user, "文章から作る", settings.model, 0, 0, 0.01, "ok")
+    store.record("c", "文章から作る", settings.model, 0, 0, 0.0, "timeout")  # 失敗は数えない
+    yesterday = datetime.now() - timedelta(days=1)
+    store.record("d", "文章から作る", settings.model, 0, 0, 0.01, "ok", now=yesterday)  # 前の日は数えない
+    assert store.feature_calls_on("文章から作る") == 2
+    client, messages = make_client(settings, store)
+    free = client.call_json("文章から作る", "役割", "", SCHEMA, USER, "文", feature_budget_usd=10.0)
+    assert not free.ok and "全員で2回" in free.message and messages.calls == []
+    paid = client.call_json("資料から作る", "役割", "", SCHEMA, USER, "文")  # 予算を指定しない機能には1日の上限はない
     assert paid.ok

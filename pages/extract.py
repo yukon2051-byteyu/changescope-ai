@@ -9,7 +9,6 @@ AIが作ったものは「候補」で、そのまま登録しない。候補に
 その文が本当に書いてあるかを Python で照合している。計算は changescope/extraction.py にある。
 """
 
-import ipaddress
 import uuid
 from html import escape
 
@@ -55,42 +54,13 @@ def reset_candidates() -> None:
 
 
 def free_user_key() -> str:
-    """アクセスコードなしで使う人の識別子。接続元（IPアドレス）ごとに数える。
+    """アクセスコードなしで使う人の識別子。画面を開いている間（セッション）ごとに数える。
 
-    IPアドレスは偽れるため完全ではないが、気軽な使いすぎは防げる（最悪でも無料分の予算で止まる）。
-    ローカルで動かすときなど、IPアドレスが取れないときは、画面を開いている間（セッション）ごとに数える。
+    公開先（Streamlit Community Cloud）では、利用者のIPアドレスがアプリに届かない（中継サーバーのものになる）ことを
+    2026-11-03 に確かめたため、IPアドレスでは数えない。開き直せば回数は戻るが、全員の1日の上限と無料分の予算で止まる。
     """
-    ip = st.context.ip_address
-    if ip:
-        return hash_user(f"ip:{ip}")
     st.session_state.setdefault("ex_session_id", uuid.uuid4().hex)
     return hash_user(f"session:{st.session_state.ex_session_id}")
-
-
-def ip_check() -> None:
-    """URL に ?check=ip を付けたときだけ、IPアドレスで1人ずつ数えられているかの診断を出す（公開先の確認用）。
-
-    IPアドレスそのものは出さず、種類（社内向け＝中継サーバーらしい／外向け＝利用者らしい）と、識別子の末尾4文字だけを出す。
-    """
-    if st.query_params.get("check") != "ip":
-        return
-
-    def describe(ip: str | None) -> str:
-        if not ip:
-            return "取れない"
-        try:
-            kind = "外向け" if ipaddress.ip_address(ip).is_global else "社内向け"
-        except ValueError:
-            kind = "形が不明"
-        return f"{kind}・末尾 {hash_user(f'ip:{ip}')[-4:]}"
-
-    forwarded = [ip.strip() for ip in (st.context.headers.get("X-Forwarded-For") or "").split(",") if ip.strip()]
-    others = [f"{name} {describe(st.context.headers.get(name))}"
-              for name in ("X-Real-Ip", "Cf-Connecting-Ip", "True-Client-Ip", "X-Envoy-External-Address")
-              if st.context.headers.get(name)]
-    st.caption(f"診断：接続の相手 {describe(st.context.ip_address)} ／ X-Forwarded-For "
-               + (" → ".join(describe(ip) for ip in forwarded) or "なし")
-               + (" ／ " + " ／ ".join(others) if others else ""))
 
 
 def run_ai(text: str, name: str, user_key: str, mode: str) -> bool:
@@ -125,7 +95,8 @@ if mode == "text":
                "個人情報・機密情報は書かないでください。")
     user_key = free_user_key()
     try:
-        left = max(0, settings.per_user_monthly_limit - store.user_calls(user_key, FEATURE_TEXT))
+        left = min(max(0, settings.per_user_monthly_limit - store.user_calls(user_key, FEATURE_TEXT)),
+                   max(0, settings.free_daily_limit - store.feature_calls_on(FEATURE_TEXT)))
     except UsageStoreUnavailable:
         left = None  # 回数を確かめられないため、AIは使えなくする
     if st.button("AIで図のたたき台を作る", type="primary", icon=":material/auto_awesome:",
@@ -135,9 +106,9 @@ if mode == "text":
     if left is None:
         st.caption(f"{STORE_DOWN_MESSAGE}時間をおいてお試しください。")
     else:
-        st.caption(f"今月あと {left} 回使えます（1人月{settings.per_user_monthly_limit}回まで。"
-                   f"費用はこのアプリの運営者が負担しています。1回あたり約10〜20円の見込み）。")
-    ip_check()
+        st.caption(f"あと {left} 回使えます（1人{settings.per_user_monthly_limit}回まで・全員で1日"
+                   f"{settings.free_daily_limit}回まで。費用はこのアプリの運営者が負担しています。"
+                   "1回あたり約10〜20円の見込み）。")
 else:
     if dataset is not None and dataset.source == "sample":
         if st.button("サンプルの資料で試す（料金なし）", icon=":material/description:"):

@@ -253,7 +253,7 @@ def test_extract_page_text_mode_needs_no_access_code():
     next(b for b in at.button if b.label == "例文を入れる").click().run()
     assert "CRM" in at.text_area(key="ex_text").value
     assert not [t for t in at.text_input if t.key == "ex_access_code"]
-    assert any("今月あと 3 回" in c.value for c in at.caption)
+    assert any("あと 3 回使えます" in c.value for c in at.caption)
     assert not next(b for b in at.button if b.label == "AIで図のたたき台を作る").disabled
 
 

@@ -25,7 +25,9 @@ def check(settings: AISettings, store: UsageStore, user_key: str | None, user_te
     user_text : 利用者が入力した文（長さの確認に使う）
     feature   : 機能名。1人あたりの回数は機能ごとに数える（月の回数の上限は全機能の合計）
     max_chars : この機能で入力できる最大文字数（省略すると、変更内容の上限 max_input_chars）
-    feature_budget_usd : この機能だけの月の予算（アクセスコードなしで使える機能に使う）。全体の予算とは別に確かめる
+    feature_budget_usd : この機能だけの月の予算（アクセスコードなしで使える機能に使う）。全体の予算とは別に確かめる。
+                         指定したときは、1日の回数の上限（全員の合計 free_daily_limit）も確かめる。
+                         アクセスコードなしでは1人を確実に区別できないため、1人に使い切られても翌日には他の人が使えるようにする
     """
     if not user_key:
         return Decision(False, "AI分析にはアクセスコードが必要です。")
@@ -40,6 +42,9 @@ def check(settings: AISettings, store: UsageStore, user_key: str | None, user_te
     if feature_budget_usd is not None and store.feature_cost(feature) >= feature_budget_usd * settings.stop_ratio:
         return Decision(False, f"今月の「{feature}」の無料分の予算に達したため、停止しています。"
                                "来月またお試しください（サンプルは引き続き見られます）。")
+    if feature_budget_usd is not None and store.feature_calls_on(feature) >= settings.free_daily_limit:
+        return Decision(False, f"今日の「{feature}」は、全員で{settings.free_daily_limit}回の上限に達しました。"
+                               "明日またお試しください（サンプルは引き続き見られます）。")
     if usage.calls >= settings.monthly_call_limit:
         return Decision(False, "今月のAI分析の回数の上限に達しました。AIを使わない分析はそのまま使えます。")
     if store.user_calls(user_key, feature) >= settings.per_user_monthly_limit:

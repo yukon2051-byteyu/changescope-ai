@@ -59,6 +59,7 @@ def test_open_store_uses_database_url_when_set(monkeypatch, tmp_path):
 
 
 def test_database_url_falls_back_to_environment(monkeypatch):
+    monkeypatch.undo()  # conftest で差し替えた database_url を元に戻して確かめる
     monkeypatch.setenv("USAGE_DATABASE_URL", DOWN_URL)
     monkeypatch.setattr("streamlit.secrets", {}, raising=False)
     assert usage_store.database_url() == DOWN_URL

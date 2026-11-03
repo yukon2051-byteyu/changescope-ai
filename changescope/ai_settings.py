@@ -23,6 +23,7 @@ class AISettings:
     timeout_seconds: float
     monthly_budget_usd: float
     free_monthly_budget_usd: float
+    free_daily_limit: int
     stop_ratio: float
     monthly_call_limit: int
     per_user_monthly_limit: int
@@ -61,6 +62,7 @@ def load_settings(path: Path = SETTINGS_PATH) -> AISettings:
         timeout_seconds=float(limits["timeout_seconds"]),
         monthly_budget_usd=float(limits["monthly_budget_usd"]),
         free_monthly_budget_usd=float(limits["free_monthly_budget_usd"]),
+        free_daily_limit=int(limits["free_daily_limit"]),
         stop_ratio=float(limits["stop_ratio"]),
         monthly_call_limit=int(limits["monthly_call_limit"]),
         per_user_monthly_limit=int(limits["per_user_monthly_limit"]),

@@ -128,6 +128,15 @@ class UsageStore:
         return self._one("SELECT COUNT(*) FROM api_usage WHERE month = ? AND user_key = ? AND feature = ? AND status = 'ok'",
                          (month or current_month(), user_key, feature))[0]
 
+    def feature_calls_on(self, feature: str, day: str | None = None) -> int:
+        """その日に、その機能が使われた回数（全員の合計。成功した呼び出しだけ）。day は「2026-11-03」の形。
+
+        日付はサーバーの時計で決まる（公開先は世界標準時のため、日本時間の朝9時に切り替わる）。
+        """
+        day = day or datetime.now().strftime("%Y-%m-%d")
+        return self._one("SELECT COUNT(*) FROM api_usage WHERE created_at LIKE ? AND feature = ? AND status = 'ok'",
+                         (f"{day}%", feature))[0]
+
     def feature_cost(self, feature: str, month: str | None = None) -> float:
         """その月の、その機能の費用の合計（失敗した呼び出しも含む）。"""
         return float(self._one("SELECT COALESCE(SUM(cost_usd), 0) FROM api_usage WHERE month = ? AND feature = ?",
