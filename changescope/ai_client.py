@@ -10,7 +10,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+import sys
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -22,6 +25,27 @@ from changescope.usage_store import UsageStore, UsageStoreUnavailable
 
 FALLBACK_NOTE = "AIを使わない分析結果は、そのまま表示しています。"
 STORE_DOWN_MESSAGE = "利用記録のデータベースにつながらないため、AIの機能を止めています。"
+
+
+def _setup_logs() -> logging.Logger:
+    """AIの呼び出しにかかった時間を、アプリのログ（公開先では Manage app で見られる）に出す。画面には出さない。
+
+    入力文・回答・APIキーは出さない。通信の様子は、ライブラリの記録のうち中身を含まないものだけを出す
+    （anthropic：自動のやり直し、httpx2：応答の状態、httpcore2.connection：接続の各段階）。
+    """
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(message)s"))
+    for name, level in (("changescope.ai", logging.INFO), ("anthropic._base_client", logging.INFO),
+                        ("httpx2", logging.INFO), ("httpcore2.connection", logging.DEBUG)):
+        logger = logging.getLogger(name)
+        if not logger.handlers:
+            logger.addHandler(handler)
+        logger.setLevel(level)
+        logger.propagate = False
+    return logging.getLogger("changescope.ai")
+
+
+log = _setup_logs()
 
 # すべての呼び出しで、システムプロンプトの最初に置く共通の決まり
 BASE_SYSTEM = (
@@ -101,7 +125,12 @@ class AIClient:
         if not decision.allowed:
             return AIResult(False, message=decision.reason)
 
+        started = time.monotonic()
+        log.info("AI呼び出し開始 feature=%s model=%s", feature, self.settings.model)
+
         def record(status: str, input_tokens: int, output_tokens: int, cost: float) -> None:
+            log.info("AI呼び出し終了 feature=%s status=%s %.1f秒 出力%dトークン", feature, status,
+                     time.monotonic() - started, output_tokens)
             try:
                 self.store.record(user_key, feature, self.settings.model, input_tokens, output_tokens, cost, status)
             except UsageStoreUnavailable:
