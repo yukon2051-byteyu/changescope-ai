@@ -65,6 +65,10 @@ PART_DEFAULTS = {
     "radius": "4px", "radius-lg": "6px", "pill": "3px", "shadow": "none",  # 角の丸み・影
     "hero-bg": "linear-gradient(135deg, var(--cs-navy) 0%, var(--cs-navy-2) 100%)", "hero-ink": "#fff",
     "hero-sub": "var(--cs-on-dark)", "hero-eyebrow": "var(--cs-gold-light)", "hero-rule": "var(--cs-gold)",
+    # 上の帯の右の円の飾り（線・内側の輪・外側の輪）
+    "hero-ring-line": "color-mix(in srgb, var(--cs-gold-light) 35%, transparent)",
+    "hero-ring-1": "color-mix(in srgb, var(--cs-gold-light) 6%, transparent)",
+    "hero-ring-2": "color-mix(in srgb, var(--cs-gold-light) 4%, transparent)",
     "concl-bg": "linear-gradient(135deg, var(--cs-navy) 0%, var(--cs-navy-2) 100%)", "concl-ink": "#fff",
     "concl-sub": "var(--cs-on-dark)", "concl-faint": "var(--cs-on-dark-faint)", "concl-strong": "var(--cs-gold-light)",
     "concl-first": "rgba(255,255,255,.08)", "concl-border": "0 solid transparent",
@@ -96,6 +100,9 @@ THEMES = {
             "shadow": "0 2px 6px rgba(15,60,45,.08)",
             "hero-bg": "#EEF4DA", "hero-ink": "#18211F", "hero-sub": "#4E5B56", "hero-eyebrow": "#0E4F3A",
             "hero-rule": "#B9CF1C",
+            # 円の飾り：淡い黄緑の地に溶けないよう、落ち着いた緑で輪を重ねる
+            "hero-ring-line": "rgba(111,154,46,.55)", "hero-ring-1": "rgba(111,154,46,.12)",
+            "hero-ring-2": "rgba(111,154,46,.07)",
             "concl-bg": "#FFFFFF", "concl-ink": "#18211F", "concl-sub": "#4E5B56", "concl-faint": "#7A8781",
             "concl-strong": "#0E4F3A", "concl-first": "#F4F8EC", "concl-border": "1px solid #DCE5E1",
             "level-big-bg": "#0E4F3A", "level-big-ink": "#FFFFFF", "level-mid-bg": "#D8E47A", "level-mid-ink": "#18211F",

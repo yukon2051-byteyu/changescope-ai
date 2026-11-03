@@ -91,9 +91,8 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 }
 .cs-hero::after {
   content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
-  border: 1px solid color-mix(in srgb, var(--cs-gold-light) 35%, transparent); border-radius: 50%;
-  box-shadow: 0 0 0 40px color-mix(in srgb, var(--cs-gold-light) 6%, transparent),
-              0 0 0 80px color-mix(in srgb, var(--cs-gold-light) 4%, transparent);
+  border: 1px solid var(--cs-hero-ring-line); border-radius: 50%;
+  box-shadow: 0 0 0 40px var(--cs-hero-ring-1), 0 0 0 80px var(--cs-hero-ring-2);
 }
 .cs-eyebrow { color: var(--cs-accent-text); letter-spacing: .24em; font-size: .78rem; font-weight: 700; }
 .cs-hero .cs-eyebrow { color: var(--cs-hero-eyebrow); }
