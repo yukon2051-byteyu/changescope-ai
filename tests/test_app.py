@@ -293,3 +293,13 @@ def test_compare_page_needs_targets_for_both():
     assert next(b for b in at.button if b.label == "比べる").disabled  # B案の変更対象がまだない
     at.text_area(key="cp_b_text").set_value("経費精算業務を見直す").run()
     assert not next(b for b in at.button if b.label == "比べる").disabled
+
+
+def test_analysis_and_compare_pages_offer_pdf():
+    at = analyze_scenario_a()
+    assert any(b.label == "PDFでダウンロード" for b in at.get("download_button"))
+    at = run_page("compare.py", load_sample())
+    at.button(key="cp_pair_A").click().run()
+    next(b for b in at.button if b.label == "比べる").click().run()
+    assert not at.exception
+    assert any(b.label == "比較結果をPDFでダウンロード" for b in at.get("download_button"))

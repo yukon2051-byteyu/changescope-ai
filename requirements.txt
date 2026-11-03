@@ -4,6 +4,7 @@ networkx>=3.3
 pandas>=2.2
 openpyxl>=3.1  # Excelテンプレートの作成・読み込み
 anthropic>=2.3  # Claude API（AIで確認漏れを調べる）
+fpdf2>=2.8  # PDFレポート（日本語フォントは assets/fonts に同梱）
 # 図で入力する画面の部品（React Flow を Streamlit で使うもの。MITライセンス）。
 # ●（接続点）の大きさを部品の中のCSSの名前に頼って変えているため、版を固定する（更新するときは画面で確認する）
 streamlit-flow-component==1.6.1

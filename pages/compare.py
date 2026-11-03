@@ -10,6 +10,7 @@ import streamlit as st
 from changescope.compare import OptionInput, compare
 from changescope.datasets import load_option_pairs
 from changescope.matcher import find_candidates
+from changescope.report import comparison_report
 from changescope.ui import data_table, element_label, get_dataset, note, section, show_mode_banner
 
 st.title("変更案を比べる")
@@ -95,6 +96,18 @@ data_table(pd.DataFrame({
     title["b"]: [r.b for r in result.rows],
     "違い": [r.difference for r in result.rows],
 }))
+
+source = dataset.source
+
+
+def report_pdf() -> bytes:
+    """PDFレポート。ボタンを押したときだけ作る。"""
+    return comparison_report(result, title, source)
+
+
+st.download_button("比較結果をPDFでダウンロード", report_pdf, "ChangeScope_変更案の比較レポート.pdf", "application/pdf",
+                   icon=":material/picture_as_pdf:", type="primary",
+                   help="比較表と、Aだけ・Bだけ・両方の一覧を、1つのPDFにします。")
 
 section("DIFFERENCES", "どこが違うか（Aだけ・Bだけ・両方）")
 st.caption(f"「{a_name}だけ」に出るものは、{b_name}を選べば対応や確認が不要になるものです。「両方」に出るものは、どちらの案でも必要です。")

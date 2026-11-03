@@ -19,6 +19,7 @@ from changescope.insights import department_of, hard_to_notice, impact_tags, tar
 from changescope.matcher import find_candidates
 from changescope.next_actions import build_next_actions, find_uncertain_links
 from changescope.oversight import ESTIMATE, REGISTERED, find_oversights, load_sample_report
+from changescope.report import analysis_report
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
     STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, note,
@@ -134,9 +135,12 @@ if not result.impacts:
     st.info("登録された依存関係からは、影響を受ける要素が見つかりませんでした。依存関係の登録漏れがないか確認してください。")
     st.stop()
 
+actions = build_next_actions(dataset.graph, result, stakeholders, gaps)
+
+
 section("NEXT ACTIONS", "次にやること")
 st.caption("この分析結果をもとに、変更を安全に進めるための手順を上から順に示しています。")
-action_steps(build_next_actions(dataset.graph, result, stakeholders, gaps))
+action_steps(actions)
 
 # ---------- 4. AIで確認漏れを調べる ----------
 section("AI CHECK", "AIで確認漏れを調べる")
@@ -246,6 +250,32 @@ if oversight and oversight["targets"] == result.targets:
             "種類": [u["element_type"] for u in report.unregistered],
             "理由": [u["reason"] for u in report.unregistered],
         }))
+
+# ---------- PDFレポート ----------
+# AIの結果は、この時点で画面に出ているものを使う（PDFはボタンを押したときに別の処理で作るため、先に取り出しておく）
+saved = st.session_state.get("oversight")
+oversight_part = None
+if saved and saved["targets"] == result.targets:  # いまの分析と同じ変更対象でAIを使ったときだけ載せる
+    if saved["kind"] == "sample":
+        label = f"AIによる分析のサンプル（事前に生成、{saved['generated_on']}、{model_label(saved['model'])}）。"
+    else:
+        label = f"AIによる分析結果（{model_label(load_settings().model)}）。"
+    oversight_part = {"kind": saved["kind"], "report": saved["report"], "label": label}
+assessment = assess(dataset.graph, result, stakeholders)
+
+
+def report_pdf() -> bytes:
+    """PDFレポート。ボタンを押したときだけ作る（作るのに数秒かかるため、画面を更新するたびには作らない）。"""
+    return analysis_report(dataset.graph, dataset.source, text, result, assessment, actions, stakeholders, links,
+                           hidden, gaps, oversight_part, max_depth)
+
+
+section("REPORT", "PDFで持ち帰る")
+st.caption("結論・次にやること・関係者・要確認のつながり・見落とし・影響の一覧を、1つのPDFにします。"
+           + ("上の「AIで確認漏れを調べる」の結果も載せます。" if oversight_part else
+              "「AIで確認漏れを調べる」の結果を表示してから押すと、それも載せます。"))
+st.download_button("PDFでダウンロード", report_pdf, "ChangeScope_影響分析レポート.pdf", "application/pdf",
+                   icon=":material/picture_as_pdf:", type="primary")
 
 section("DETAILS", "詳しい結果")
 

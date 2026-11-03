@@ -62,6 +62,7 @@
 ## 技術構成
 - Python 3.12（`.venv`。PC標準の3.15はライブラリ未対応の恐れがあるため使わない）、Streamlit、NetworkX、pandas、openpyxl、pytest。
 - 起動：`.\.venv\Scripts\Activate.ps1` → `streamlit run app.py`
+- **`changescope/` の部品を変えたら、アプリを起動し直す。** Streamlit は `pages/` の変更は自動で読み直すが、`changescope/` の部品は起動したときのものを使い続けるため、新しく足した関数が「見つからない」（ImportError）になる（2026-11-03 に発生）。
 - テスト：`.venv/Scripts/python.exe -m pytest -q`（Git Bash では `PYTHONUTF8=1` を付けると日本語が化けない）
 
 | ファイル | 役割 |
