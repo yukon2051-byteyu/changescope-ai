@@ -9,6 +9,7 @@ AIが作ったものは「候補」で、そのまま登録しない。候補に
 その文が本当に書いてあるかを Python で照合している。計算は changescope/extraction.py にある。
 """
 
+import ipaddress
 import uuid
 from html import escape
 
@@ -66,6 +67,29 @@ def free_user_key() -> str:
     return hash_user(f"session:{st.session_state.ex_session_id}")
 
 
+def ip_check() -> None:
+    """URL に ?check=ip を付けたときだけ、IPアドレスで1人ずつ数えられているかの診断を出す（公開先の確認用）。
+
+    IPアドレスそのものは出さず、種類（社内向け＝中継サーバーらしい／外向け＝利用者らしい）と、識別子の末尾4文字だけを出す。
+    """
+    if st.query_params.get("check") != "ip":
+        return
+
+    def describe(ip: str | None) -> str:
+        if not ip:
+            return "取れない"
+        try:
+            kind = "外向け" if ipaddress.ip_address(ip).is_global else "社内向け"
+        except ValueError:
+            kind = "形が不明"
+        return f"{kind}・末尾 {hash_user(f'ip:{ip}')[-4:]}"
+
+    forwarded = st.context.headers.get("X-Forwarded-For")
+    first = forwarded.split(",")[0].strip() if forwarded else None
+    st.caption(f"診断：接続の相手 {describe(st.context.ip_address)} ／ "
+               f"X-Forwarded-For の先頭 {describe(first)}（{len(forwarded.split(',')) if forwarded else 0}件）")
+
+
 def run_ai(text: str, name: str, user_key: str, mode: str) -> bool:
     """AIで候補を作る。うまくいったら True（失敗したときは理由を表示して False）。"""
     client = AIClient(settings, store, api_key=get_api_key())
@@ -110,6 +134,7 @@ if mode == "text":
     else:
         st.caption(f"今月あと {left} 回使えます（1人月{settings.per_user_monthly_limit}回まで。"
                    f"費用はこのアプリの運営者が負担しています。1回あたり約10〜20円の見込み）。")
+    ip_check()
 else:
     if dataset is not None and dataset.source == "sample":
         if st.button("サンプルの資料で試す（料金なし）", icon=":material/description:"):
