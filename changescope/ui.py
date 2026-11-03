@@ -69,6 +69,8 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
 [data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
 [data-testid="stMainBlockContainer"] { padding-top: 0.25rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
+/* 本文の幅は1200pxで止め、それより広い画面では中央に寄せる（大きな画面で横に間延びしないように） */
+[data-testid="stMainBlockContainer"] { max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
 
 .stApp h3 { border-left: 4px solid var(--cs-gold); padding-left: 12px; letter-spacing: .04em; }
 [data-testid="stMetric"] {
@@ -241,7 +243,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   background: var(--cs-tab-bg) !important; color: var(--cs-tab-ink) !important;
   border-radius: var(--cs-pill); padding: 0 6px !important; transition: background .15s;
 }
-.stTabs [data-testid="stTab"] p { color: inherit !important; font-size: clamp(.72rem, .88vw, .95rem); white-space: nowrap; }
+.stTabs [data-testid="stTab"] p { color: inherit !important; font-size: clamp(.72rem, .88vw, .8rem); white-space: nowrap; }
 .stTabs [data-testid="stTab"]:hover { background: var(--cs-tab-hover-bg) !important; color: var(--cs-tab-hover-ink) !important; }
 .stTabs [data-testid="stTab"][data-selected] { background: var(--cs-tab-on-bg) !important; color: var(--cs-tab-on-ink) !important; }
 .stTabs [data-testid="stTab"][data-selected] p { font-weight: 700; }
