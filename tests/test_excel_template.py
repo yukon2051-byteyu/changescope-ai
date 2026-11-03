@@ -5,6 +5,7 @@ import io
 from openpyxl import load_workbook
 
 from changescope.datasets import load_from_excel, load_sample
+from changescope.theme import THEME, bare
 from changescope.excel_template import (
     CHOICES_SHEET, DEPENDENCIES_SHEET, ELEMENTS_SHEET, GUIDE_SHEET, build_template, cm_to_width,
 )
@@ -54,7 +55,7 @@ def test_template_appearance():
         assert wb[name].column_dimensions["A"].width == cm_to_width(4.0) == 16.8  # A列＝4cm
     header_colors = {c.fill.fgColor.rgb for c in wb[ELEMENTS_SHEET][1]}
     assert not any(color.endswith("C55A11") for color in header_colors)  # 以前のオレンジは使わない
-    assert wb[ELEMENTS_SHEET]["A1"].fill.fgColor.rgb.endswith("1F3260")  # 必須の見出し（名前）は濃紺（黒に見える色は使わない）
+    assert wb[ELEMENTS_SHEET]["A1"].fill.fgColor.rgb.endswith(bare(THEME.primary))  # 必須の見出し（名前）はテーマの濃い色（黒に見える色は使わない）
     assert wb[ELEMENTS_SHEET].column_dimensions["C"].width == cm_to_width(6.0)  # 説明列＝6cm
 
     choices = wb[CHOICES_SHEET]
@@ -74,7 +75,7 @@ def test_template_appearance():
             assert all(side.style == "thin" for side in (border.left, border.right, border.top, border.bottom))
     guide = wb[GUIDE_SHEET]
     assert "A1:B1" in {str(r) for r in guide.merged_cells.ranges}  # タイトルがB列まで表示される
-    assert guide["A1"].fill.fgColor.rgb.endswith("1F3260")  # タイトル行は濃紺の塗り
+    assert guide["A1"].fill.fgColor.rgb.endswith(bare(THEME.primary))  # タイトル行はテーマの濃い色の塗り
     assert guide["A1"].font.color.rgb.endswith("FFFFFF")  # 白文字
     for row in guide.iter_rows(min_row=2):
         label, text = row[0], row[1]

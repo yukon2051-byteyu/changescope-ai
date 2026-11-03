@@ -24,6 +24,7 @@ from streamlit_flow.state import StreamlitFlowState
 from changescope import diagram, models
 from changescope.datasets import load_from_records, to_records
 from changescope.excel_template import build_template
+from changescope.theme import THEME
 from changescope.ui import STATUS_LABELS, data_table, get_dataset, note, set_dataset
 
 st.title("図で入力する")
@@ -31,7 +32,8 @@ st.title("図で入力する")
 # ---------- 見た目 ----------
 NODE_W, NODE_H, ROW_GAP = 230, 58, 22
 COLUMN_X = {"left": 0, "center": 420, "first": 880, "second": 1340}  # 線の上の文字が収まるよう、列の間を空ける
-NAVY, GOLD, RULE_GRAY, DATA_BLUE = "#1F3260", "#B8963E", "#8A94A6", "#2E5E8C"
+# 濃い色と差し色はテーマ（changescope/theme.py）に合わせる。規程の灰色・まとめたデータの青は、意味を表す色なので固定
+NAVY, GOLD, RULE_GRAY, DATA_BLUE = THEME.primary, THEME.accent, "#8A94A6", "#2E5E8C"
 BASE = {"borderRadius": "6px", "padding": "4px 10px", "fontSize": "13px", "lineHeight": "1.35",
         "width": f"{NODE_W}px", "height": f"{NODE_H}px", "boxSizing": "border-box", "display": "flex",
         "alignItems": "center", "justifyContent": "center", "overflow": "hidden"}

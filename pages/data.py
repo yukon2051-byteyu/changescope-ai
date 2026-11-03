@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from changescope import excel_template, models
+from changescope import excel_template, models, theme
 from changescope.datasets import SAMPLE_DIR, load_from_csv, load_from_excel, load_sample
 from changescope.excel_template import build_template
 from changescope.ui import data_table, get_dataset, note, set_dataset, show_mode_banner, ui_label
@@ -21,7 +21,8 @@ def template_version() -> str:
     st.cache_data は、キャッシュした関数自体が変わらない限り、アプリを再起動するまで古い結果を返す。
     テンプレートを作る処理などが変わったら作り直すよう、関係するファイルの中身から目印を作り、引数に渡す。
     """
-    files = [excel_template.__file__, models.__file__, SAMPLE_DIR / "elements.csv", SAMPLE_DIR / "dependencies.csv"]
+    files = [excel_template.__file__, models.__file__, theme.__file__,  # テーマを切り替えたら色も作り直す
+             SAMPLE_DIR / "elements.csv", SAMPLE_DIR / "dependencies.csv"]
     return hashlib.sha256(b"".join(Path(f).read_bytes() for f in files)).hexdigest()
 
 

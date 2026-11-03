@@ -9,6 +9,7 @@ import streamlit as st
 
 from changescope import models
 from changescope.datasets import Dataset
+from changescope.theme import THEME, css_variables
 
 STATUS_LABELS = {
     "confirmed": "確認済",
@@ -46,21 +47,27 @@ def show_mode_banner(dataset: Dataset | None) -> None:
     st.info(f"**データ：** {source}　｜　**分析方式：** AIなし（登録された依存関係のみで分析）")
 
 
-# ---------- 装飾（紺と金の差し色） ----------
+# ---------- 装飾（濃い色と差し色。色は changescope/theme.py で決める） ----------
 # 部品のHTMLはすべてこのファイル内の固定文言から作る。利用者の入力値は埋め込まない。
+# CSS の中の色は var(--cs-...) の名前で書き、実際の色は theme.css_variables() が決める（テーマを切り替えられるように）
 
-_GLOBAL_CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap');
-:root {
-  --cs-navy: #14213D; --cs-navy-2: #22365F; --cs-gold: #B8963E; --cs-gold-light: #D9C08A;
-  --cs-ink: #1B2433; --cs-sub: #5E6675; --cs-line: #DDD8CC; --cs-paper: #FFFFFF; --cs-cream: #FBF8EF;
-}
+_FONT_IMPORTS = "".join(
+    f"@import url('{url}');\n"
+    for url in ("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap",
+                THEME.heading_font_url) if url
+)
+
+_GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
+/* 日本語の見出しの書体（テーマで明朝などに変えられる。指定がなければ本文と同じ） */
+.stApp h1, .stApp h2, .stApp h3, .cs-hero-lead, .cs-section-title, .cs-conclusion-headline,
+.cs-card-title, .cs-step-title { font-family: var(--cs-heading-font); }
 /* 上部の余白を詰める：ヘッダーを透明にし、本文を画面の上端近くから始める。
    ヘッダーは本文の上に重なるため、ボタン以外はクリックを通す。右上のメニューは淡い地色で見やすくする */
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] a, [data-testid="stToolbar"] { pointer-events: auto; }
-[data-testid="stToolbar"] { background: rgba(248,247,243,.92); border-radius: 4px; }
+[data-testid="stToolbar"] { background: color-mix(in srgb, var(--cs-bg) 92%, transparent); border-radius: 4px; }
+/* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
+[data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
 [data-testid="stMainBlockContainer"] { padding-top: 0.25rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 
 .stApp h3 { border-left: 4px solid var(--cs-gold); padding-left: 12px; letter-spacing: .04em; }
@@ -81,8 +88,9 @@ _GLOBAL_CSS = """
 }
 .cs-hero::after {
   content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
-  border: 1px solid rgba(217,192,138,.35); border-radius: 50%;
-  box-shadow: 0 0 0 40px rgba(217,192,138,.06), 0 0 0 80px rgba(217,192,138,.04);
+  border: 1px solid color-mix(in srgb, var(--cs-gold-light) 35%, transparent); border-radius: 50%;
+  box-shadow: 0 0 0 40px color-mix(in srgb, var(--cs-gold-light) 6%, transparent),
+              0 0 0 80px color-mix(in srgb, var(--cs-gold-light) 4%, transparent);
 }
 .cs-eyebrow { color: var(--cs-gold); letter-spacing: .24em; font-size: .78rem; font-weight: 700; }
 .cs-hero .cs-eyebrow { color: var(--cs-gold-light); }
@@ -91,7 +99,7 @@ _GLOBAL_CSS = """
   margin: 10px 0 18px; color: #fff; letter-spacing: .02em;
 }
 .cs-hero-lead { font-size: 1.3rem; font-weight: 700; letter-spacing: .06em; margin-bottom: 10px; }
-.cs-hero-sub { color: #C9CFDB; line-height: 1.9; }
+.cs-hero-sub { color: var(--cs-on-dark); line-height: 1.9; }
 .cs-hero-rule { width: 56px; height: 2px; background: var(--cs-gold); margin: 0 0 18px; }
 
 .cs-section { margin: 36px 0 14px; }
@@ -107,7 +115,7 @@ _GLOBAL_CSS = """
 .cs-card-text { color: var(--cs-sub); font-size: .92rem; line-height: 1.8; }
 
 .cs-note {
-  background: var(--cs-cream); border: 1px solid #E9DFC4; border-left: 4px solid var(--cs-gold);
+  background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-left: 4px solid var(--cs-gold);
   border-radius: 4px; padding: 14px 18px; line-height: 1.9; color: var(--cs-ink); margin: 12px 0;
 }
 .cs-note b { color: var(--cs-navy); }
@@ -133,7 +141,7 @@ _GLOBAL_CSS = """
 /* 要確認のつながり：重要なため1本ずつ枠で囲んで目立たせる */
 .cs-link-cards { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .cs-link-card {
-  background: var(--cs-cream); border: 1px solid #E9DFC4; border-left: 5px solid var(--cs-gold);
+  background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-left: 5px solid var(--cs-gold);
   border-radius: 4px; padding: 10px 14px;
 }
 .cs-link-unconfirmed { border-left-color: #A6741A; }
@@ -161,7 +169,7 @@ _GLOBAL_CSS = """
 .cs-level-中 { background: var(--cs-gold-light); color: var(--cs-navy); }
 .cs-level-小 { background: #fff; color: var(--cs-navy); }
 .cs-conclusion-headline { font-size: 1.2rem; font-weight: 700; letter-spacing: .04em; }
-.cs-conclusion-meaning { color: #C9CFDB; margin-bottom: 12px; }
+.cs-conclusion-meaning { color: var(--cs-on-dark); margin-bottom: 12px; }
 .cs-conclusion-first {
   background: rgba(255,255,255,.08); border-left: 3px solid var(--cs-gold); padding: 10px 14px;
   border-radius: 3px; line-height: 1.8;
@@ -170,7 +178,7 @@ _GLOBAL_CSS = """
 .cs-conclusion-caution { margin-top: 10px; color: var(--cs-gold-light); font-size: .92rem; line-height: 1.8; }
 .cs-conclusion-label { margin-top: 14px; color: var(--cs-gold-light); font-weight: 700; font-size: .9rem; }
 .cs-conclusion-stance { margin: 4px 0 0; padding-left: 1.2em; line-height: 1.9; }
-.cs-conclusion-basis { margin-top: 12px; color: #9AA4B8; font-size: .8rem; }
+.cs-conclusion-basis { margin-top: 12px; color: var(--cs-on-dark-faint); font-size: .8rem; }
 
 .cs-finding {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-radius: 4px; padding: 14px 18px; margin: 10px 0;
@@ -204,7 +212,7 @@ _GLOBAL_CSS = """
   border-bottom: 3px solid var(--cs-gold);
 }
 .cs-flow-box b { color: var(--cs-gold-light); display: block; margin-bottom: 4px; }
-.cs-flow-box span { color: #C9CFDB; font-size: .85rem; line-height: 1.7; }
+.cs-flow-box span { color: var(--cs-on-dark); font-size: .85rem; line-height: 1.7; }
 .cs-flow-arrow { align-self: center; color: var(--cs-gold); font-size: 1.4rem; }
 
 .cs-table { border-collapse: collapse; width: 100%; background: var(--cs-paper); font-size: .92rem; }
@@ -225,13 +233,14 @@ _GLOBAL_CSS = """
 .stTabs [role="tablist"]::after { display: none !important; }  /* 元の下線 */
 .stTabs [data-testid="stTabsScrollLeft"], .stTabs [data-testid="stTabsScrollRight"] { display: none !important; }
 /* タブは1行に並べ、帯の幅を均等に分ける。1つずつ薄い地を付け、隙間（6px）をはさんで別々のタブに見せる。
-   文字の大きさは画面の幅に合わせて変え（12.5〜15px）、1行に収める（幅1,280px以上の画面で確認済み） */
+   文字の大きさは画面の幅に合わせて変え（11.5〜15px）、1行に収める。
+   いちばんタブの多い影響分析の結果（7つ・件数つき）でも、幅1,280px以上の画面で1行に収まることを確認済み */
 .stTabs [data-testid="stTab"] {
   flex: 1 1 auto; justify-content: center; min-width: max-content;  /* 文字の長さに合わせ、余りを均等に分ける */
-  background: rgba(255,255,255,.06) !important; color: #C9CFDB !important;
-  border-radius: 4px; padding: 0 8px !important; transition: background .15s;
+  background: rgba(255,255,255,.06) !important; color: var(--cs-on-dark) !important;
+  border-radius: 4px; padding: 0 6px !important; transition: background .15s;
 }
-.stTabs [data-testid="stTab"] p { color: inherit !important; font-size: clamp(.78rem, 1.05vw, .95rem); white-space: nowrap; }
+.stTabs [data-testid="stTab"] p { color: inherit !important; font-size: clamp(.72rem, .88vw, .95rem); white-space: nowrap; }
 .stTabs [data-testid="stTab"]:hover { background: rgba(255,255,255,.16) !important; color: #fff !important; }
 .stTabs [data-testid="stTab"][data-selected] { background: var(--cs-gold) !important; color: var(--cs-navy) !important; }
 .stTabs [data-testid="stTab"][data-selected] p { font-weight: 700; }

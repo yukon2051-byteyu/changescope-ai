@@ -17,6 +17,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from changescope import models
 from changescope.csv_validator import MAX_DEPENDENCY_ROWS, MAX_ELEMENT_ROWS, MAX_FILE_BYTES
+from changescope.theme import THEME, bare
 
 ELEMENTS_SHEET = "要素"
 DEPENDENCIES_SHEET = "依存関係"
@@ -27,12 +28,12 @@ FONT_NAME = "メイリオ"
 # 配色：白・薄いグレー基調、文字は濃紺、差し色に金（Web画面と同じ方針）
 INK = "1E2A33"  # 本文・見出しの文字色（濃紺）
 SUB_INK = "6B7780"  # 補足の文字色（グレー）
-NAVY = "1F3260"  # 見出しの塗り（濃紺。黒に見えない明るさにする。Web画面のメインカラーと同じ）
+NAVY = bare(THEME.primary)  # 見出しの塗り（テーマの濃い色。黒に見えない明るさにする。Web画面のメインカラーと同じ）
 _REQUIRED_FILL = PatternFill("solid", fgColor=NAVY)  # 必須の見出し：濃紺
 _OPTIONAL_FILL = PatternFill("solid", fgColor="EEF1F3")  # 任意の見出し：薄いグレー
 _REQUIRED_FONT = Font(name=FONT_NAME, bold=True, color="FFFFFF")
 _OPTIONAL_FONT = Font(name=FONT_NAME, bold=True, color=INK)
-GOLD = "B8963E"  # 差し色（金）
+GOLD = bare(THEME.accent)  # 差し色（テーマの差し色）
 _HEADER_BORDER = Border(bottom=Side(style="medium", color=GOLD))
 _BUILTIN_FILL = PatternFill("solid", fgColor="EEF1F3")  # 選択肢シートの、もとからある値（変更しない）
 # 選択肢シートの説明欄（F・G列）：項目名は薄い黄緑、F・G列とも細い罫線で囲む（利用者の指定）

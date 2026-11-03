@@ -23,10 +23,13 @@ from changescope.insights import department_of
 from changescope.next_actions import Action, UncertainLink
 from changescope.oversight import OversightReport
 from changescope.stakeholders import Stakeholder
+from changescope.theme import THEME, rgb
 
 FONT_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
 FONT = "bizud"
-NAVY, GOLD, INK, SUB, LINE, CREAM = (20, 33, 61), (184, 150, 62), (27, 36, 51), (94, 102, 117), (221, 216, 204), (251, 248, 239)
+# 色はテーマ（changescope/theme.py）に合わせる。画面とPDFの印象をそろえるため
+NAVY, GOLD, INK, SUB, LINE, CREAM = (rgb(THEME.dark), rgb(THEME.accent), rgb(THEME.ink), rgb(THEME.sub),
+                                     rgb(THEME.line), rgb(THEME.cream))
 STATUS = {"confirmed": "確認済", "assumed": "推定", "unconfirmed": "未確認"}
 SOURCE = {"sample": "架空サンプルデータ（サンプル商事株式会社）", "upload": "アップロードしたデータ",
           "diagram": "画面で作成・編集したデータ"}

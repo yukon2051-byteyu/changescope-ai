@@ -1,31 +1,31 @@
-# 配色：紺と金の差し色。背景は白一色にせず、わずかに温かみのあるアイボリーにする
+# 配色は changescope/theme.py で決める。下の色の行は「python -m changescope.theme <テーマの名前>」で書き換わるので、手で直さない
 [theme]
 base = "light"
 font = "Noto Sans JP:https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap, Meiryo, sans-serif"
-primaryColor = "#1F3260"
-textColor = "#1B2433"
-backgroundColor = "#F8F7F3"
-secondaryBackgroundColor = "#EFECE4"
-linkColor = "#1F3260"
+primaryColor = "#1E4A3D"
+textColor = "#1F2622"
+backgroundColor = "#F5F2EA"
+secondaryBackgroundColor = "#ECE6D8"
+linkColor = "#1E4A3D"
 linkUnderline = false
-borderColor = "#DDD8CC"
-dataframeBorderColor = "#E4E0D5"
-dataframeHeaderBackgroundColor = "#EFECE4"
+borderColor = "#DED7C6"
+dataframeBorderColor = "#E3DCCB"
+dataframeHeaderBackgroundColor = "#ECE6D8"
 showWidgetBorder = true
 # ヘッダーの下の余白（標準は約6rem）。本文側はさらにCSS（changescope/ui.py）で上端近くまで詰めている
 paddingTop = "0.75rem"
 baseRadius = "small"
 buttonRadius = "small"
-blueColor = "#1F3260"
-blueBackgroundColor = "#E8ECF4"
-blueTextColor = "#14213D"
+blueColor = "#1E4A3D"
+blueBackgroundColor = "#E4ECE7"
+blueTextColor = "#16302A"
 
 [theme.sidebar]
-backgroundColor = "#14213D"
-secondaryBackgroundColor = "#22365F"
-textColor = "#E9E4D6"
-primaryColor = "#D9C08A"
-borderColor = "#2C406B"
+backgroundColor = "#16302A"
+secondaryBackgroundColor = "#234238"
+textColor = "#E3DCCB"
+primaryColor = "#CDB07A"
+borderColor = "#2B4A40"
 
 [client]
 # 右上の開発者向けボタン（Deploy など）を隠し、メニューだけにする
