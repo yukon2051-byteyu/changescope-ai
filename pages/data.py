@@ -70,10 +70,13 @@ st.title("データ管理")
 if st.session_state.pop("data_loaded_toast", False):
     st.toast("読み込みが完了しました", icon=":material/check_circle:")
 show_mode_banner(get_dataset())
-note("<b>登録のしかたは2つあります。</b>この画面では、Excelにまとめて書いて読み込みます。"
-     f"図を見ながら1つずつ作りたいときは、{ui_label('図で入力する')} を使ってください（はじめての方におすすめ）。"
+note("<b>登録のしかたは3つあります。</b>この画面では、Excelにまとめて書いて読み込みます。"
+     f"図を見ながら1つずつ作りたいときは {ui_label('図で入力する')}（はじめての方におすすめ）、"
+     f"文章からAIで図のたたき台を作りたいときは {ui_label('文章・資料から作る')} を使ってください。"
      "ここで読み込んだデータも、「図で入力する」で開いて確認・修正できます。")
-st.page_link("pages/diagram.py", label="図で入力する", icon=":material/account_tree:")
+c_link1, c_link2, _ = st.columns([1, 1, 2])
+c_link1.page_link("pages/diagram.py", label="図で入力する", icon=":material/account_tree:")
+c_link2.page_link("pages/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
 
 source = st.radio(
     "使用するデータ",
