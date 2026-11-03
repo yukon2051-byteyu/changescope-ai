@@ -123,6 +123,14 @@ def load_sample() -> Dataset:
     return result.dataset
 
 
+def load_option_pairs() -> pd.DataFrame:
+    """変更案A・Bの比較の入力例（サンプルデータ用）。"""
+    df, errors = read_csv((SAMPLE_DIR / "option_pairs.csv").read_bytes())
+    if df is None:
+        raise RuntimeError(f"変更案の入力例が不正です: {errors}")
+    return df
+
+
 def load_scenarios() -> pd.DataFrame:
     df, errors = read_csv((SAMPLE_DIR / "scenarios.csv").read_bytes())
     if df is None:
