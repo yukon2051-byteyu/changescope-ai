@@ -21,7 +21,7 @@ from streamlit_flow.state import StreamlitFlowState
 
 from changescope import diagram, models
 from changescope.access import check_access_code, load_access_codes
-from changescope.ai_client import AIClient, get_api_key
+from changescope.ai_client import STORE_DOWN_MESSAGE, AIClient, get_api_key
 from changescope.ai_settings import load_settings, model_label
 from changescope.datasets import load_from_records, to_records
 from changescope.extraction import (
@@ -30,12 +30,12 @@ from changescope.extraction import (
 )
 from changescope.ui import STATUS_LABELS, get_dataset, html, note, set_dataset, show_mode_banner
 from changescope.theme import THEME, diagram_color
-from changescope.usage_store import UsageStore, hash_user
+from changescope.usage_store import UsageStoreUnavailable, hash_user, open_store
 
 st.title("文章・資料から作る")
 show_mode_banner(get_dataset())
 settings = load_settings()
-store = UsageStore(settings.usage_db)
+store = open_store(settings.usage_db)  # 公開版は外部のデータベース、ローカルはファイル
 note("業務の流れを文章で書くか、資料を貼り付けると、AIが<b>図のたたき台</b>（要素とつながりの候補）を作ります。"
      "<b>候補はそのまま登録しません。</b>根拠の文を見て登録するものを選び、「図で入力する」でマウスで直してください。")
 
@@ -97,13 +97,19 @@ if mode == "text":
                "文章からは確定できないつながりも、AIが「推測」として挙げます（「未確認」で登録されます）。"
                "個人情報・機密情報は書かないでください。")
     user_key = free_user_key()
-    left = max(0, settings.per_user_monthly_limit - store.user_calls(user_key, FEATURE_TEXT))
+    try:
+        left = max(0, settings.per_user_monthly_limit - store.user_calls(user_key, FEATURE_TEXT))
+    except UsageStoreUnavailable:
+        left = None  # 回数を確かめられないため、AIは使えなくする
     if st.button("AIで図のたたき台を作る", type="primary", icon=":material/auto_awesome:",
-                 disabled=not text.strip() or left == 0):
+                 disabled=not text.strip() or not left):
         if run_ai(text, "", user_key, "text"):
             st.rerun()  # 残りの回数の表示を更新する
-    st.caption(f"今月あと {left} 回使えます（1人月{settings.per_user_monthly_limit}回まで。"
-               f"費用はこのアプリの運営者が負担しています。1回あたり約10〜20円の見込み）。")
+    if left is None:
+        st.caption(f"{STORE_DOWN_MESSAGE}時間をおいてお試しください。")
+    else:
+        st.caption(f"今月あと {left} 回使えます（1人月{settings.per_user_monthly_limit}回まで。"
+                   f"費用はこのアプリの運営者が負担しています。1回あたり約10〜20円の見込み）。")
 else:
     if dataset is not None and dataset.source == "sample":
         if st.button("サンプルの資料で試す（料金なし）", icon=":material/description:"):

@@ -25,7 +25,7 @@ from changescope.ui import (
     STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, note,
     oversight_findings, section, show_mode_banner,
 )
-from changescope.usage_store import UsageStore
+from changescope.usage_store import open_store
 
 MAX_INPUT_CHARS = 1000
 MAX_DEPTH_LIMIT = 8  # 選べる段数の上限
@@ -187,7 +187,7 @@ with col_ai, st.container(border=True):
                 st.error("アクセスコードが正しくありません。")
             else:
                 settings = load_settings()
-                client = AIClient(settings, UsageStore(settings.usage_db), api_key=get_api_key())
+                client = AIClient(settings, open_store(settings.usage_db), api_key=get_api_key())
                 with st.spinner("AIが確認漏れを調べています（1分ほどかかります。画面を閉じずにお待ちください）"):
                     report, message = find_oversights(client, dataset.graph, result, text, stakeholders, gaps,
                                                       hidden, user_key)

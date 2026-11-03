@@ -18,9 +18,10 @@ import anthropic
 
 from changescope import cost_guard
 from changescope.ai_settings import AISettings
-from changescope.usage_store import UsageStore
+from changescope.usage_store import UsageStore, UsageStoreUnavailable
 
 FALLBACK_NOTE = "AIを使わない分析結果は、そのまま表示しています。"
+STORE_DOWN_MESSAGE = "利用記録のデータベースにつながらないため、AIの機能を止めています。"
 
 # すべての呼び出しで、システムプロンプトの最初に置く共通の決まり
 BASE_SYSTEM = (
@@ -91,14 +92,24 @@ class AIClient:
         if not self.available:
             return AIResult(False, message=f"AI機能は現在利用できません（APIキーが設定されていません）。{FALLBACK_NOTE}")
 
-        decision = cost_guard.check(self.settings, self.store, user_key, user_text, feature, max_chars,
-                                    feature_budget_usd)
+        try:
+            decision = cost_guard.check(self.settings, self.store, user_key, user_text, feature, max_chars,
+                                        feature_budget_usd)
+        except UsageStoreUnavailable:
+            # 回数や予算を確かめられないまま呼ぶと上限が効かなくなるため、AIを止める
+            return AIResult(False, message=f"{STORE_DOWN_MESSAGE}{FALLBACK_NOTE}")
         if not decision.allowed:
             return AIResult(False, message=decision.reason)
 
+        def record(status: str, input_tokens: int, output_tokens: int, cost: float) -> None:
+            try:
+                self.store.record(user_key, feature, self.settings.model, input_tokens, output_tokens, cost, status)
+            except UsageStoreUnavailable:
+                pass  # AIはもう答えている。次の呼び出しは、上の確かめる処理で止まる
+
         def fail(status: str, message: str, input_tokens: int = 0, output_tokens: int = 0) -> AIResult:
             cost = self.settings.cost_usd(input_tokens, output_tokens)
-            self.store.record(user_key, feature, self.settings.model, input_tokens, output_tokens, cost, status)
+            record(status, input_tokens, output_tokens, cost)
             return AIResult(False, message=f"{message}{FALLBACK_NOTE}", input_tokens=input_tokens,
                             output_tokens=output_tokens, cost_usd=cost)
 
@@ -134,5 +145,5 @@ class AIClient:
             return fail("invalid_json", "AIの回答の形が正しくありませんでした。", input_tokens, output_tokens)
 
         cost = self.settings.cost_usd(input_tokens, output_tokens)
-        self.store.record(user_key, feature, self.settings.model, input_tokens, output_tokens, cost, "ok")
+        record("ok", input_tokens, output_tokens, cost)
         return AIResult(True, data=data, input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=cost)
