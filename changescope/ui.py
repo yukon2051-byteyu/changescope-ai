@@ -446,6 +446,27 @@ def oversight_findings(findings) -> None:
     html(body)
 
 
+AI_BUSY_KEY = "ai_busy"  # 押されたAIボタンの key（次の実行の最初に読んで消す）
+
+
+def ai_button(label: str, key: str, disabled: bool = False, **kwargs) -> bool:
+    """AIを呼ぶボタン。押されたら True を返す。二度押しで料金と回数が2回分かからないようにする。
+
+    押されると、まず「押された」とだけ記録して画面を描き直す。描き直した画面ではボタン（とほかのAIボタン）を
+    押せない状態で表示し、そのあとでAIを呼ぶ。AIの処理中に同じボタンを押すことはできない。
+    """
+    busy = st.session_state.pop(AI_BUSY_KEY, None)
+    st.button(label, key=key, disabled=disabled or busy is not None,
+              on_click=lambda: st.session_state.update({AI_BUSY_KEY: key}), **kwargs)
+    return busy == key
+
+
+def ai_spinner(task: str, estimate: str):
+    """AIを待つ間の表示。経過時間・目安の時間・画面を離れたときのことを示す。"""
+    return st.spinner(f"{task}（目安：{estimate}。画面を閉じたり、ほかのページへ移ったりすると、"
+                      "結果は表示されません。料金はかかります）", show_time=True)
+
+
 def ui_label(text: str) -> str:
     """画面上のボタン名などを、本文中で目立たせる。"""
     return f'<span class="cs-ui">{text}</span>'

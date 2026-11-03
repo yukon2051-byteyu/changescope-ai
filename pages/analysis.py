@@ -22,7 +22,7 @@ from changescope.oversight import ESTIMATE, SOURCES, find_oversights, load_sampl
 from changescope.report import analysis_report
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
-    STATUS_LABELS, action_steps, conclusion, data_table, element_label, findings_list, get_dataset, note,
+    STATUS_LABELS, action_steps, ai_button, ai_spinner, conclusion, data_table, element_label, findings_list, get_dataset, note,
     oversight_findings, section, show_mode_banner,
 )
 from changescope.usage_store import open_store
@@ -181,14 +181,15 @@ with col_ai, st.container(border=True):
         code = st.text_input("アクセスコード", type="password", key="access_code")
         if not text.strip():
             st.caption("AIに渡すため、「変更したい内容」を入力してください。")
-        if st.button("AIで確認漏れを調べる", type="primary", icon=":material/search:", disabled=not text.strip()):
+        if ai_button("AIで確認漏れを調べる", key="ai_oversight", type="primary", icon=":material/search:",
+                     disabled=not text.strip()):
             user_key = check_access_code(code, access_codes)
             if user_key is None:
                 st.error("アクセスコードが正しくありません。")
             else:
                 settings = load_settings()
                 client = AIClient(settings, open_store(settings.usage_db), api_key=get_api_key())
-                with st.spinner("AIが確認漏れを調べています（1分ほどかかります。画面を閉じずにお待ちください）"):
+                with ai_spinner("AIが確認漏れを調べています", "1分前後"):
                     report, message = find_oversights(client, dataset.graph, result, text, stakeholders, gaps,
                                                       hidden, user_key)
                 if report is None:

@@ -28,7 +28,7 @@ from changescope.extraction import (
     FEATURE_TEXT, SAMPLE_DOCUMENT, SAMPLE_DOCUMENT_NAME, apply_candidates, extract, load_sample_result,
     mark_registered,
 )
-from changescope.ui import STATUS_LABELS, get_dataset, html, note, set_dataset, show_mode_banner
+from changescope.ui import STATUS_LABELS, ai_button, ai_spinner, get_dataset, html, note, set_dataset, show_mode_banner
 from changescope.theme import THEME, diagram_color
 from changescope.usage_store import UsageStoreUnavailable, hash_user, open_store
 
@@ -66,7 +66,8 @@ def free_user_key() -> str:
 def run_ai(text: str, name: str, user_key: str, mode: str) -> bool:
     """AIで候補を作る。うまくいったら True（失敗したときは理由を表示して False）。"""
     client = AIClient(settings, store, api_key=get_api_key())
-    with st.spinner("AIが文章を読んで、図のたたき台を作っています（1分ほどかかります。画面を閉じずにお待ちください）"):
+    estimate = "30秒前後" if mode == "text" else "1分前後"
+    with ai_spinner("AIが文章を読んで、図のたたき台を作っています", estimate):
         result, message = extract(client, text, name, elements, links, user_key, mode=mode)
     if result is None:
         st.warning(message)
@@ -99,7 +100,7 @@ if mode == "text":
                    max(0, settings.free_daily_limit - store.feature_calls_on(FEATURE_TEXT)))
     except UsageStoreUnavailable:
         left = None  # 回数を確かめられないため、AIは使えなくする
-    if st.button("AIで図のたたき台を作る", type="primary", icon=":material/auto_awesome:",
+    if ai_button("AIで図のたたき台を作る", key="ai_extract_text", type="primary", icon=":material/auto_awesome:",
                  disabled=not text.strip() or not left):
         if run_ai(text, "", user_key, "text"):
             st.rerun()  # 残りの回数の表示を更新する
@@ -130,7 +131,7 @@ else:
             st.caption("この環境では、資料からの作成（アクセスコードが必要）は設定されていません。")
         else:
             code = st.text_input("アクセスコード", type="password", key="ex_access_code")
-            if st.button("AIで候補を作る", type="primary", icon=":material/auto_awesome:",
+            if ai_button("AIで候補を作る", key="ai_extract_document", type="primary", icon=":material/auto_awesome:",
                          disabled=not document.strip()):
                 user_key = check_access_code(code, access_codes)
                 if user_key is None:

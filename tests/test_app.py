@@ -320,3 +320,22 @@ def test_evidence_tab_shows_other_routes():
     box.select(next(o for o in box.options if "情報システム部" in o)).run()
     assert not at.exception
     assert any("ほかの経路（1本）" in m.value for m in at.markdown)
+
+
+def test_ai_button_cannot_be_pressed_twice_while_running():
+    # AIのボタンは、押されたあとの実行（AIを呼んでいる間）は押せない状態で表示する（二度押しで2回分の料金がかからないように）
+    def page():
+        import streamlit as st
+
+        from changescope.ui import ai_button
+
+        st.session_state.setdefault("calls", 0)
+        if ai_button("AIで調べる", key="ai_test"):
+            st.session_state.calls += 1
+
+    at = AppTest.from_function(page).run()
+    assert not at.button(key="ai_test").disabled
+    at.button(key="ai_test").click().run()
+    assert at.session_state.calls == 1 and at.button(key="ai_test").disabled  # 処理中は押せない
+    at.run()
+    assert at.session_state.calls == 1 and not at.button(key="ai_test").disabled  # 終わったら押せる
