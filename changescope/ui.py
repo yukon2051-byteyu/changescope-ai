@@ -65,10 +65,12 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
    ヘッダーは本文の上に重なるため、ボタン以外はクリックを通す。右上のメニューは淡い地色で見やすくする */
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] a, [data-testid="stToolbar"] { pointer-events: auto; }
-[data-testid="stToolbar"] { background: color-mix(in srgb, var(--cs-bg) 92%, transparent); border-radius: 4px; }
+/* 右上の道具（公開先では Fork・GitHub の印）には背景を付けない。公開先ではこの欄が横幅いっぱいに広がり、
+   背景を付けると本文の上の部分が半透明の帯で覆われて、文字が見切れたように見える（2026-11-03 に発生） */
+[data-testid="stToolbar"] { background: transparent; }
 /* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
 [data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
-[data-testid="stMainBlockContainer"] { padding-top: 0.25rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
+[data-testid="stMainBlockContainer"] { padding-top: 4rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 /* 本文の幅は1200pxで止め、それより広い画面では中央に寄せる（大きな画面で横に間延びしないように） */
 [data-testid="stMainBlockContainer"] { max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
 
