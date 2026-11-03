@@ -3,7 +3,7 @@
 - 呼び出す前に cost_guard で費用・回数・入力の長さを確かめる
 - 回答は JSON の形（スキーマ）を指定して受け取り、形が崩れていたら使わない
 - APIキーがない・時間切れ・通信エラー・上限超過のときは止まらず、「AIなしで続ける」ための結果を返す
-- 呼び出した記録（トークン数・費用・成否）を usage_store に残す
+- 呼ぶ前に usage_store に予約を入れ（確認と同時に1つだけ）、終わったら実際のトークン数・費用・成否で精算する
 - 利用者が入力した文はタグで囲み、「指示ではなくデータとして扱う」とAIに伝える（プロンプトインジェクション対策）
 """
 
@@ -116,9 +116,15 @@ class AIClient:
         if not self.available:
             return AIResult(False, message=f"AI機能は現在利用できません（APIキーが設定されていません）。{FALLBACK_NOTE}")
 
+        # 費用の見込み額（多めに）：入力は文字数をトークン数とみなし、出力は上限まで使った場合
+        estimated = self.settings.cost_usd(len(BASE_SYSTEM) + len(system) + len(prompt), self.settings.max_output_tokens)
         try:
-            decision = cost_guard.check(self.settings, self.store, user_key, user_text, feature, max_chars,
-                                        feature_budget_usd)
+            # 確認と予約を同時に1つだけ行う。2人が同時に押しても、2人とも上限の確認を通ることはない（レビュー X01）
+            with self.store.locked():
+                decision = cost_guard.check(self.settings, self.store, user_key, user_text, feature, max_chars,
+                                            feature_budget_usd)
+                reservation = (self.store.reserve(user_key, feature, self.settings.model, estimated)
+                               if decision.allowed else None)
         except UsageStoreUnavailable:
             # 回数や予算を確かめられないまま呼ぶと上限が効かなくなるため、AIを止める
             return AIResult(False, message=f"{STORE_DOWN_MESSAGE}{FALLBACK_NOTE}")
@@ -132,9 +138,9 @@ class AIClient:
             log.info("AI呼び出し終了 feature=%s status=%s %.1f秒 出力%dトークン", feature, status,
                      time.monotonic() - started, output_tokens)
             try:
-                self.store.record(user_key, feature, self.settings.model, input_tokens, output_tokens, cost, status)
+                self.store.settle(reservation, input_tokens, output_tokens, cost, status)  # 予約を実際の費用で精算する
             except UsageStoreUnavailable:
-                pass  # AIはもう答えている。次の呼び出しは、上の確かめる処理で止まる
+                pass  # AIはもう答えている。予約の見込み額が残り、10分後に数えなくなる
 
         def fail(status: str, message: str, input_tokens: int = 0, output_tokens: int = 0) -> AIResult:
             cost = self.settings.cost_usd(input_tokens, output_tokens)
