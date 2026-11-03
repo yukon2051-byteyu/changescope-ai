@@ -84,10 +84,13 @@ def ip_check() -> None:
             kind = "形が不明"
         return f"{kind}・末尾 {hash_user(f'ip:{ip}')[-4:]}"
 
-    forwarded = st.context.headers.get("X-Forwarded-For")
-    first = forwarded.split(",")[0].strip() if forwarded else None
-    st.caption(f"診断：接続の相手 {describe(st.context.ip_address)} ／ "
-               f"X-Forwarded-For の先頭 {describe(first)}（{len(forwarded.split(',')) if forwarded else 0}件）")
+    forwarded = [ip.strip() for ip in (st.context.headers.get("X-Forwarded-For") or "").split(",") if ip.strip()]
+    others = [f"{name} {describe(st.context.headers.get(name))}"
+              for name in ("X-Real-Ip", "Cf-Connecting-Ip", "True-Client-Ip", "X-Envoy-External-Address")
+              if st.context.headers.get(name)]
+    st.caption(f"診断：接続の相手 {describe(st.context.ip_address)} ／ X-Forwarded-For "
+               + (" → ".join(describe(ip) for ip in forwarded) or "なし")
+               + (" ／ " + " ／ ".join(others) if others else ""))
 
 
 def run_ai(text: str, name: str, user_key: str, mode: str) -> bool:
