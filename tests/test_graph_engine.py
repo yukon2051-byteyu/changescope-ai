@@ -204,3 +204,47 @@ def test_sample_scenario_c_includes_cycle(sample_graph):
     assert d["SYS-EXP"] == 1          # 双方向の関係を逆向きにたどる
     assert d["SYS-ACC"] == 2
     assert "PRC-EXP" not in d
+
+
+# ---------- 複数の経路（レビュー C06） ----------
+
+def test_confirmed_path_is_preferred_regardless_of_id_order():
+    # S → A → X（番号が若いが X への線が未確認）と S → B → X（確認済み）。番号の順ではなく、確かな経路を代表にする
+    g = make_graph(["S", "A", "B", "X"], [
+        ("1", "S", "A", "one_way", "confirmed"),
+        ("2", "A", "X", "one_way", "unconfirmed"),
+        ("3", "S", "B", "one_way", "confirmed"),
+        ("4", "B", "X", "one_way", "confirmed"),
+    ])
+    x = next(i for i in analyze_impact(g, ["S"]).impacts if i.element_id == "X")
+    assert [s.dependency_id for s in x.path] == ["3", "4"]
+    assert x.path_status == "confirmed"
+    assert [s.dependency_id for s in x.other_links] == ["2"]  # 選ばれなかったつながりも残す
+
+
+def test_unconfirmed_link_off_the_path_is_listed():
+    from changescope.next_actions import find_uncertain_links
+
+    g = make_graph(["S", "A", "B", "X"], [
+        ("1", "S", "A", "one_way", "confirmed"),
+        ("2", "A", "X", "one_way", "confirmed"),
+        ("3", "S", "B", "one_way", "confirmed"),
+        ("4", "B", "X", "one_way", "unconfirmed"),  # 代表の経路には出てこない未確認のつながり
+    ])
+    result = analyze_impact(g, ["S"])
+    links = find_uncertain_links(g, result)
+    assert [l.dependency_id for l in links] == ["4"] and links[0].affected_names == ["要素X"]
+    assert "4" in {s.dependency_id for s in result.links_in_scope}
+
+
+def test_longer_confirmed_route_makes_status_confirmed():
+    # S → X が未確認でも、段数の上限内に確認済みだけで届く経路（S → A → X）があれば確認済。段数は最短のまま
+    g = make_graph(["S", "A", "X"], [
+        ("1", "S", "X", "one_way", "unconfirmed"),
+        ("2", "S", "A", "one_way", "confirmed"),
+        ("3", "A", "X", "one_way", "confirmed"),
+    ])
+    x = next(i for i in analyze_impact(g, ["S"]).impacts if i.element_id == "X")
+    assert x.depth == 1 and x.path_status == "confirmed"
+    only_one_step = next(i for i in analyze_impact(g, ["S"], max_depth=1).impacts if i.element_id == "X")
+    assert only_one_step.path_status == "unconfirmed"  # 上限が1段なら、確認済みの経路は届かない

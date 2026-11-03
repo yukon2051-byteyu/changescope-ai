@@ -282,8 +282,8 @@ st.download_button("PDFでダウンロード", report_pdf, "ChangeScope_影響�
 section("DETAILS", "詳しい結果")
 
 st.caption(
-    "確認状態：確認済＝経路の依存関係がすべて確認済み　推定＝推定の関係を含む　"
-    "未確認＝未確認の関係を含む（経路の中で最も不確かな状態を表示）"
+    "確認状態：確認済＝確認済みの関係だけで届く経路がある　推定＝どの経路にも推定以下の関係を含む　"
+    "未確認＝どの経路にも未確認の関係を含む"
 )
 with st.expander("影響度の計算方法"):
     st.markdown(
@@ -412,3 +412,14 @@ with tab3:
                 f"- 確認状態：{STATUS_LABELS[step.status]}"
                 + (f"\n- 補足：{step.note}" if step.note else "")
             )
+    if chosen.path_status != min((s.status for s in chosen.path), key=["unconfirmed", "assumed", "confirmed"].index):
+        st.caption(f"上の経路には確かめていないつながりがありますが、別の経路でも影響が届くため、"
+                   f"この要素の確認状態は「{STATUS_LABELS[chosen.path_status]}」です。")
+    if chosen.other_links:
+        st.markdown(f"**ほかの経路（{len(chosen.other_links)}本）：** 影響範囲の中から、この要素へほかにも届くつながりです。")
+        data_table(pd.DataFrame({
+            "つながり": [f"{dataset.graph.nodes[s.from_id]['name']} → {dataset.graph.nodes[s.to_id]['name']}"
+                     f"（{step_label(s)}）" for s in chosen.other_links],
+            "確認状態": [STATUS_LABELS[s.status] for s in chosen.other_links],
+            "根拠": [s.evidence for s in chosen.other_links],
+        }))

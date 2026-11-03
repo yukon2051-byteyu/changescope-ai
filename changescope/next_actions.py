@@ -74,20 +74,25 @@ def _contact_names(graph: nx.MultiDiGraph, element_ids: list[str]) -> list[str]:
 
 
 def find_uncertain_links(graph: nx.MultiDiGraph, result: ImpactResult) -> list[UncertainLink]:
-    """影響の経路に含まれる推定・未確認のつながりを、関係する影響の多い順に返す。"""
+    """影響範囲の中にある推定・未確認のつながりを、関係する影響の多い順に返す。
+
+    代表の経路に選ばれなかったつながりも含める（経路の選び方しだいで、未確認のつながりが一覧から漏れないように）。
+    関係する影響は、そのつながりを経路に含む影響と、つながりの先の要素。
+    """
     links: dict[str, UncertainLink] = {}
+    for step in result.links_in_scope:
+        if step.status == "confirmed":
+            continue
+        text = f"{graph.nodes[step.from_id]['name']} → {graph.nodes[step.to_id]['name']}（{step_label(step)}）"
+        links[step.dependency_id] = UncertainLink(
+            step.dependency_id, text, step.status, step.note, step.evidence,
+            _contact_names(graph, [step.from_id, step.to_id]),
+        )
     for item in result.impacts:
-        for step in item.path:
-            if step.status == "confirmed":
-                continue
-            if step.dependency_id not in links:
-                text = (f"{graph.nodes[step.from_id]['name']} → "
-                        f"{graph.nodes[step.to_id]['name']}（{step_label(step)}）")
-                links[step.dependency_id] = UncertainLink(
-                    step.dependency_id, text, step.status, step.note, step.evidence,
-                    _contact_names(graph, [step.from_id, step.to_id]),
-                )
-            links[step.dependency_id].affected_names.append(item.name)
+        ids = {s.dependency_id for s in item.path} | {s.dependency_id for s in item.other_links}
+        for dependency_id in sorted(ids & set(links)):
+            if item.name not in links[dependency_id].affected_names:
+                links[dependency_id].affected_names.append(item.name)
     return sorted(links.values(), key=lambda link: (-link.affected, link.dependency_id))
 
 

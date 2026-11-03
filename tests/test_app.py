@@ -311,3 +311,12 @@ def test_guide_try_sample_button_opens_analysis():
     assert not at.exception
     assert at.session_state["dataset"].source == "sample"
     assert any(t.value == "影響分析" for t in at.title)
+
+
+def test_evidence_tab_shows_other_routes():
+    # 要素ごとの根拠で、代表の経路以外にこの要素へ届くつながり（ほかの経路）を表示する（レビュー C06）
+    at = analyze_scenario_a()
+    box = next(s for s in at.selectbox if s.label.startswith("根拠を確認する要素"))
+    box.select(next(o for o in box.options if "情報システム部" in o)).run()
+    assert not at.exception
+    assert any("ほかの経路（1本）" in m.value for m in at.markdown)

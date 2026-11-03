@@ -164,11 +164,16 @@ def _step_text(graph: nx.MultiDiGraph, step: Step) -> str:
 
 
 def collect_steps(result: ImpactResult) -> dict[str, Step]:
-    """影響の経路に含まれるつながりを、番号ごとに集める（AIが根拠として挙げてよい番号の一覧）。"""
+    """影響範囲の中のつながりを、番号ごとに集める（AIが根拠として挙げてよい番号の一覧）。
+
+    代表の経路に選ばれなかったつながりも含める（推定・未確認のつながりをAIが見落とさないように）。
+    """
     steps: dict[str, Step] = {}
     for item in result.impacts:
         for step in item.path:
             steps.setdefault(step.dependency_id, step)
+    for step in result.links_in_scope:
+        steps.setdefault(step.dependency_id, step)
     return steps
 
 
