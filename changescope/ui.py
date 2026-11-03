@@ -389,7 +389,7 @@ def conclusion(assessment) -> None:
     html(
         f'<div class="cs-conclusion">'
         f'<div class="cs-eyebrow">CONCLUSION</div>'
-        f'<div class="cs-conclusion-head"><span class="cs-level cs-level-{escape(a.level)}">影響 {escape(a.level)}</span>'
+        f'<div class="cs-conclusion-head"><span class="cs-level cs-level-{escape(a.level)}">影響の広さ {escape(a.level)}</span>'
         f'<span class="cs-conclusion-headline">{escape(a.headline)}</span></div>'
         f'<div class="cs-conclusion-meaning">{escape(a.meaning)}</div>'
         f'<div class="cs-conclusion-first"><b>まずやること</b>{escape(a.first_step)}</div>'

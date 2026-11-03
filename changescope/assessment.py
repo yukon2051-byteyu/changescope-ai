@@ -1,7 +1,7 @@
 """分析結果の総合判定と結論（AIを使わず、ルールで決める）。
 
 結果を見た人が「まず何をすればよいか」「何を意識すればよいか」をすぐ分かるよう、
-影響範囲を 大・中・小 で判定し、判定ごとの進め方と最初の一歩を短く示す。
+影響の広さ（関係する部門の数）を 大・中・小 で判定し、判定ごとの進め方と最初の一歩を短く示す。
 
 判定の基準は「影響を受ける部門の数」。変更の手間とリスクは、主に何部門と調整が必要かで決まるため。
 """
@@ -78,11 +78,12 @@ def assess(graph: nx.MultiDiGraph, result: ImpactResult, stakeholders: list[Stak
     # 確かめる単位は「つながり（本）」。「次にやること」の本数と合わせる
     n_links = len(find_uncertain_links(graph, result))
 
-    headline = f"影響範囲は「{level}」です。{n_departments}部門・{n_impacts}件に影響が及ぶ可能性があります。"
+    headline = f"影響の広さは「{level}」です。{n_departments}部門・{n_impacts}件に影響が及ぶ可能性があります。"
     basis = (f"判定の根拠：影響を受ける部門 {n_departments}（3部門以上＝大、2部門＝中、1部門＝小）"
              f"／影響 {n_impacts}件／見落としやすい影響 {hidden}件"
              f"／要確認の影響 {uncertain}件（確認が必要なつながり {n_links}本）"
-             "。登録済みのつながりだけで判定しています（登録していないつながりは含みません）")
+             "。登録済みのつながりだけで判定しています（登録していないつながりは含みません）"
+             "。「大・中・小」は関係する部門の数で見た広さで、業務の重要度や止まったときの損失などのリスクの大きさは含みません")
 
     owners = [s.name for s in stakeholders if s.is_target_owner]
     share = f"{'・'.join(owners)}と変更の方針を共有し" if owners else "変更対象の責任部門を決めて方針を共有し"

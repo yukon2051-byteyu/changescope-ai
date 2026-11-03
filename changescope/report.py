@@ -196,7 +196,7 @@ def analysis_report(graph: nx.MultiDiGraph, source: str, change_text: str, resul
 
     if assessment is not None:
         pdf.section("1. 結論")
-        pdf.subheading(f"影響範囲：{assessment.level}　{assessment.headline}")
+        pdf.subheading(f"影響の広さ：{assessment.level}　{assessment.headline}")
         pdf.paragraph(assessment.meaning)
         pdf.paragraph(f"まずやること：{assessment.first_step}")
         if assessment.caution:

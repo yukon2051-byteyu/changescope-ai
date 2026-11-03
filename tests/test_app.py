@@ -94,7 +94,7 @@ def test_analysis_page_scenario_a_flow():
     assert any(t.label == "要確認のつながり（4本）" for t in at.tabs)
     assert any("確かめるつながり" in m.value and "社内認証基盤" in m.value for m in at.markdown)
     assert at.slider[0].max == 8  # 8段までたどれる
-    assert any("影響範囲は「大」です" in m.value and "まずやること" in m.value for m in at.markdown)
+    assert any("影響の広さは「大」です" in m.value and "まずやること" in m.value for m in at.markdown)
     assert any(t.label.startswith("見落としチェック") for t in at.tabs)
     assert any("データの移行・引き継ぎ" in m.value for m in at.markdown)
     assert any("次にやること" in m.value for m in at.markdown)

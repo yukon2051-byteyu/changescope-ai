@@ -68,7 +68,7 @@ def test_sample_scenarios():
     ds = load_sample()
     a = assess_for(ds.graph, ["SYS-ATT"])
     assert a.level == "大"
-    assert a.headline == "影響範囲は「大」です。3部門・21件に影響が及ぶ可能性があります。"
+    assert a.headline == "影響の広さは「大」です。3部門・21件に影響が及ぶ可能性があります。"
     # 確かめる単位はつながり（本）。「次にやること」の本数とそろえる
     assert a.first_step.startswith("まず、人事部と変更の方針を共有し、要確認のつながり4本を確かめてください")
     assert "要確認の影響 6件（確認が必要なつながり 4本）" in a.basis

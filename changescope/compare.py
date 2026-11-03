@@ -104,7 +104,7 @@ def compare(graph: nx.MultiDiGraph, a: OptionInput, b: OptionInput, max_depth: i
                    difference(a_count, b_count, a.name, b.name, unit))
 
     def scope(r: OptionResult) -> str:
-        return (f"{len(r.involved)}件・{r.assessment.level}（手を入れる{len(r.result.targets)}件・"
+        return (f"{len(r.involved)}件・広さ{r.assessment.level}（手を入れる{len(r.result.targets)}件・"
                 f"直接{len(r.result.direct)}件・間接{len(r.result.indirect)}件）")
 
     rows = [
