@@ -20,8 +20,12 @@ toolbarMode = "minimal"
 def test_both_themes_define_every_color():
     for t in THEMES.values():
         for name, value in vars(t).items():
-            if name not in ("label", "heading_font", "heading_font_url"):
-                assert value.startswith("#") and len(value) == 7, (t.label, name, value)
+            if name in ("label", "heading_font", "heading_font_url", "parts", "base_radius", "button_radius"):
+                continue
+            if name.startswith("sidebar_") and value == "":  # 左のメニューの色は省略できる（濃い色を使う）
+                continue
+            assert value.startswith("#") and len(value) == 7, (t.label, name, value)
+        assert set(t.parts) <= set(theme.PART_DEFAULTS) | set(theme.DIAGRAM_PARTS), t.label  # 部品の名前の書き間違いがない
 
 
 def test_rewrite_config_changes_only_color_lines():
@@ -42,10 +46,13 @@ def test_config_file_matches_active_theme():
     # 設定ファイルの色が、いま選んでいるテーマと一致している（切り替えのコマンドを使い忘れていない）
     text = theme.CONFIG_PATH.read_text(encoding="utf-8")
     assert rewrite_config(text, theme.THEME) == text
-    assert len(config_colors(theme.THEME)) == 16
+    assert len(config_colors(theme.THEME)) == 18  # 色16項目と、角の丸み2項目
 
 
 def test_css_variables_follow_theme():
     css = css_variables(THEMES["green_brass"])
     assert "--cs-navy: #16302A" in css and "Shippori Mincho B1" in css
+    light = css_variables(THEMES["white_green"])
+    assert "--cs-hero-bg: #EEF4DA" in light and "--cs-pill: 999px" in light  # 白とトラッドグリーンは淡い帯・丸い形
+    assert "--cs-hero-bg: linear-gradient" in css  # 部品を指定しないテーマは、濃い帯のまま
     assert "--cs-heading-font: inherit" in css_variables(THEMES["navy_gold"])  # 紺と金は本文と同じ書体

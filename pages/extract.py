@@ -29,7 +29,7 @@ from changescope.extraction import (
     mark_registered,
 )
 from changescope.ui import STATUS_LABELS, get_dataset, html, note, set_dataset, show_mode_banner
-from changescope.theme import THEME
+from changescope.theme import THEME, diagram_color
 from changescope.usage_store import UsageStore, hash_user
 
 st.title("文章・資料から作る")
@@ -45,7 +45,7 @@ EXAMPLE_TEXT = ("営業部がCRMを利用して顧客情報を管理している
                 "経理部が請求処理を行っている。")
 MODES = {"text": f"文章で説明する（アクセスコード不要・{settings.max_free_text_chars:,}文字まで）",
          "document": f"資料を貼り付ける（アクセスコードが必要・{settings.max_document_chars:,}文字まで）"}
-NAVY, GOLD, RULE_GRAY = THEME.primary, THEME.accent, "#8A94A6"  # 濃い色と差し色はテーマに合わせる
+NAVY, GOLD, RULE_GRAY = THEME.primary, diagram_color("diagram-accent"), "#8A94A6"  # 図の色はテーマに合わせる
 
 
 def reset_candidates() -> None:

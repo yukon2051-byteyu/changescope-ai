@@ -73,18 +73,17 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .stApp h3 { border-left: 4px solid var(--cs-gold); padding-left: 12px; letter-spacing: .04em; }
 [data-testid="stMetric"] {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-top: 3px solid var(--cs-gold);
-  border-radius: 4px; padding: 14px 18px;
+  border-radius: var(--cs-radius); padding: 14px 18px; box-shadow: var(--cs-shadow);
 }
 [data-testid="stMain"] [data-testid="stPageLink"] a {
-  background: var(--cs-paper); border: 1px solid var(--cs-navy-2); border-radius: 4px; padding: 10px 14px;
+  background: var(--cs-paper); border: 1px solid var(--cs-navy-2); border-radius: var(--cs-pill); padding: 10px 18px;
 }
 [data-testid="stMain"] [data-testid="stPageLink"] a:hover { background: var(--cs-navy); }
 [data-testid="stMain"] [data-testid="stPageLink"] a:hover * { color: #fff !important; }
 
 .cs-hero {
-  position: relative; overflow: hidden; border-radius: 6px; padding: 20px 48px 18px;
-  background: linear-gradient(135deg, var(--cs-navy) 0%, var(--cs-navy-2) 100%);
-  border-bottom: 3px solid var(--cs-gold); color: #fff; margin-bottom: 8px;
+  position: relative; overflow: hidden; border-radius: var(--cs-radius-lg); padding: 20px 48px 18px;
+  background: var(--cs-hero-bg); border-bottom: 3px solid var(--cs-hero-rule); color: var(--cs-hero-ink); margin-bottom: 8px;
 }
 .cs-hero::after {
   content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
@@ -92,15 +91,15 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   box-shadow: 0 0 0 40px color-mix(in srgb, var(--cs-gold-light) 6%, transparent),
               0 0 0 80px color-mix(in srgb, var(--cs-gold-light) 4%, transparent);
 }
-.cs-eyebrow { color: var(--cs-gold); letter-spacing: .24em; font-size: .78rem; font-weight: 700; }
-.cs-hero .cs-eyebrow { color: var(--cs-gold-light); }
+.cs-eyebrow { color: var(--cs-accent-text); letter-spacing: .24em; font-size: .78rem; font-weight: 700; }
+.cs-hero .cs-eyebrow { color: var(--cs-hero-eyebrow); }
 .cs-hero-title {
   font-family: 'Cormorant Garamond', serif; font-size: 3.2rem; font-weight: 600; line-height: 1.1;
-  margin: 10px 0 18px; color: #fff; letter-spacing: .02em;
+  margin: 10px 0 18px; color: var(--cs-hero-ink); letter-spacing: .02em;
 }
 .cs-hero-lead { font-size: 1.3rem; font-weight: 700; letter-spacing: .06em; margin-bottom: 10px; }
-.cs-hero-sub { color: var(--cs-on-dark); line-height: 1.9; }
-.cs-hero-rule { width: 56px; height: 2px; background: var(--cs-gold); margin: 0 0 18px; }
+.cs-hero-sub { color: var(--cs-hero-sub); line-height: 1.9; }
+.cs-hero-rule { width: 56px; height: 2px; background: var(--cs-hero-rule); margin: 0 0 18px; }
 
 .cs-section { margin: 36px 0 14px; }
 .cs-section-title { font-size: 1.35rem; font-weight: 700; color: var(--cs-ink); letter-spacing: .06em; margin-top: 4px; }
@@ -108,15 +107,15 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 .cs-card {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-top: 3px solid var(--cs-gold);
-  border-radius: 4px; padding: 20px 22px;
+  border-radius: var(--cs-radius); padding: 20px 22px; box-shadow: var(--cs-shadow);
 }
-.cs-card-num { font-family: 'Cormorant Garamond', serif; color: var(--cs-gold); font-size: 1.9rem; line-height: 1; }
+.cs-card-num { font-family: 'Cormorant Garamond', serif; color: var(--cs-accent-text); font-size: 1.9rem; line-height: 1; }
 .cs-card-title { font-weight: 700; color: var(--cs-navy); margin: 8px 0 6px; letter-spacing: .04em; }
 .cs-card-text { color: var(--cs-sub); font-size: .92rem; line-height: 1.8; }
 
 .cs-note {
   background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-left: 4px solid var(--cs-gold);
-  border-radius: 4px; padding: 14px 18px; line-height: 1.9; color: var(--cs-ink); margin: 12px 0;
+  border-radius: var(--cs-radius); padding: 14px 18px; line-height: 1.9; color: var(--cs-ink); margin: 12px 0;
 }
 .cs-note b { color: var(--cs-navy); }
 
@@ -128,11 +127,11 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 }
 .cs-step-title { font-weight: 700; color: var(--cs-navy); margin-bottom: 4px; letter-spacing: .04em; }
 .cs-step-text { color: var(--cs-ink); line-height: 1.9; font-size: .95rem; }
-.cs-step-text .cs-ui { background: var(--cs-navy); color: #fff; border-radius: 3px; padding: 1px 8px; font-size: .85rem; white-space: nowrap; }
+.cs-step-text .cs-ui { background: var(--cs-navy); color: #fff; border-radius: var(--cs-pill); padding: 1px 8px; font-size: .85rem; white-space: nowrap; }
 
 .cs-actions {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-left: 4px solid var(--cs-gold);
-  border-radius: 4px; padding: 4px 22px; margin: 8px 0 16px;
+  border-radius: var(--cs-radius); padding: 4px 22px; margin: 8px 0 16px; box-shadow: var(--cs-shadow);
 }
 .cs-action-list { margin: 6px 0 0 0; padding-left: 1.2em; color: var(--cs-sub); font-size: .9rem; }
 .cs-action-list li { margin: 2px 0; }
@@ -142,92 +141,94 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-link-cards { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .cs-link-card {
   background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-left: 5px solid var(--cs-gold);
-  border-radius: 4px; padding: 10px 14px;
+  border-radius: var(--cs-radius); padding: 10px 14px;
 }
 .cs-link-unconfirmed { border-left-color: #A6741A; }
 .cs-link-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .cs-link-status {
   background: var(--cs-navy); color: var(--cs-gold-light); font-size: .78rem; font-weight: 700;
-  padding: 2px 10px; border-radius: 3px; white-space: nowrap;
+  padding: 2px 10px; border-radius: var(--cs-pill); white-space: nowrap;
 }
 .cs-link-unconfirmed .cs-link-status { background: #A6741A; color: #fff; }
 .cs-link-text { font-weight: 700; color: var(--cs-navy); font-size: 1.02rem; }
 .cs-link-meta { margin-top: 6px; color: var(--cs-ink); font-size: .92rem; }
 .cs-link-meta b { color: var(--cs-navy); }
-.cs-link-arrow { color: var(--cs-gold); margin: 0 8px; }
+.cs-link-arrow { color: var(--cs-accent-text); margin: 0 8px; }
 .cs-link-count { font-weight: 700; color: var(--cs-navy); font-size: 1.05rem; margin: 0 2px; }
 .cs-link-note { margin-top: 4px; color: var(--cs-sub); font-size: .85rem; }
 
 .cs-conclusion {
-  background: linear-gradient(135deg, var(--cs-navy) 0%, var(--cs-navy-2) 100%); color: #fff;
-  border-radius: 6px; border-bottom: 3px solid var(--cs-gold); padding: 20px 28px; margin: 8px 0 18px;
+  background: var(--cs-concl-bg); color: var(--cs-concl-ink); border: var(--cs-concl-border);
+  border-radius: var(--cs-radius-lg); border-bottom: 3px solid var(--cs-gold); padding: 20px 28px; margin: 8px 0 18px;
+  box-shadow: var(--cs-shadow);
 }
-.cs-conclusion .cs-eyebrow { color: var(--cs-gold-light); }
+.cs-conclusion .cs-eyebrow { color: var(--cs-concl-strong); }
 .cs-conclusion-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 8px 0 6px; }
-.cs-level { font-weight: 700; padding: 4px 14px; border-radius: 3px; letter-spacing: .08em; white-space: nowrap; }
-.cs-level-大 { background: var(--cs-gold); color: var(--cs-navy); }
-.cs-level-中 { background: var(--cs-gold-light); color: var(--cs-navy); }
-.cs-level-小 { background: #fff; color: var(--cs-navy); }
+.cs-level { font-weight: 700; padding: 4px 14px; border-radius: var(--cs-pill); letter-spacing: .08em; white-space: nowrap; }
+.cs-level-大 { background: var(--cs-level-big-bg); color: var(--cs-level-big-ink); }
+.cs-level-中 { background: var(--cs-level-mid-bg); color: var(--cs-level-mid-ink); }
+.cs-level-小 { background: var(--cs-level-small-bg); color: var(--cs-level-small-ink); border: var(--cs-level-small-border); }
 .cs-conclusion-headline { font-size: 1.2rem; font-weight: 700; letter-spacing: .04em; }
-.cs-conclusion-meaning { color: var(--cs-on-dark); margin-bottom: 12px; }
+.cs-conclusion-meaning { color: var(--cs-concl-sub); margin-bottom: 12px; }
 .cs-conclusion-first {
-  background: rgba(255,255,255,.08); border-left: 3px solid var(--cs-gold); padding: 10px 14px;
-  border-radius: 3px; line-height: 1.8;
+  background: var(--cs-concl-first); border-left: 3px solid var(--cs-gold); padding: 10px 14px;
+  border-radius: var(--cs-radius); line-height: 1.8;
 }
-.cs-conclusion-first b { color: var(--cs-gold-light); margin-right: 12px; }
-.cs-conclusion-caution { margin-top: 10px; color: var(--cs-gold-light); font-size: .92rem; line-height: 1.8; }
-.cs-conclusion-label { margin-top: 14px; color: var(--cs-gold-light); font-weight: 700; font-size: .9rem; }
+.cs-conclusion-first b { color: var(--cs-concl-strong); margin-right: 12px; }
+.cs-conclusion-caution { margin-top: 10px; color: var(--cs-concl-strong); font-size: .92rem; line-height: 1.8; }
+.cs-conclusion-label { margin-top: 14px; color: var(--cs-concl-strong); font-weight: 700; font-size: .9rem; }
 .cs-conclusion-stance { margin: 4px 0 0; padding-left: 1.2em; line-height: 1.9; }
-.cs-conclusion-basis { margin-top: 12px; color: var(--cs-on-dark-faint); font-size: .8rem; }
+.cs-conclusion-basis { margin-top: 12px; color: var(--cs-concl-faint); font-size: .8rem; }
 
 .cs-finding {
-  background: var(--cs-paper); border: 1px solid var(--cs-line); border-radius: 4px; padding: 14px 18px; margin: 10px 0;
+  background: var(--cs-paper); border: 1px solid var(--cs-line); border-radius: var(--cs-radius); padding: 14px 18px;
+  margin: 10px 0; box-shadow: var(--cs-shadow);
 }
 .cs-finding-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .cs-finding-title { font-weight: 700; color: var(--cs-navy); letter-spacing: .04em; }
 .cs-finding-detail { color: var(--cs-ink); line-height: 1.8; font-size: .93rem; }
 .cs-finding-items { color: var(--cs-sub); font-size: .9rem; margin-top: 6px; line-height: 1.8; }
-.cs-badge, .cs-badge-warn { font-size: .75rem; padding: 2px 8px; border-radius: 3px; white-space: nowrap; }
+.cs-badge, .cs-badge-warn { font-size: .75rem; padding: 2px 10px; border-radius: var(--cs-pill); white-space: nowrap; }
 .cs-badge { background: var(--cs-navy); color: var(--cs-gold-light); }
-.cs-badge-warn { background: var(--cs-gold); color: #fff; }
+.cs-badge-warn { background: var(--cs-gold); color: var(--cs-badge-warn-ink); }
 
 .cs-ai-card {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-left: 4px solid var(--cs-line);
-  border-radius: 4px; padding: 14px 18px; margin: 10px 0;
+  border-radius: var(--cs-radius); padding: 14px 18px; margin: 10px 0; box-shadow: var(--cs-shadow);
 }
 .cs-ai-高 { border-left-color: var(--cs-navy); }
 .cs-ai-中 { border-left-color: var(--cs-gold); }
 .cs-ai-imp { font-size: .75rem; font-weight: 700; color: var(--cs-navy); white-space: nowrap; }
 .cs-ai-view { font-size: .75rem; color: var(--cs-sub); border: 1px solid var(--cs-line); padding: 1px 8px; border-radius: 3px; }
-.cs-ai-ask { background: var(--cs-cream); border-radius: 3px; padding: 10px 14px; margin-top: 10px; }
+.cs-ai-ask { background: var(--cs-cream); border-radius: var(--cs-radius); padding: 10px 14px; margin-top: 10px; }
 .cs-ai-ask-to { font-weight: 700; color: var(--cs-navy); font-size: .9rem; }
 .cs-ai-q { color: var(--cs-ink); line-height: 1.8; margin-top: 4px; }
-.cs-ai-q::before { content: "質問　"; color: var(--cs-gold); font-weight: 700; }
-.cs-ai-cand { margin-left: 8px; font-size: .75rem; font-weight: 400; color: var(--cs-gold); }
+.cs-ai-q::before { content: "質問　"; color: var(--cs-accent-text); font-weight: 700; }
+.cs-ai-cand { margin-left: 8px; font-size: .75rem; font-weight: 400; color: var(--cs-accent-text); }
 .cs-finding-items ul { margin: 4px 0 0; padding-left: 1.2em; }
 
 .cs-flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 12px 0; }
 .cs-flow-box {
-  flex: 1 1 150px; background: var(--cs-navy); color: #fff; border-radius: 4px; padding: 14px 16px;
+  flex: 1 1 150px; background: var(--cs-flow-bg); color: var(--cs-flow-ink); border-radius: var(--cs-radius); padding: 14px 16px;
   border-bottom: 3px solid var(--cs-gold);
 }
-.cs-flow-box b { color: var(--cs-gold-light); display: block; margin-bottom: 4px; }
-.cs-flow-box span { color: var(--cs-on-dark); font-size: .85rem; line-height: 1.7; }
-.cs-flow-arrow { align-self: center; color: var(--cs-gold); font-size: 1.4rem; }
+.cs-flow-box b { color: var(--cs-flow-strong); display: block; margin-bottom: 4px; }
+.cs-flow-box span { color: var(--cs-flow-sub); font-size: .85rem; line-height: 1.7; }
+.cs-flow-arrow { align-self: center; color: var(--cs-accent-text); font-size: 1.4rem; }
 
 .cs-table { border-collapse: collapse; width: 100%; background: var(--cs-paper); font-size: .92rem; }
-.cs-table th { background: var(--cs-navy); color: #fff; text-align: left; padding: 8px 12px; font-weight: 500; }
+.cs-table th { background: var(--cs-th-bg); color: var(--cs-th-ink); text-align: left; padding: 8px 12px; font-weight: 500; }
 .cs-table td { border-bottom: 1px solid var(--cs-line); padding: 8px 12px; vertical-align: top; line-height: 1.7;
   overflow-wrap: anywhere; }
-.cs-table-wrap { overflow: auto; border: 1px solid var(--cs-line); border-radius: 4px; margin: 6px 0 12px; }
+.cs-table-wrap { overflow: auto; border: 1px solid var(--cs-line); border-radius: var(--cs-radius); margin: 6px 0 12px; }
 .cs-table-wrap .cs-table th { position: sticky; top: 0; z-index: 1; white-space: nowrap; }
 .cs-table .cs-num-col { text-align: right; white-space: nowrap; }
 
-/* タブ：紺の帯に白系の文字。選んでいるタブは金の地に紺の文字にして、タブがあることと、どれを選んでいるかを分かりやすくする。
+/* タブ：帯の上に並べ、選んでいるタブは色の地にして、タブがあることと、どれを選んでいるかを分かりやすくする（色はテーマで決める）。
    Streamlit 1.66 のタブは、並び＝role="tablist"、1つのタブ＝data-testid="stTab"、選択中＝data-selected の印が付く
    （以前の版の data-baseweb="tab" では効かない。Streamlit を更新したら、ここが効いているか画面で確かめる） */
 .stTabs [role="tablist"] {
-  margin-top: 18px !important; background: var(--cs-navy) !important; border-radius: 6px; padding: 6px !important;
+  margin-top: 18px !important; background: var(--cs-tabs-bg) !important; border-radius: var(--cs-radius-lg); padding: 6px !important;
   gap: 6px !important; flex-wrap: nowrap !important; overflow-x: auto !important;  /* とても狭い画面だけ横にずらして見る */
 }
 .stTabs [role="tablist"]::after { display: none !important; }  /* 元の下線 */
@@ -237,12 +238,12 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
    いちばんタブの多い影響分析の結果（7つ・件数つき）でも、幅1,280px以上の画面で1行に収まることを確認済み */
 .stTabs [data-testid="stTab"] {
   flex: 1 1 auto; justify-content: center; min-width: max-content;  /* 文字の長さに合わせ、余りを均等に分ける */
-  background: rgba(255,255,255,.06) !important; color: var(--cs-on-dark) !important;
-  border-radius: 4px; padding: 0 6px !important; transition: background .15s;
+  background: var(--cs-tab-bg) !important; color: var(--cs-tab-ink) !important;
+  border-radius: var(--cs-pill); padding: 0 6px !important; transition: background .15s;
 }
 .stTabs [data-testid="stTab"] p { color: inherit !important; font-size: clamp(.72rem, .88vw, .95rem); white-space: nowrap; }
-.stTabs [data-testid="stTab"]:hover { background: rgba(255,255,255,.16) !important; color: #fff !important; }
-.stTabs [data-testid="stTab"][data-selected] { background: var(--cs-gold) !important; color: var(--cs-navy) !important; }
+.stTabs [data-testid="stTab"]:hover { background: var(--cs-tab-hover-bg) !important; color: var(--cs-tab-hover-ink) !important; }
+.stTabs [data-testid="stTab"][data-selected] { background: var(--cs-tab-on-bg) !important; color: var(--cs-tab-on-ink) !important; }
 .stTabs [data-testid="stTab"][data-selected] p { font-weight: 700; }
 .stTabs .react-aria-SelectionIndicator { display: none !important; }  /* 元の選択中の下線 */
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }

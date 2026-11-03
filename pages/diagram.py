@@ -24,7 +24,7 @@ from streamlit_flow.state import StreamlitFlowState
 from changescope import diagram, models
 from changescope.datasets import load_from_records, to_records
 from changescope.excel_template import build_template
-from changescope.theme import THEME
+from changescope.theme import THEME, diagram_color
 from changescope.ui import STATUS_LABELS, data_table, get_dataset, note, set_dataset
 
 st.title("図で入力する")
@@ -33,7 +33,7 @@ st.title("図で入力する")
 NODE_W, NODE_H, ROW_GAP = 230, 58, 22
 COLUMN_X = {"left": 0, "center": 420, "first": 880, "second": 1340}  # 線の上の文字が収まるよう、列の間を空ける
 # 濃い色と差し色はテーマ（changescope/theme.py）に合わせる。規程の灰色・まとめたデータの青は、意味を表す色なので固定
-NAVY, GOLD, RULE_GRAY, DATA_BLUE = THEME.primary, THEME.accent, "#8A94A6", "#2E5E8C"
+NAVY, GOLD, RULE_GRAY, DATA_BLUE = THEME.primary, diagram_color("diagram-accent"), "#8A94A6", "#2E5E8C"
 BASE = {"borderRadius": "6px", "padding": "4px 10px", "fontSize": "13px", "lineHeight": "1.35",
         "width": f"{NODE_W}px", "height": f"{NODE_H}px", "boxSizing": "border-box", "display": "flex",
         "alignItems": "center", "justifyContent": "center", "overflow": "hidden"}
@@ -41,7 +41,7 @@ NEIGHBOR_STYLE = {**BASE, "background": NAVY, "color": "#FFFFFF", "border": f"2p
 UNCERTAIN_STYLE = {**NEIGHBOR_STYLE, "border": f"2px dashed {GOLD}"}  # 推定・未確認のつながりの相手
 RULE_STYLE = {**BASE, "background": "#FFFFFF", "color": NAVY, "border": f"2px solid {RULE_GRAY}", "fontWeight": "bold"}
 CENTER_H = 72
-CENTER_STYLE = {**BASE, "background": GOLD, "color": NAVY, "border": f"3px solid {NAVY}", "fontWeight": "bold",
+CENTER_STYLE = {**BASE, "background": diagram_color("diagram-center-bg"), "color": NAVY, "border": f"3px solid {NAVY}", "fontWeight": "bold",
                 "fontSize": "15px", "width": "260px", "height": f"{CENTER_H}px"}
 EMPTY_STYLE = {**BASE, "background": "#F4F1E8", "color": "#8A94A6", "border": "1px dashed #DDD8CC"}
 CANVAS_STYLE = {"border": f"2px solid {NAVY}", "borderRadius": "6px", "background": "#FFFFFF"}
@@ -661,13 +661,14 @@ with list_col:
         "<div class='pick-text'>ここで選ぶと、その要素が図の真ん中に来ます。図の箱をクリックしても切り替わります。</div>"
         f"{now}</div>"
         "<style>"
-        f".pick-head{{background:{NAVY};border-top:3px solid {GOLD};border-radius:6px;padding:12px 14px;"
+        f".pick-head{{background:{diagram_color('pick-bg')};border-top:3px solid {THEME.accent};border-radius:6px;padding:12px 14px;"
         "margin-bottom:8px}"
-        ".pick-title{color:#fff;font-weight:700;font-size:1.05rem;letter-spacing:.04em}"
-        f".pick-title::before{{content:'▼ ';color:{GOLD}}}"
-        ".pick-text{color:#C9CFDB;font-size:.85rem;line-height:1.7;margin-top:4px}"
-        ".pick-now{color:#fff;font-size:.85rem;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.2)}"
-        f".pick-now b{{color:{GOLD}}}"
+        f".pick-title{{color:{diagram_color('pick-ink')};font-weight:700;font-size:1.05rem;letter-spacing:.04em}}"
+        f".pick-title::before{{content:'▼ ';color:{diagram_color('pick-strong')}}}"
+        f".pick-text{{color:{diagram_color('pick-sub')};font-size:.85rem;line-height:1.7;margin-top:4px}}"
+        f".pick-now{{color:{diagram_color('pick-ink')};font-size:.85rem;margin-top:8px;padding-top:8px;"
+        f"border-top:1px solid {diagram_color('pick-line')}}}"
+        f".pick-now b{{color:{diagram_color('pick-strong')}}}"
         "</style>",
         unsafe_allow_html=True)
     with st.container(border=True):
