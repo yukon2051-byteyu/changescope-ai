@@ -269,3 +269,27 @@ def test_extract_page_wrong_access_code_does_not_call_ai():
     assert not at.exception
     assert any("アクセスコードが正しくありません" in e.value for e in at.error)
     assert "ex_result" not in at.session_state
+
+
+# ---------- 変更案を比べる ----------
+
+def test_compare_page_sample_pair():
+    at = run_page("compare.py", load_sample())
+    assert not at.exception
+    at.button(key="cp_pair_A").click().run()  # 入力例：勤怠管理の見直し
+    assert at.multiselect(key="cp_a_targets").value == ["SYS-ATT"]
+    assert at.multiselect(key="cp_b_targets").value == ["PRC-ATT"]
+    next(b for b in at.button if b.label == "比べる").click().run()
+    assert not at.exception
+    tables = [m.value for m in at.markdown if 'class="cs-table"' in m.value]
+    assert any("A案の方が17件多い" in t for t in tables)
+    assert any("要見積もり" in t for t in tables)  # 費用・期間は入力がなければ数字を作らない
+    assert any("社内認証基盤" in t for t in tables)  # システムを入れ替える案だけにある要確認のつながり
+
+
+def test_compare_page_needs_targets_for_both():
+    at = run_page("compare.py", load_sample())
+    at.text_area(key="cp_a_text").set_value("勤怠管理システムを入れ替える").run()
+    assert next(b for b in at.button if b.label == "比べる").disabled  # B案の変更対象がまだない
+    at.text_area(key="cp_b_text").set_value("経費精算業務を見直す").run()
+    assert not next(b for b in at.button if b.label == "比べる").disabled

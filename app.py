@@ -17,5 +17,6 @@ pages = [
     st.Page("pages/extract.py", title="文章・資料から作る", icon=":material/auto_awesome:"),
     st.Page("pages/diagram.py", title="図で入力する", icon=":material/account_tree:"),
     st.Page("pages/analysis.py", title="影響分析", icon=":material/troubleshoot:"),
+    st.Page("pages/compare.py", title="変更案を比べる", icon=":material/compare_arrows:"),
 ]
 st.navigation(pages).run()
