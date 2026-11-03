@@ -192,7 +192,7 @@ with tab_links:
         }),
         hide_index=True, width="stretch", key=f"ex_links_{show_registered}",
         disabled=["つながり（読み方）", "状態", "根拠の文"],
-        column_config={"登録する": st.column_config.CheckboxColumn(width="small"),
+        column_config={"登録する": st.column_config.CheckboxColumn(width=110),
                        "つながり（読み方）": st.column_config.TextColumn(width="large"),
                        "根拠の文": st.column_config.TextColumn(width="large")},
     )
@@ -211,7 +211,7 @@ with tab_elements:
         }),
         hide_index=True, width="stretch", key="ex_elements",
         disabled=["名前", "根拠の文", "状態"],
-        column_config={"登録する": st.column_config.CheckboxColumn(width="small"),
+        column_config={"登録する": st.column_config.CheckboxColumn(width=110),
                        "種類": st.column_config.SelectboxColumn(options=type_labels, required=True),
                        "根拠の文": st.column_config.TextColumn(width="large")},
     )

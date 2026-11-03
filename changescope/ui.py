@@ -61,7 +61,7 @@ _GLOBAL_CSS = """
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] a, [data-testid="stToolbar"] { pointer-events: auto; }
 [data-testid="stToolbar"] { background: rgba(248,247,243,.92); border-radius: 4px; }
-[data-testid="stMainBlockContainer"] { padding-top: 0.25rem !important; }
+[data-testid="stMainBlockContainer"] { padding-top: 0.25rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 
 .stApp h3 { border-left: 4px solid var(--cs-gold); padding-left: 12px; letter-spacing: .04em; }
 [data-testid="stMetric"] {
@@ -214,6 +214,28 @@ _GLOBAL_CSS = """
 .cs-table-wrap { overflow: auto; border: 1px solid var(--cs-line); border-radius: 4px; margin: 6px 0 12px; }
 .cs-table-wrap .cs-table th { position: sticky; top: 0; z-index: 1; white-space: nowrap; }
 .cs-table .cs-num-col { text-align: right; white-space: nowrap; }
+
+/* タブ：紺の帯に白系の文字。選んでいるタブは金の地に紺の文字にして、タブがあることと、どれを選んでいるかを分かりやすくする。
+   Streamlit 1.66 のタブは、並び＝role="tablist"、1つのタブ＝data-testid="stTab"、選択中＝data-selected の印が付く
+   （以前の版の data-baseweb="tab" では効かない。Streamlit を更新したら、ここが効いているか画面で確かめる） */
+.stTabs [role="tablist"] {
+  margin-top: 18px !important; background: var(--cs-navy) !important; border-radius: 6px; padding: 6px !important;
+  gap: 6px !important; flex-wrap: nowrap !important; overflow-x: auto !important;  /* とても狭い画面だけ横にずらして見る */
+}
+.stTabs [role="tablist"]::after { display: none !important; }  /* 元の下線 */
+.stTabs [data-testid="stTabsScrollLeft"], .stTabs [data-testid="stTabsScrollRight"] { display: none !important; }
+/* タブは1行に並べ、帯の幅を均等に分ける。1つずつ薄い地を付け、隙間（6px）をはさんで別々のタブに見せる。
+   文字の大きさは画面の幅に合わせて変え（12.5〜15px）、1行に収める（幅1,280px以上の画面で確認済み） */
+.stTabs [data-testid="stTab"] {
+  flex: 1 1 auto; justify-content: center; min-width: max-content;  /* 文字の長さに合わせ、余りを均等に分ける */
+  background: rgba(255,255,255,.06) !important; color: #C9CFDB !important;
+  border-radius: 4px; padding: 0 8px !important; transition: background .15s;
+}
+.stTabs [data-testid="stTab"] p { color: inherit !important; font-size: clamp(.78rem, 1.05vw, .95rem); white-space: nowrap; }
+.stTabs [data-testid="stTab"]:hover { background: rgba(255,255,255,.16) !important; color: #fff !important; }
+.stTabs [data-testid="stTab"][data-selected] { background: var(--cs-gold) !important; color: var(--cs-navy) !important; }
+.stTabs [data-testid="stTab"][data-selected] p { font-weight: 700; }
+.stTabs .react-aria-SelectionIndicator { display: none !important; }  /* 元の選択中の下線 */
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }
 </style>
 """

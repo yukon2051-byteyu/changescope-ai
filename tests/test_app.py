@@ -303,3 +303,11 @@ def test_analysis_and_compare_pages_offer_pdf():
     next(b for b in at.button if b.label == "比べる").click().run()
     assert not at.exception
     assert any(b.label == "比較結果をPDFでダウンロード" for b in at.get("download_button"))
+
+
+def test_guide_try_sample_button_opens_analysis():
+    at = run_page("guide.py")
+    at.button(key="guide_try_sample").click().run()
+    assert not at.exception
+    assert at.session_state["dataset"].source == "sample"
+    assert any(t.value == "影響分析" for t in at.title)
