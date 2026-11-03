@@ -18,7 +18,7 @@ from changescope.gaps import find_gaps
 from changescope.insights import department_of, hard_to_notice, impact_tags, target_departments
 from changescope.matcher import find_candidates
 from changescope.next_actions import build_next_actions, find_uncertain_links
-from changescope.oversight import ESTIMATE, REGISTERED, find_oversights, load_sample_report
+from changescope.oversight import ESTIMATE, SOURCES, find_oversights, load_sample_report
 from changescope.report import analysis_report
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
@@ -208,13 +208,15 @@ if oversight and oversight["targets"] == result.targets:
         note(f"<b>AIによる分析結果</b>（{escape(model_label(load_settings().model))}）　"
              f"今回の費用（試算）：約{oversight['yen']:.1f}円")
     st.caption(
-        "AIは組織全体を知りません。「登録情報にもとづく」は登録されたつながりを根拠にした指摘、"
-        "「AIの推測」は根拠が登録データにない指摘です。どちらも確認先に聞いて確かめてください。"
+        "AIは組織全体を知りません。指摘には根拠の種類を付けています。「登録済みのつながり」は登録されたつながりを根拠にした指摘"
+        "（つながりの番号が実在することは確かめていますが、指摘の内容が正しいかまでは確かめていません）、"
+        "「一般的な確認の観点」は法令・契約・データ移行など変更の種類から一般的に確認すべきこと、"
+        "「AIの推測」は登録されていないものを推測した指摘です。どれも確認先に聞いて確かめてください。"
         f"費用や期間の数字は、AIに作らせず「{ESTIMATE}」と表示します。"
     )
-    registered = sum(f.basis == REGISTERED for f in report.findings)
-    st.markdown(f"**確認漏れ {len(report.findings)}件**（登録情報にもとづく {registered}件・"
-                f"AIの推測 {len(report.findings) - registered}件。重要度の高い順）")
+    counts = {s: sum(f.basis == s for f in report.findings) for s in SOURCES}
+    st.markdown(f"**確認漏れ {len(report.findings)}件**（"
+                + "・".join(f"{s} {n}件" for s, n in counts.items()) + "。重要度の高い順）")
     oversight_findings(report.findings)
 
     ai_tabs = st.tabs(["部門別の調整ポイント", "トラブルの予測", "見落としがちな費用", "推奨する進め方",

@@ -11,7 +11,7 @@ from changescope.gaps import find_gaps
 from changescope.graph_engine import analyze_impact
 from changescope.insights import hard_to_notice
 from changescope.oversight import (
-    ESTIMATE, GUESS, REGISTERED, SCHEMA, build_prompt, find_oversights, load_sample_report, scrub_numbers, validate,
+    ESTIMATE, GENERAL, GUESS, REGISTERED, SCHEMA, build_prompt, find_oversights, load_sample_report, scrub_numbers, validate,
 )
 from changescope.stakeholders import find_stakeholders
 from changescope.usage_store import hash_user
@@ -62,6 +62,23 @@ def test_evidence_must_exist_to_be_registered(scenario_a):
     assert len(by_title["根拠あり"].evidence) == 1 and by_title["根拠あり"].evidence[0].startswith("D-006")
     assert by_title["根拠なし"].basis == GUESS  # 存在しない番号だけなら推測扱い
     assert by_title["推測"].basis == GUESS
+
+
+def test_source_is_checked_not_trusted(scenario_a):
+    """根拠の種類はAIの申告をそのまま信じない（レビュー C03）。"""
+    graph, result, *_ = scenario_a
+    report = validate(raw_answer([
+        finding(title="登録済み", source=REGISTERED, evidence_ids=["D-006"]),
+        finding(title="登録済みと言うが番号なし", source=REGISTERED, evidence_ids=["D-999"]),
+        finding(title="一般の観点", source=GENERAL, evidence_ids=["D-006"]),  # 番号があっても登録済みに上げない
+        finding(title="推測と言うが番号あり", source=GUESS, evidence_ids=["D-006"]),
+    ]), graph, result)
+    by_title = {f.title: f for f in report.findings}
+    assert by_title["登録済み"].basis == REGISTERED
+    assert by_title["登録済みと言うが番号なし"].basis == GUESS
+    assert by_title["一般の観点"].basis == GENERAL and by_title["一般の観点"].evidence  # 関連として見せる
+    assert by_title["推測と言うが番号あり"].basis == GUESS
+    assert SCHEMA["properties"]["findings"]["items"]["properties"]["source"]["enum"] == [REGISTERED, GENERAL, GUESS]
 
 
 def test_contact_registered_or_candidate(scenario_a):
@@ -156,7 +173,7 @@ def test_sample_reports_load(scenario_id):
     report = sample.report
     assert sample.model and sample.generated_on
     assert report.findings and report.unregistered  # 確認漏れと未登録の推測が入っている
-    assert all(f.basis in (REGISTERED, GUESS) for f in report.findings)
+    assert all(f.basis in (REGISTERED, GENERAL, GUESS) for f in report.findings)
     assert all("D-" not in f.title + f.detail + f.question for f in report.findings)  # 文章にIDを見せない
 
 

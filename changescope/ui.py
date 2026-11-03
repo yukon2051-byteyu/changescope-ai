@@ -191,9 +191,11 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-finding-title { font-weight: 700; color: var(--cs-navy); letter-spacing: .04em; }
 .cs-finding-detail { color: var(--cs-ink); line-height: 1.8; font-size: .93rem; }
 .cs-finding-items { color: var(--cs-sub); font-size: .9rem; margin-top: 6px; line-height: 1.8; }
-.cs-badge, .cs-badge-warn { font-size: .75rem; padding: 2px 10px; border-radius: var(--cs-pill); white-space: nowrap; }
+.cs-badge, .cs-badge-warn, .cs-badge-general { font-size: .75rem; padding: 2px 10px; border-radius: var(--cs-pill); white-space: nowrap; }
 .cs-badge { background: var(--cs-navy); color: var(--cs-gold-light); }
 .cs-badge-warn { background: var(--cs-gold); color: var(--cs-badge-warn-ink); }
+/* 一般的な確認の観点：登録データに根拠がない指摘。意味を表す色なので、テーマによらず灰青で固定 */
+.cs-badge-general { background: #E6EAF0; color: #33415C; border: 1px solid #C9D1DC; }
 
 .cs-ai-card {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-left: 4px solid var(--cs-line);
@@ -417,13 +419,18 @@ def oversight_findings(findings) -> None:
     """AIが見つけた確認漏れを、1件ずつカードで表示する（確認先・質問文・根拠つき）。
 
     AIの回答と登録データの名前を含むため、すべてエスケープする。
-    「登録情報にもとづく」と「AIの推測」は色を変えて区別する。
+    根拠の種類（登録済みのつながり・一般的な確認の観点・AIの推測）は色を変えて区別する。
+    番号が実在しても指摘の内容が正しいとは限らないため、登録済みのつながりにも「内容は確認先に確かめる」と添える。
     """
+    from changescope.oversight import GENERAL, REGISTERED
+
     body = ""
     for f in findings:
-        basis_class = "cs-badge" if f.basis == "登録情報にもとづく" else "cs-badge-warn"
+        basis_class = {REGISTERED: "cs-badge", GENERAL: "cs-badge-general"}.get(f.basis, "cs-badge-warn")
         contact = escape(f.contact) + ("" if f.contact_registered else '<span class="cs-ai-cand">未登録の部門候補</span>')
         evidence = "".join(f"<li>{escape(e)}</li>" for e in f.evidence)
+        evidence_label = ("根拠にしたつながり（番号は照合済み。指摘の内容が正しいかは確認先に確かめてください）"
+                          if f.basis == REGISTERED else "関連するつながり")
         body += (
             f'<div class="cs-ai-card cs-ai-{escape(f.importance)}"><div class="cs-finding-head">'
             f'<span class="cs-ai-imp">重要度 {escape(f.importance)}</span>'
@@ -433,7 +440,7 @@ def oversight_findings(findings) -> None:
             f'<div class="cs-finding-detail">{escape(f.detail)}</div>'
             f'<div class="cs-ai-ask"><div class="cs-ai-ask-to">確認先：{contact}</div>'
             f'<div class="cs-ai-q">{escape(f.question)}</div></div>'
-            f'{f"<div class=cs-finding-items>根拠にしたつながり<ul>{evidence}</ul></div>" if evidence else ""}'
+            f'{f"<div class=cs-finding-items>{evidence_label}<ul>{evidence}</ul></div>" if evidence else ""}'
             "</div>"
         )
     html(body)

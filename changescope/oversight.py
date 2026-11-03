@@ -5,7 +5,10 @@
 
 AIには登録データそのものではなく、Pythonで分析した結果（影響・経路・確認状態・根拠・関係者・見落としチェック）を、
 つながりの番号つきで渡す。AIの回答はそのまま使わず、Pythonで次を確かめる。
-- 根拠に挙げたつながりの番号が実在するか → 実在すれば「登録情報にもとづく」、なければ「AIの推測」
+- 指摘の根拠の種類（AIが答える）と、根拠に挙げたつながりの番号が実在するか → 3種類に分ける
+  （登録済みのつながり／一般的な確認の観点／AIの推測）。AIの自己申告はそのまま信じず、
+  「登録済みのつながり」と答えても実在する番号がなければ「AIの推測」に下げる。
+  番号が実在しても、指摘の内容が正しいかまでは判定できないため、画面ではそのことを注記する
 - 確認先が登録された部門・担当者か → なければ「未登録の部門候補」
 - 費用・期間の数字が入っていないか → 入っていれば「要見積もり」に置き換える（数字を作らせない）
 - 文章にD番号が書かれていないか → 画面ではIDを見せないため、つながりの名前（「A → B」）に置き換える
@@ -31,8 +34,11 @@ from changescope.stakeholders import PERSON_TYPES, Stakeholder
 FEATURE = "確認漏れ"
 VIEWPOINTS = ["コスト", "契約", "業務手順", "システム", "データ", "セキュリティ", "規程・ルール", "内部統制", "教育・周知", "スケジュール"]
 IMPORTANCE = ["高", "中", "低"]
-REGISTERED = "登録情報にもとづく"
-GUESS = "AIの推測"
+REGISTERED = "登録済みのつながり"  # 登録データのつながりを根拠にした指摘（番号が実在する）
+GENERAL = "一般的な確認の観点"  # 変更の種類から当然確認すべきこと（法令・契約・移行など）。登録データには根拠がない
+GUESS = "AIの推測"  # 登録されていない業務・システムなどを推測した指摘
+SOURCES = [REGISTERED, GENERAL, GUESS]
+OLD_REGISTERED = "登録情報にもとづく"  # 以前の表示名（古い保存結果を読むため）
 UNREGISTERED_CONTACT = "未登録の部門候補"
 ESTIMATE = "要見積もり"
 # 事前にAIで生成したサンプル結果（4シナリオ）。料金なしで見られる
@@ -71,7 +77,11 @@ SCHEMA = _object({
         "importance": {"type": "string", "enum": IMPORTANCE},
         "contact": {"type": "string", "description": "確認先の部門・担当者（登録されている名前を優先する）"},
         "question": {"type": "string", "description": "確認先にそのまま聞ける質問文"},
-        "evidence_ids": _array({"type": "string", "description": "根拠にしたつながりの番号（例：D-006）。なければ空"}),
+        "source": {"type": "string", "enum": SOURCES,
+                   "description": "指摘の根拠の種類。登録済みのつながり＝登録データのつながりが根拠／"
+                                  "一般的な確認の観点＝変更の種類から当然確認すべきこと（登録データには根拠がない）／"
+                                  "AIの推測＝登録されていない業務・システム・関係者などの推測"},
+        "evidence_ids": _array({"type": "string", "description": "根拠・関連にしたつながりの番号（例：D-006）。なければ空"}),
     })),
     "department_points": _array(_object({
         "department": {"type": "string"},
@@ -107,7 +117,10 @@ SYSTEM = (
     "今と同じCSV形式で可能ですか？」）。\n"
     "- 登録データのつながりを根拠にした指摘は、evidence_ids にそのつながりの番号（D-で始まる）を入れる。"
     "推測にもとづく指摘は evidence_ids を空にする。存在しない番号を書かない。"
-    "番号は evidence_ids にだけ書き、文章（title・detail・question など）には書かない。\n"
+    "source は正直に選ぶ。登録データのつながりそのものが根拠なら「登録済みのつながり」、"
+    "法令・契約・データ移行・教育など、変更の種類から一般的に確認すべきことなら「一般的な確認の観点」"
+    "（関連するつながりがあれば evidence_ids に入れてよい）、登録されていないものを推測したなら「AIの推測」。\n"
+    "- 番号は evidence_ids にだけ書き、文章（title・detail・question など）には書かない。\n"
     "- department_points は関係する部門ごとに、risks は3〜5件、hidden_costs は3〜5件（金額は書かない）、"
     "approach は3〜5段階、unregistered は必ず2件以上（最大5件）挙げる。登録データにない業務・システム・外部サービス・規程・担当者を、変更の種類から推測する。\n"
     "- すべて日本語で、簡潔に書く。"
@@ -123,8 +136,8 @@ class OversightFinding:
     contact: str
     contact_registered: bool
     question: str
-    basis: str  # REGISTERED または GUESS
-    evidence: list[str] = field(default_factory=list)  # 根拠のつながりの説明（実在したもの）
+    basis: str  # REGISTERED・GENERAL・GUESS のどれか
+    evidence: list[str] = field(default_factory=list)  # 根拠・関連のつながりの説明（実在したもの）
 
 
 @dataclass
@@ -205,6 +218,20 @@ def replace_ids(text: str, names: dict[str, str]) -> str:
     return _BARE_ID.sub(lambda m: names.get(m.group(), ""), text)
 
 
+def decide_basis(source: str | None, has_valid_ids: bool) -> str:
+    """指摘の根拠の種類を、AIの申告と番号の照合結果から決める（AIの申告をそのまま信じない）。
+
+    - 「登録済みのつながり」は、実在する番号があるときだけ。なければ「AIの推測」に下げる
+    - 「一般的な確認の観点」は、番号があっても「登録済み」には上げない（つながりは関連として見せるだけ）
+    - 申告がない（古い回答）ときは、以前どおり番号の有無で決める
+    """
+    if source == GENERAL:
+        return GENERAL
+    if source in (REGISTERED, None, "") and has_valid_ids:
+        return REGISTERED
+    return GUESS
+
+
 def validate(raw: dict, graph: nx.MultiDiGraph, result: ImpactResult) -> OversightReport:
     """AIの回答を確かめて、表示できる形にする。"""
     steps = collect_steps(result)
@@ -219,6 +246,7 @@ def validate(raw: dict, graph: nx.MultiDiGraph, result: ImpactResult) -> Oversig
     findings = []
     for f in raw.get("findings", []):
         cited = [i for i in f.get("evidence_ids", []) if i in steps]  # 実在する番号だけ残す
+        source = f.get("source")
         contact = _str(f.get("contact")).strip()
         findings.append(OversightFinding(
             title=clean(f.get("title")),
@@ -228,11 +256,11 @@ def validate(raw: dict, graph: nx.MultiDiGraph, result: ImpactResult) -> Oversig
             contact=contact,
             contact_registered=any(name in contact for name in person_names),
             question=clean(f.get("question")),
-            basis=REGISTERED if cited else GUESS,
+            basis=decide_basis(source, bool(cited)),
             evidence=[_step_text(graph, steps[i]) for i in cited],
         ))
     order = {v: i for i, v in enumerate(IMPORTANCE)}
-    findings.sort(key=lambda f: (order[f.importance], f.basis != REGISTERED))
+    findings.sort(key=lambda f: (order[f.importance], SOURCES.index(f.basis)))
 
     def scrub_all(items: list[dict]) -> list[dict]:
         return [{k: clean(v) if isinstance(v, str) else v for k, v in item.items()} for item in items]
@@ -283,5 +311,6 @@ def load_sample_report(scenario_id: str) -> SampleReport | None:
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
     raw = dict(data["report"])
-    raw["findings"] = [OversightFinding(**f) for f in raw["findings"]]
+    raw["findings"] = [OversightFinding(**{**f, "basis": REGISTERED if f["basis"] == OLD_REGISTERED else f["basis"]})
+                       for f in raw["findings"]]
     return SampleReport(OversightReport(**raw), data["model"], data["generated_on"])

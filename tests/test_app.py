@@ -158,7 +158,7 @@ def test_analysis_page_shows_ai_sample_without_cost():
     assert not at.exception
     assert any("AIによる分析のサンプル" in m.value and "いま実行したAI分析ではありません" in m.value for m in at.markdown)
     cards = [m.value for m in at.markdown if 'class="cs-ai-card' in m.value]
-    assert cards and "確認先：" in cards[0] and "登録情報にもとづく" in cards[0]
+    assert cards and "確認先：" in cards[0] and "登録済みのつながり" in cards[0]
     assert any(t.label.startswith("未登録の影響の推測") for t in at.tabs)
 
 

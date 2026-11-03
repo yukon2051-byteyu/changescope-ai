@@ -271,8 +271,9 @@ def _department(graph: nx.MultiDiGraph, element_id: str) -> str:
 def _oversight_section(pdf: ReportPDF, oversight: dict) -> None:
     report: OversightReport = oversight["report"]
     pdf.section("7. AIで調べた確認漏れ")
-    pdf.note(oversight["label"] + "　AIは組織全体を知りません。「登録情報にもとづく」は登録されたつながりを根拠にした指摘、"
-             "「AIの推測」は根拠が登録データにない指摘です。どちらも確認先に聞いて確かめてください。")
+    pdf.note(oversight["label"] + "　AIは組織全体を知りません。区分の「登録済みのつながり」は登録されたつながりを根拠にした指摘"
+             "（番号は照合済み、内容の正しさは未確認）、「一般的な確認の観点」は変更の種類から一般的に確認すべきこと、"
+             "「AIの推測」は登録されていないものの推測です。どれも確認先に聞いて確かめてください。")
     pdf.table([("重要度", "観点", "確認していないこと", "確認先と質問", "区分")],
               [(f.importance, f.viewpoint, f"{f.title}\n{f.detail}",
                 f"{f.contact}{'' if f.contact_registered else '（未登録の部門候補）'}\n質問：{f.question}", f.basis)
