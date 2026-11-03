@@ -187,3 +187,13 @@ def test_document_feature_allows_longer_input(settings, store):
     assert ok.ok
     too_long = client.call_json("資料から作る", "役割", "", SCHEMA, USER, "あ" * 8001, max_chars=8000)
     assert not too_long.ok and "8000文字以内" in too_long.message
+
+
+def test_free_feature_stops_at_its_own_budget(settings, store):
+    # アクセスコードなしで使える機能は、全体の予算とは別に、その機能の予算（例：10ドル）の9割で止める
+    store.record("someone", "文章から作る", settings.model, 0, 0, 9.0, "ok")
+    client, messages = make_client(dataclasses.replace(settings, monthly_budget_usd=25.0), store)
+    free = client.call_json("文章から作る", "役割", "", SCHEMA, USER, "文", feature_budget_usd=10.0)
+    assert not free.ok and "無料分の予算" in free.message and messages.calls == []
+    paid = client.call_json("資料から作る", "役割", "", SCHEMA, USER, "文")  # 別の機能は使える
+    assert paid.ok

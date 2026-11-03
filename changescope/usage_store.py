@@ -77,6 +77,14 @@ class UsageStore:
                 (month or current_month(), user_key, feature),
             ).fetchone()[0]
 
+    def feature_cost(self, feature: str, month: str | None = None) -> float:
+        """その月の、その機能の費用の合計（失敗した呼び出しも含む）。"""
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT COALESCE(SUM(cost_usd), 0) FROM api_usage WHERE month = ? AND feature = ?",
+                (month or current_month(), feature),
+            ).fetchone()[0]
+
     def monthly(self, month: str | None = None) -> MonthlyUsage:
         """その月の合計。
 

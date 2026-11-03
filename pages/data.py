@@ -43,7 +43,32 @@ def show_load_errors(result) -> None:
         st.caption(f"ほか {len(result.errors) - MAX_SHOWN_ISSUES} 件")
 
 
+def finish_loading(dataset, where: str) -> None:
+    """読み込みが終わったことを、押したボタンのすぐ下に出すための印を付けて、画面を更新する。"""
+    set_dataset(dataset)
+    st.session_state.data_loaded_at = where
+    st.session_state.data_loaded_toast = True
+    st.rerun()
+
+
+def loaded_notice(where: str) -> None:
+    """読み込みが終わったことと、次にやることを、押したボタンのすぐ下に目立たせて出す。"""
+    dataset = get_dataset()
+    if dataset is None or st.session_state.get("data_loaded_at") != where:
+        return
+    st.success(f"読み込みが完了しました（要素 {len(dataset.elements)}件・つながり {len(dataset.dependencies)}本）。"
+               "次は「影響分析」で、変えたいことを入力して分析します。", icon=":material/check_circle:")
+    c1, c2, _ = st.columns([1, 1, 1])
+    if c1.button("影響分析へ進む", type="primary", icon=":material/arrow_forward:", width="stretch",
+                 key=f"go_analysis_{where}"):
+        st.switch_page("pages/analysis.py")
+    if c2.button("図で開いて確認する", icon=":material/account_tree:", width="stretch", key=f"go_diagram_{where}"):
+        st.switch_page("pages/diagram.py")
+
+
 st.title("データ管理")
+if st.session_state.pop("data_loaded_toast", False):
+    st.toast("読み込みが完了しました", icon=":material/check_circle:")
 show_mode_banner(get_dataset())
 note("<b>登録のしかたは2つあります。</b>この画面では、Excelにまとめて書いて読み込みます。"
      f"図を見ながら1つずつ作りたいときは、{ui_label('図で入力する')} を使ってください（はじめての方におすすめ）。"
@@ -63,8 +88,8 @@ if source == "sample":
         "業務・システム・部門・データ・帳票・規程など57件と、それらのつながり（依存関係）75件を収録しています。"
     )
     if st.button("サンプルデータを読み込む", type="primary"):
-        set_dataset(load_sample())
-        st.rerun()
+        finish_loading(load_sample(), "sample")
+    loaded_notice("sample")
 else:
     st.warning(
         "個人情報・機密情報は記入しないでください。"
@@ -101,8 +126,8 @@ else:
             if result.dataset is None:
                 show_load_errors(result)
             else:
-                set_dataset(result.dataset)
-                st.rerun()
+                finish_loading(result.dataset, "excel")
+        loaded_notice("excel")
 
     with st.expander("CSVで登録する（上級者向け）"):
         st.markdown(
@@ -121,8 +146,8 @@ else:
             if result.dataset is None:
                 show_load_errors(result)
             else:
-                set_dataset(result.dataset)
-                st.rerun()
+                finish_loading(result.dataset, "csv")
+        loaded_notice("csv")
 
 dataset = get_dataset()
 if dataset is not None:
@@ -166,4 +191,5 @@ if dataset is not None:
                 "補足": deps.get("note", ""),
             }),
         )
-    st.page_link("pages/analysis.py", label="影響分析へ進む", icon=":material/troubleshoot:")
+    if st.button("影響分析へ進む", type="primary", icon=":material/arrow_forward:", key="go_analysis_bottom"):
+        st.switch_page("pages/analysis.py")

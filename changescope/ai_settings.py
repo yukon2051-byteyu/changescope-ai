@@ -18,9 +18,11 @@ class AISettings:
     yen_per_usd: float
     max_input_chars: int
     max_document_chars: int
+    max_free_text_chars: int
     max_output_tokens: int
     timeout_seconds: float
     monthly_budget_usd: float
+    free_monthly_budget_usd: float
     stop_ratio: float
     monthly_call_limit: int
     per_user_monthly_limit: int
@@ -54,9 +56,11 @@ def load_settings(path: Path = SETTINGS_PATH) -> AISettings:
         yen_per_usd=float(model["yen_per_usd"]),
         max_input_chars=int(limits["max_input_chars"]),
         max_document_chars=int(limits["max_document_chars"]),
+        max_free_text_chars=int(limits["max_free_text_chars"]),
         max_output_tokens=int(limits["max_output_tokens"]),
         timeout_seconds=float(limits["timeout_seconds"]),
         monthly_budget_usd=float(limits["monthly_budget_usd"]),
+        free_monthly_budget_usd=float(limits["free_monthly_budget_usd"]),
         stop_ratio=float(limits["stop_ratio"]),
         monthly_call_limit=int(limits["monthly_call_limit"]),
         per_user_monthly_limit=int(limits["per_user_monthly_limit"]),

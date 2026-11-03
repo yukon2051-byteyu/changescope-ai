@@ -241,6 +241,16 @@ if editing and dataset is not st.session_state.get("dg_synced"):
     for key in [k for k in st.session_state if str(k).startswith("dg_")]:
         del st.session_state[key]
 
+# 「文章・資料から作る」の「登録して図で直す」から来たときは、登録した要素を真ん中にして、すぐ開く
+open_request = st.session_state.pop("open_in_diagram", None)
+if open_request and dataset is not None:
+    start_editing(*to_records(dataset), tutorial=None)
+    if any(e["element_id"] == open_request for e in st.session_state.dg_elements):
+        st.session_state.update(dg_center=open_request, dg_trail=[open_request])
+    editing = True
+if st.session_state.get("toast_after_open"):
+    st.toast(st.session_state.pop("toast_after_open"))
+
 if not editing:
     st.write("ヒアリングしながら、業務・システム・部門などのつながりを図で登録します。どちらから始めますか？")
     c1, c2 = st.columns(2)
@@ -265,6 +275,9 @@ if not editing:
             st.markdown("**サンプルや自分のExcelを図で見る**")
             st.caption("先に「データ管理」でサンプルデータかExcelを読み込むと、ここから図で開けます。")
             st.page_link("pages/data.py", label="データ管理へ", icon=":material/folder_open:")
+    st.caption("業務の流れを文章で書いて、AIに図のたたき台を作ってもらうこともできます（アクセスコード不要）。"
+               "作ったたたき台は、この画面でマウスで直せます。")
+    st.page_link("pages/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
     st.stop()
 
 elements: list[dict] = st.session_state.dg_elements

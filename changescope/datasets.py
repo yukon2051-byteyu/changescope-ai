@@ -22,7 +22,7 @@ SAMPLE_DIR = Path(__file__).resolve().parent.parent / "data" / "sample"
 
 @dataclass
 class Dataset:
-    source: str  # "sample"（架空サンプル）・"upload"（利用者のExcel・CSV）・"diagram"（図で作成・編集）
+    source: str  # "sample"（架空サンプル）・"upload"（利用者のExcel・CSV）・"diagram"（図・資料から作成・編集）
     elements: pd.DataFrame
     dependencies: pd.DataFrame
     graph: nx.MultiDiGraph

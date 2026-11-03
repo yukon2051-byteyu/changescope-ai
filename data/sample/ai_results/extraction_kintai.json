@@ -1,0 +1,378 @@
+{
+  "note": "AIによる候補のサンプル（事前に生成した結果。架空の資料を読み込んだもの）",
+  "model": "claude-opus-5-5",
+  "generated_on": "2026-11-03",
+  "document": "勤怠・給与業務の説明書",
+  "result": {
+    "elements": [
+      {
+        "name": "打刻用ICカードリーダー",
+        "element_type": "system",
+        "quote": "全従業員は、出社時と退社時に、各フロアに設置した打刻用ICカードリーダーに社員証をかざして打刻する。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "打刻修正申請",
+        "element_type": "process",
+        "quote": "打刻を忘れた場合や時刻を修正する場合は、従業員が勤怠管理システムで修正申請を行い、所属の課長が承認する。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "有給休暇申請",
+        "element_type": "process",
+        "quote": "有給休暇の申請は勤怠管理システムで行う。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "有給休暇管理表",
+        "element_type": "document",
+        "quote": "ただし、有給休暇の残日数は、人事部の給与担当がExcelの有給休暇管理表で別に管理している。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "休暇取得の記録",
+        "element_type": "data",
+        "quote": "有給休暇管理表は月に一度、勤怠管理システムの休暇取得の記録と照らし合わせて更新する。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "勤怠の締め処理",
+        "element_type": "process",
+        "quote": "毎月末日の翌営業日に、人事部の給与担当が勤怠の締め処理を行う。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "給与振込",
+        "element_type": "process",
+        "quote": "月次給与計算で作った給与データは、経理部が銀行振込サービスで振込を行う。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "36協定",
+        "element_type": "rule",
+        "quote": "勤務時間・休暇・残業の取り扱いは、就業規則と36協定に従う。",
+        "found": true,
+        "existing_id": null
+      },
+      {
+        "name": "勤怠管理システム保守業者",
+        "element_type": "external_service",
+        "quote": "勤怠管理システムの保守は外部の業者に委託しているが、契約の内容は人事部では把握していない。",
+        "found": true,
+        "existing_id": null
+      }
+    ],
+    "links": [
+      {
+        "source": "打刻用ICカードリーダー",
+        "target": "勤怠管理システム",
+        "relation_type": "integrates_with",
+        "quote": "打刻した時刻は、勤怠管理システムに自動で送られる。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "社内認証基盤",
+        "target": "勤怠管理システム",
+        "relation_type": "depends_on",
+        "quote": "勤怠管理システムへのログインには、社内認証基盤のアカウントを使う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": true
+      },
+      {
+        "source": "勤怠管理システム",
+        "target": "打刻修正申請",
+        "relation_type": "uses",
+        "quote": "打刻を忘れた場合や時刻を修正する場合は、従業員が勤怠管理システムで修正申請を行い、所属の課長が承認する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "打刻修正申請",
+        "target": "全従業員",
+        "relation_type": "performs",
+        "quote": "打刻を忘れた場合や時刻を修正する場合は、従業員が勤怠管理システムで修正申請を行い、所属の課長が承認する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "打刻修正申請",
+        "target": "承認者（課長）",
+        "relation_type": "approves",
+        "quote": "打刻を忘れた場合や時刻を修正する場合は、従業員が勤怠管理システムで修正申請を行い、所属の課長が承認する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理システム",
+        "target": "有給休暇申請",
+        "relation_type": "uses",
+        "quote": "有給休暇の申請は勤怠管理システムで行う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理システム",
+        "target": "休暇取得の記録",
+        "relation_type": "provides_data",
+        "quote": "有給休暇管理表は月に一度、勤怠管理システムの休暇取得の記録と照らし合わせて更新する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "休暇取得の記録",
+        "target": "有給休暇管理表",
+        "relation_type": "uses",
+        "quote": "有給休暇管理表は月に一度、勤怠管理システムの休暇取得の記録と照らし合わせて更新する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "有給休暇管理表",
+        "target": "給与担当",
+        "relation_type": "uses",
+        "quote": "ただし、有給休暇の残日数は、人事部の給与担当がExcelの有給休暇管理表で別に管理している。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠の締め処理",
+        "target": "給与担当",
+        "relation_type": "performs",
+        "quote": "毎月末日の翌営業日に、人事部の給与担当が勤怠の締め処理を行う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠の締め処理",
+        "target": "承認者（課長）",
+        "relation_type": "approves",
+        "quote": "締め処理では、未承認の申請が残っていないかを確認し、課長に承認を依頼する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠の締め処理",
+        "target": "勤怠実績データ",
+        "relation_type": "depends_on",
+        "quote": "締め処理が終わると、勤怠管理システムから勤怠実績データをCSVで出力する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理システム",
+        "target": "勤怠実績データ",
+        "relation_type": "provides_data",
+        "quote": "締め処理が終わると、勤怠管理システムから勤怠実績データをCSVで出力する。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠実績データ",
+        "target": "給与計算システム",
+        "relation_type": "uses",
+        "quote": "勤怠実績データは、従来どおりの方法で給与計算システムに取り込み、月次給与計算に使う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠実績データ",
+        "target": "月次給与計算",
+        "relation_type": "uses",
+        "quote": "勤怠実績データは、従来どおりの方法で給与計算システムに取り込み、月次給与計算に使う。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "残業時間集計表",
+        "target": "給与担当",
+        "relation_type": "uses",
+        "quote": "残業時間が多い従業員については、36協定で定めた上限を超えていないかを、給与担当が残業時間集計表で確認する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "残業時間集計表",
+        "target": "36協定",
+        "relation_type": "governed_by",
+        "quote": "残業時間が多い従業員については、36協定で定めた上限を超えていないかを、給与担当が残業時間集計表で確認する。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "月次給与計算",
+        "target": "給与データ",
+        "relation_type": "provides_data",
+        "quote": "月次給与計算で作った給与データは、経理部が銀行振込サービスで振込を行う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "給与データ",
+        "target": "給与振込",
+        "relation_type": "uses",
+        "quote": "月次給与計算で作った給与データは、経理部が銀行振込サービスで振込を行う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "給与振込",
+        "target": "経理部",
+        "relation_type": "performs",
+        "quote": "月次給与計算で作った給与データは、経理部が銀行振込サービスで振込を行う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "銀行振込サービス",
+        "target": "給与振込",
+        "relation_type": "uses",
+        "quote": "月次給与計算で作った給与データは、経理部が銀行振込サービスで振込を行う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "給与明細",
+        "target": "全従業員",
+        "relation_type": "uses",
+        "quote": "給与明細はPDFで作成し、従業員にメールで配布している。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理業務",
+        "target": "人事部",
+        "relation_type": "performs",
+        "quote": "本書は、人事部が担当する勤怠管理業務と月次給与計算の流れを、新しく配属された担当者向けにまとめたものである。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "月次給与計算",
+        "target": "人事部",
+        "relation_type": "performs",
+        "quote": "本書は、人事部が担当する勤怠管理業務と月次給与計算の流れを、新しく配属された担当者向けにまとめたものである。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理業務",
+        "target": "就業規則",
+        "relation_type": "governed_by",
+        "quote": "勤務時間・休暇・残業の取り扱いは、就業規則と36協定に従う。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理業務",
+        "target": "36協定",
+        "relation_type": "governed_by",
+        "quote": "勤務時間・休暇・残業の取り扱いは、就業規則と36協定に従う。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠実績データ",
+        "target": "個人情報取扱規程",
+        "relation_type": "governed_by",
+        "quote": "勤怠実績データと給与データは個人情報にあたるため、個人情報取扱規程に従って管理する。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "給与データ",
+        "target": "個人情報取扱規程",
+        "relation_type": "governed_by",
+        "quote": "勤怠実績データと給与データは個人情報にあたるため、個人情報取扱規程に従って管理する。",
+        "found": true,
+        "duplicate": true,
+        "reversed_registered": false
+      },
+      {
+        "source": "勤怠管理システム保守業者",
+        "target": "勤怠管理システム",
+        "relation_type": "depends_on",
+        "quote": "勤怠管理システムの保守は外部の業者に委託しているが、契約の内容は人事部では把握していない。",
+        "found": true,
+        "duplicate": false,
+        "reversed_registered": false
+      }
+    ],
+    "unclear": [
+      {
+        "point": "勤怠実績データを給与計算システムに取り込む「従来どおりの方法」の具体的な手順（手作業か自動連携か、CSVの受け渡し方法）",
+        "ask": "人事部の給与担当"
+      },
+      {
+        "point": "給与データを経理部へどのように渡しているか（受け渡し方法・形式）、銀行振込サービスへの登録方法",
+        "ask": "経理部"
+      },
+      {
+        "point": "給与明細のPDFをどのシステムで作成しているか（給与計算システムかどうか）、メール配布にメールサービスを使っているか（推測であり未確認）",
+        "ask": "情報システム部"
+      },
+      {
+        "point": "残業時間集計表をどのシステム・データから作成しているか（勤怠管理システムからの出力かどうか）",
+        "ask": "人事部の給与担当"
+      },
+      {
+        "point": "上限に近い従業員がいる場合の部長への連絡が承認や指示を伴う手続きか、連絡のみか",
+        "ask": "人事部"
+      },
+      {
+        "point": "有給休暇管理表の残日数が月次給与計算や勤怠管理システムに反映されるか、どこに保存されているか（社内ファイルサーバー等かは不明）",
+        "ask": "人事部の給与担当"
+      },
+      {
+        "point": "勤怠管理システムの保守委託契約の内容（範囲・連絡窓口）",
+        "ask": "情報システム部"
+      },
+      {
+        "point": "従業員マスタや人事管理システムと勤怠管理システム・給与計算システムの連携の有無",
+        "ask": "情報システム部"
+      },
+      {
+        "point": "月次勤怠報告書が本業務で作成されているかどうか（資料に記載なし）",
+        "ask": "人事部"
+      }
+    ],
+    "dropped_links": 0,
+    "input_tokens": 4534,
+    "output_tokens": 5709,
+    "cost_usd": 0.132316
+  }
+}

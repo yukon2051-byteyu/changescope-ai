@@ -6,7 +6,7 @@ from changescope.ai_client import AIResult
 from changescope.ai_settings import load_settings
 from changescope.datasets import load_from_records
 from changescope.extraction import (
-    FEATURE, SCHEMA, apply_candidates, build_prompt, extract, quote_found, validate,
+    FEATURE, FEATURE_TEXT, SCHEMA, apply_candidates, build_prompt, extract, quote_found, validate,
 )
 
 DOCUMENT = (
@@ -117,8 +117,10 @@ class FakeAIClient:
         self.result, self.calls = result, []
         self.settings = load_settings()
 
-    def call_json(self, feature, system, prompt, schema, user_key, user_text="", max_chars=None):
-        self.calls.append(SimpleNamespace(feature=feature, prompt=prompt, user_text=user_text, max_chars=max_chars))
+    def call_json(self, feature, system, prompt, schema, user_key, user_text="", max_chars=None,
+                  feature_budget_usd=None):
+        self.calls.append(SimpleNamespace(feature=feature, system=system, prompt=prompt, user_text=user_text,
+                                          max_chars=max_chars, feature_budget_usd=feature_budget_usd))
         return self.result
 
 
@@ -129,6 +131,7 @@ def test_extract_passes_document_and_limits():
     call = client.calls[0]
     assert call.feature == FEATURE and call.user_text == DOCUMENT
     assert call.max_chars == client.settings.max_document_chars == 8000  # 資料は8,000文字まで
+    assert call.feature_budget_usd is None  # 資料はアクセスコードが必要なので、無料分の予算は使わない
     assert "<user_input>" in call.prompt and "- 人事部（部門）" in call.prompt
 
 
@@ -152,3 +155,70 @@ def test_schema_is_strict():
         if node.get("type") == "array":
             check(node["items"])
     check(SCHEMA)
+
+
+# ---------- 逆向き・サンプル ----------
+
+def test_reversed_registered_link_is_marked():
+    # 登録済みは「勤怠管理システム → 社内認証基盤」。AIの候補は逆向き → 向きの誤りに気づけるよう印を付ける
+    existing = [{"element_id": "SYS", "name": "勤怠管理システム", "element_type": "system"},
+                {"element_id": "AD", "name": "社内認証基盤", "element_type": "system"}]
+    existing_links = [{"from_id": "SYS", "to_id": "AD", "relation_type": "integrates_with"}]
+    raw = answer(links=[ln("社内認証基盤", "勤怠管理システム", "土台になる", "社内認証基盤")])
+    link = validate(raw, "社内認証基盤", existing, existing_links).links[0]
+    assert link.reversed_registered and not link.duplicate
+
+
+def test_sample_result_matches_sample_document_and_data():
+    from changescope.datasets import load_sample, to_records
+    from changescope.extraction import SAMPLE_DOCUMENT, load_sample_result
+    document = SAMPLE_DOCUMENT.read_text(encoding="utf-8")
+    elements, links = to_records(load_sample())
+    result, info = load_sample_result(elements, links)
+    assert info["model"] and info["generated_on"]
+    assert result.elements and result.links and result.unclear
+    # サンプルの根拠の文は、すべてサンプルの資料に書いてある
+    assert all(quote_found(c.quote, document) for c in [*result.elements, *result.links])
+    assert any(l.duplicate for l in result.links)  # サンプルデータに登録済みのつながりを判定できる
+    # 選べるものをすべて登録しても、Excelと同じ検証を通る
+    new_elements, new_links = apply_candidates(elements, links, result.elements, result.links, info["document"])
+    assert load_from_records(new_elements, new_links).dataset is not None
+
+
+# ---------- 文章で説明する（アクセスコードなし・推測のつながりも出す） ----------
+
+TEXT = "営業部がCRMを利用して顧客情報を管理している。CRMの受注データは販売管理システムに連携され、経理部が請求処理を行っている。"
+TEXT_RAW = answer(
+    elements=[el("CRM", "情報システム", "CRM"), el("販売管理システム", "情報システム", "販売管理システム"),
+              el("請求処理", "業務プロセス", "請求処理"), el("経理部", "部門", "経理部が請求処理を行っている")],
+    links=[ln("CRM", "販売管理システム", "システム連携する", "CRMの受注データは販売管理システムに連携され"),
+           {**ln("販売管理システム", "請求処理", "利用される", "経理部が請求処理を行っている"), "inferred": True}],
+)
+
+
+def test_text_mode_uses_free_budget_and_short_limit():
+    client = FakeAIClient(AIResult(True, data=TEXT_RAW, cost_usd=0.1))
+    result, _ = extract(client, TEXT, "", [], [], "free-user", mode="text")
+    call = client.calls[0]
+    assert call.feature == FEATURE_TEXT
+    assert call.max_chars == client.settings.max_free_text_chars == 1000  # 文章は1,000文字まで
+    assert call.feature_budget_usd == client.settings.free_monthly_budget_usd == 10.0  # 無料分の予算で止める
+    assert "inferred を true" in call.system  # 推測のつながりも挙げるよう指示する
+    assert [l.inferred for l in result.links] == [False, True]
+
+
+def test_document_mode_drops_inferred_links():
+    client = FakeAIClient(AIResult(True, data=TEXT_RAW))
+    result, _ = extract(client, TEXT, "", [], [], "user", mode="document")
+    assert [l.inferred for l in result.links] == [False] and result.dropped_links == 1
+    assert "inferred は必ず false" in client.calls[0].system
+
+
+def test_inferred_links_are_registered_as_unconfirmed():
+    result = validate(TEXT_RAW, TEXT, [], [], allow_inferred=True)
+    elements, links = apply_candidates([], [], result.elements, result.links, "説明")
+    by_target = {l["to_id"]: l for l in links}
+    guessed = next(l for l in links if l["status"] == "unconfirmed")  # AIの推測は「未確認」
+    assert guessed["evidence"].startswith("AIの推測（説明）")
+    assert any(l["status"] == "assumed" and l["evidence"].startswith("資料から抽出") for l in by_target.values())
+    assert load_from_records(elements, links).dataset is not None

@@ -77,7 +77,8 @@ class AIClient:
         return self.client is not None
 
     def call_json(self, feature: str, system: str, prompt: str, schema: dict, user_key: str | None,
-                  user_text: str = "", max_chars: int | None = None) -> AIResult:
+                  user_text: str = "", max_chars: int | None = None,
+                  feature_budget_usd: float | None = None) -> AIResult:
         """AIを呼び出し、スキーマどおりの JSON を受け取る。失敗しても例外は出さず、ok=False の結果を返す。
 
         feature   : 機能名（利用記録に残す。例：確認漏れ）
@@ -85,11 +86,13 @@ class AIClient:
         prompt    : AIに渡す本文（利用者の入力は wrap_user_input で囲んでおく）
         user_text : 利用者が入力した文（長さの確認に使う）
         max_chars : この機能で入力できる最大文字数（省略すると、変更内容の上限）
+        feature_budget_usd : この機能だけの月の予算（アクセスコードなしで使える機能に使う）
         """
         if not self.available:
             return AIResult(False, message=f"AI機能は現在利用できません（APIキーが設定されていません）。{FALLBACK_NOTE}")
 
-        decision = cost_guard.check(self.settings, self.store, user_key, user_text, feature, max_chars)
+        decision = cost_guard.check(self.settings, self.store, user_key, user_text, feature, max_chars,
+                                    feature_budget_usd)
         if not decision.allowed:
             return AIResult(False, message=decision.reason)
 

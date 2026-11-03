@@ -47,10 +47,15 @@ def test_guide_page():
 def test_data_page_loads_sample():
     at = run_page("data.py")
     assert not at.exception
-    at.button[0].click().run()  # 「サンプルデータを読み込む」
+    next(b for b in at.button if b.label == "サンプルデータを読み込む").click().run()
     assert not at.exception
     assert at.session_state["dataset"].source == "sample"
     assert any("要素 57 件" in s.value for s in at.success)
+    # 押したボタンのすぐ下に、完了のお知らせと「影響分析へ進む」が出る
+    assert any("読み込みが完了しました" in s.value for s in at.success)
+    next(b for b in at.button if b.key == "go_analysis_sample").click().run()
+    assert not at.exception
+    assert any(t.value == "影響分析" for t in at.title)
 
 
 def test_data_page_own_data_shows_template_steps():
@@ -214,3 +219,53 @@ def test_diagram_page_opens_sample_and_follows_data_change():
     at.session_state["dataset"] = load_sample()
     at.run()
     assert any("入れ替わった" in i.value for i in at.info)
+
+
+# ---------- 文章・資料から作る ----------
+
+def test_extract_page_sample_candidates_open_in_diagram():
+    at = run_page("extract.py", load_sample())
+    assert not at.exception
+    at.radio(key="ex_mode").set_value("document").run()
+    next(b for b in at.button if b.label == "サンプルの資料で試す（料金なし）").click().run()
+    assert not at.exception
+    assert "勤怠管理システム" in at.text_area(key="ex_document").value  # サンプルの資料が入る
+    assert any("AIによる候補のサンプル" in m.value for m in at.markdown)
+    assert any(t.label.startswith("分からないこと") for t in at.tabs)
+    before = len(at.session_state["dataset"].dependencies)
+    next(b for b in at.button if b.label == "登録して図で直す").click().run()
+    assert not at.exception
+    after = at.session_state["dataset"]
+    assert after.source == "diagram" and len(after.dependencies) > before
+    added = after.dependencies[after.dependencies["evidence"].str.startswith("資料から抽出")]
+    assert len(added) == len(after.dependencies) - before and set(added["status"]) == {"assumed"}  # AIの候補は「推定」
+    # 「図で入力する」が、登録した要素を真ん中にして開く
+    assert any(t.value == "図で入力する" for t in at.title)
+    center = at.session_state["dg_center"]
+    assert after.graph.nodes[center]["name"] == "打刻用ICカードリーダー"
+
+
+def test_extract_page_text_mode_needs_no_access_code():
+    # 文章で説明する：アクセスコードの入力欄がなく、残りの回数が表示される（AIは呼ばない）
+    at = run_page("extract.py")
+    assert not at.exception
+    assert at.radio(key="ex_mode").value == "text"
+    next(b for b in at.button if b.label == "例文を入れる").click().run()
+    assert "CRM" in at.text_area(key="ex_text").value
+    assert not [t for t in at.text_input if t.key == "ex_access_code"]
+    assert any("今月あと 3 回" in c.value for c in at.caption)
+    assert not next(b for b in at.button if b.label == "AIで図のたたき台を作る").disabled
+
+
+def test_extract_page_wrong_access_code_does_not_call_ai():
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30)
+    at.secrets["ACCESS_CODES"] = ["right-code"]
+    at.run()
+    at = at.switch_page("pages/extract.py").run()
+    at.radio(key="ex_mode").set_value("document").run()
+    at.text_area(key="ex_document").set_value("勤怠管理システムは勤怠実績データを出力する。").run()
+    at.text_input(key="ex_access_code").set_value("wrong-code").run()
+    next(b for b in at.button if b.label == "AIで候補を作る").click().run()
+    assert not at.exception
+    assert any("アクセスコードが正しくありません" in e.value for e in at.error)
+    assert "ex_result" not in at.session_state
