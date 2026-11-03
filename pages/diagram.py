@@ -112,6 +112,8 @@ def new_id(prefix: str) -> str:
 
 
 def set_center(element_id: str) -> None:
+    if element_id != st.session_state.get("dg_center"):
+        st.session_state.pop("dg_last_add", None)  # 見る要素を変えたら、「取り消す」は出さない（どの追加か分かりにくいため）
     st.session_state.dg_center = element_id
     st.session_state.dg_flow = build_state(element_id)
     st.session_state.dg_trail = diagram.update_trail(st.session_state.get("dg_trail", []), element_id)
@@ -144,10 +146,29 @@ def add_element(name: str, element_type: str) -> str:
 
 
 def add_link(source: str, target: str, relation_type: str, status: str, evidence: str,
-             direction: str = "one_way") -> None:
-    links.append({"dependency_id": new_id("D"), "from_id": source, "to_id": target, "relation_type": relation_type,
+             direction: str = "one_way") -> str:
+    dependency_id = new_id("D")
+    links.append({"dependency_id": dependency_id, "from_id": source, "to_id": target, "relation_type": relation_type,
                   "direction": direction, "evidence": evidence.strip() or diagram.NO_EVIDENCE, "status": status,
                   "note": ""})
+    return dependency_id
+
+
+def remember_added(text: str, link_ids: list[str], element_ids: list[str]) -> None:
+    """直前に追加した内容を覚えておく（図の上に「取り消す」を出すため。取り消せるのは直前の1回分だけ）。"""
+    st.session_state.dg_last_add = {"text": text, "links": link_ids, "elements": element_ids}
+
+
+def undo_last_add() -> None:
+    """直前の追加を取り消す：そのとき作ったつながりと、新しく作った要素（ほかにつながりがないもの）を消す。"""
+    last = st.session_state.pop("dg_last_add", None)
+    if not last:
+        return
+    links[:] = [l for l in links if l["dependency_id"] not in last["links"]]
+    still_used = {l["from_id"] for l in links} | {l["to_id"] for l in links}
+    elements[:] = [e for e in elements if e["element_id"] not in last["elements"] or e["element_id"] in still_used]
+    commit()
+    st.session_state.dg_toast = "取り消しました：" + last["text"]
 
 
 # ---------- 図の部品に渡す形にする ----------
@@ -358,11 +379,15 @@ def add_links_dialog(side: str, question: diagram.Question | None = None) -> Non
         relation = st.selectbox("関係の種類（「自動」は2つの要素の種類から選びます）", relation_codes,
                                 index=relation_codes.index(question.relation_type) if question else 0,
                                 format_func=lambda r: "（自動）" if r == "auto" else diagram.relation_option(r))
-        c3, c4 = st.columns(2)
-        direction = c3.radio("影響の向き", list(models.DIRECTIONS), format_func=models.DIRECTIONS.get, horizontal=True)
-        status = c4.radio("確認状態", list(models.STATUSES), index=list(models.STATUSES).index("unconfirmed"),
-                          format_func=STATUS_LABELS.get, horizontal=True)
-        evidence = st.text_input("根拠（資料名・ヒアリング相手など）")
+        # 向き・確認状態・根拠は折りたたむ（基本は相手と関係だけで追加できるように。レビュー C05）。
+        # 開かないときは、一方向・未確認・根拠は未記入で登録する（確かめていないつながりを「確認済」にしないため）
+        with st.expander("詳細（向き・確認状態・根拠）　※開かないときは「一方向・未確認・根拠は未記入」で登録します"):
+            c3, c4 = st.columns(2)
+            direction = c3.radio("影響の向き", list(models.DIRECTIONS), format_func=models.DIRECTIONS.get,
+                                 horizontal=True)
+            status = c4.radio("確認状態", list(models.STATUSES), index=list(models.STATUSES).index("unconfirmed"),
+                              format_func=STATUS_LABELS.get, horizontal=True)
+            evidence = st.text_input("根拠（資料名・ヒアリング相手など）")
         b1, b2 = st.columns(2)
         add = b1.form_submit_button("追加", type="primary", width="stretch")
         cancel = b2.form_submit_button("やめる", width="stretch")
@@ -375,20 +400,21 @@ def add_links_dialog(side: str, question: diagram.Question | None = None) -> Non
         if errors:
             st.error(errors[0])
             return
-        targets = picked + [add_element(n, new_type) for n in lines]
-        refresh_lookups()
-        if not targets:
+        if not picked and not lines:
             st.error("新しい要素の名前を入力するか、登録済みの要素を選んでください。")
             return
-        added = []
+        created = [add_element(n, new_type) for n in lines]
+        targets = picked + created
+        refresh_lookups()
+        added, link_ids = [], []
         for other in targets:
             source, target = (other, center) if side == "in" else (center, other)
             rel = relation if relation != "auto" else diagram.default_relation(types[source], types[target])
-            add_link(source, target, rel, status, evidence, direction)
+            link_ids.append(add_link(source, target, rel, status, evidence, direction))
             added.append(diagram.reading(names[source], names[target], rel))
         commit()
-        # 登録した内容を文章で知らせる（違っていたら、線をクリックして直せる）
-        st.session_state.dg_toast = "追加しました：" + "／".join(added)
+        # 登録した内容を文章で知らせ、取り消せるようにする（違っていたら、線をクリックして直せる）
+        remember_added("／".join(added), link_ids, created)
         st.session_state.dg_pending = None
         set_center(center)
         st.rerun()
@@ -425,7 +451,12 @@ def draw_link_dialog(source: str, target: str) -> None:
         add = b1.form_submit_button("つなぐ", type="primary", width="stretch")
         cancel = b2.form_submit_button("やめる", width="stretch")
     if add:
-        add_link(source, target, relation, status, evidence)
+        dependency_id = add_link(source, target, relation, status, evidence)
+        # 経由する流れにして直接の線を消したときは、取り消しで元に戻せないため、取り消しの対象にしない
+        if remove_direct:
+            st.session_state.pop("dg_last_add", None)
+        else:
+            remember_added(diagram.reading(names[source], names[target], relation), [dependency_id], [])
         if remove_direct:
             for link in direct:
                 links.remove(link)
@@ -755,6 +786,16 @@ with main_col:
                        "左の箱をクリックするか、上の「たどった順」で戻れます。"
                        "この方法で、つながりを1つずつたどりながら、ヒアリングを進めていきます。")
             st.session_state.dg_coach = None  # 1回表示したら終わり（次の操作で消える）
+
+        last = st.session_state.get("dg_last_add")
+        if last:
+            with st.container(horizontal=True, vertical_alignment="center", gap="small"):
+                st.success(f"追加しました：{last['text']}", icon=":material/check:")
+                if st.button("取り消す", key="dg_undo", icon=":material/undo:",
+                             help="直前に追加したつながりと、そのとき新しく作った要素を消します。"):
+                    undo_last_add()
+                    set_center(center)
+                    st.rerun()
 
         with st.container(horizontal=True, gap="medium"):
             st.toggle("データをまとめて表示する", key="dg_collapse",

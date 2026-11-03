@@ -221,6 +221,26 @@ def test_diagram_page_opens_sample_and_follows_data_change():
     assert any("入れ替わった" in i.value for i in at.info)
 
 
+def test_diagram_add_with_defaults_and_undo():
+    # 相手の名前だけで追加でき（向き・確認状態・根拠は折りたたみ。未確認・未記入で登録）、直後に取り消せる（レビュー C05）
+    at = run_page("diagram.py", load_sample())
+    next(b for b in at.button if b.label == "図で開く").click().run()
+    at.selectbox(key="dg_search").set_value("SYS-ATT").run()
+    n_links, n_elements = len(at.session_state["dg_links"]), len(at.session_state["dg_elements"])
+    next(b for b in at.button if b.label == "＋ 影響先を追加").click().run()
+    assert any(e.label.startswith("詳細（向き・確認状態・根拠）") for e in at.expander)
+    next(t for t in at.text_area if t.label.startswith("新しい要素の名前")).set_value("テスト用の新しい帳票")
+    next(b for b in at.button if b.label == "追加").click().run()
+    assert not at.exception
+    added = at.session_state["dg_links"][-1]
+    assert (added["status"], added["evidence"]) == ("unconfirmed", "未記入（図で入力）")
+    assert any(s.value.startswith("追加しました：") for s in at.success)
+    next(b for b in at.button if b.label == "取り消す").click().run()
+    assert not at.exception
+    assert len(at.session_state["dg_links"]) == n_links and len(at.session_state["dg_elements"]) == n_elements
+    assert not [b for b in at.button if b.label == "取り消す"]
+
+
 # ---------- 文章・資料から作る ----------
 
 def test_extract_page_sample_candidates_open_in_diagram():
