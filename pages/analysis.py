@@ -88,10 +88,15 @@ max_depth = st.slider(
     help="段数を増やすと遠くの影響まで確認できますが、関係の薄い要素も増えます。",
 )
 
-if st.button("影響を分析する", type="primary", disabled=not targets):
+just_analyzed = st.button("影響を分析する", type="primary", disabled=not targets)
+if just_analyzed:
     st.session_state.impact_result = analyze_impact(dataset.graph, targets, max_depth)
     st.session_state.impact_targets = list(targets)
     st.session_state.oversight = None  # 前の分析のAI結果は消す
+    # 結果はボタンの下に出るため、気づきにくい。終わったことを知らせ、結果の見出しまで自動で移動する
+    st.success("分析が終わりました。結果は下の「3. 影響分析結果」です（自動で移動します）。", icon=":material/check_circle:")
+    st.toast("影響分析が終わりました。結果を表示しています。", icon=":material/check_circle:")
+    st.session_state.analysis_count = st.session_state.get("analysis_count", 0) + 1
 
 result = st.session_state.get("impact_result")
 if result is None:
@@ -100,6 +105,14 @@ if result is None:
 # ---------- 3. 結果 ----------
 st.divider()
 st.markdown("### 3. 影響分析結果")
+if just_analyzed:
+    # 結果の見出しまで、ゆっくりスクロールする（番号を付けて、分析のたびに必ず動くようにする）
+    st.html(f"""<script data-run="{st.session_state.analysis_count}">
+setTimeout(() => {{
+  const heading = [...document.querySelectorAll("h3")].find(h => h.innerText.startsWith("3. 影響分析結果"));
+  if (heading) heading.scrollIntoView({{behavior: "smooth", block: "start"}});
+}}, 400);
+</script>""", unsafe_allow_javascript=True)
 st.write("変更対象：" + "、".join(label(t) for t in result.targets))
 if st.session_state.get("impact_targets") != targets:
     st.caption("※ 変更対象が変更されています。もう一度「影響を分析する」を押すと結果が更新されます。")
@@ -173,7 +186,7 @@ with col_sample, st.container(border=True):
                                           "model": sample.model, "generated_on": sample.generated_on}
     else:
         st.caption("サンプルデータの入力例（4つのボタン）で分析すると、事前にAIで分析した結果を見られます。")
-with col_ai, st.container(border=True):
+with col_ai, st.container(border=True, key="ai_check_panel"):
     st.markdown("**AIで分析する（アクセスコードが必要）**")
     if not access_codes:
         st.caption("この環境ではAI分析が設定されていません。サンプルをご覧ください。")
@@ -182,7 +195,7 @@ with col_ai, st.container(border=True):
         if not text.strip():
             st.caption("AIに渡すため、「変更したい内容」を入力してください。")
         if ai_button("AIで確認漏れを調べる", key="ai_oversight", type="primary", icon=":material/search:",
-                     disabled=not text.strip()):
+                     disabled=not text.strip(), width="stretch"):
             user_key = check_access_code(code, access_codes)
             if user_key is None:
                 st.error("アクセスコードが正しくありません。")

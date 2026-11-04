@@ -78,6 +78,9 @@ PART_DEFAULTS = {
     "tabs-bg": "var(--cs-navy)", "tab-bg": "rgba(255,255,255,.06)", "tab-ink": "var(--cs-on-dark)",
     "tab-hover-bg": "rgba(255,255,255,.16)", "tab-hover-ink": "#fff", "tab-on-bg": "var(--cs-gold)",
     "tab-on-ink": "var(--cs-navy)",
+    # 「AIで確認漏れを調べる」の枠とボタン（このツールの中核なので、ほかのボタンより目立たせる）
+    "ai-panel-bg": "var(--cs-cream)", "ai-panel-border": "var(--cs-gold)", "ai-button-bg": "var(--cs-navy)",
+    "ai-button-ink": "#fff", "ai-button-ring": "var(--cs-gold)",
     "th-bg": "var(--cs-navy)", "th-ink": "#fff",
     "flow-bg": "var(--cs-navy)", "flow-ink": "#fff", "flow-strong": "var(--cs-gold-light)", "flow-sub": "var(--cs-on-dark)",
 }
@@ -115,6 +118,10 @@ THEMES = {
             "diagram-accent": "#6F9A2E", "diagram-center-bg": "#EEF4DA",
             "pick-bg": "#F1F6F3", "pick-ink": "#0E4F3A", "pick-sub": "#4E5B56", "pick-strong": "#0E4F3A",
             "pick-line": "#DCE5E1",
+            # AIの枠は淡い黄緑の面と若草色の太い線、ボタンは深緑のグラデーションに若草色の輪
+            "ai-panel-bg": "#EEF4DA", "ai-panel-border": "#B9CF1C",
+            "ai-button-bg": "linear-gradient(135deg, #0E4F3A 0%, #1F7A57 100%)", "ai-button-ink": "#FFFFFF",
+            "ai-button-ring": "#B9CF1C",
         },
     ),
     "green_brass": Theme(

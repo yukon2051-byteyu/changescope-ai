@@ -196,6 +196,15 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-badge-warn { background: var(--cs-gold); color: var(--cs-badge-warn-ink); }
 /* 一般的な確認の観点：登録データに根拠がない指摘。意味を表す色なので、テーマによらず灰青で固定 */
 .cs-badge-general { background: #E6EAF0; color: #33415C; border: 1px solid #C9D1DC; }
+/* 「AIで確認漏れを調べる」：このツールの中核なので、枠とボタンをほかより目立たせる（色はテーマで決める） */
+.st-key-ai_check_panel { background: var(--cs-ai-panel-bg) !important; border: 2px solid var(--cs-ai-panel-border) !important;
+  box-shadow: 0 4px 14px rgba(15,60,45,.12); }
+.st-key-ai_oversight button { background: var(--cs-ai-button-bg) !important; color: var(--cs-ai-button-ink) !important;
+  border: none !important; min-height: 3.1rem; padding: 0 1.8rem !important;
+  box-shadow: 0 0 0 3px var(--cs-ai-button-ring), 0 6px 16px rgba(15,60,45,.25) !important; transition: filter .15s; }
+.st-key-ai_oversight button p { font-size: 1.08rem !important; font-weight: 700 !important; color: inherit !important; }
+.st-key-ai_oversight button:hover { filter: brightness(1.12); }
+.st-key-ai_oversight button:disabled { opacity: .5; box-shadow: none !important; }
 
 .cs-ai-card {
   background: var(--cs-paper); border: 1px solid var(--cs-line); border-left: 4px solid var(--cs-line);

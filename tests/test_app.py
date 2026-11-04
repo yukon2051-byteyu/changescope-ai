@@ -376,3 +376,12 @@ def test_home_has_own_data_entry():
     assert not at.exception
     labels = [b.label for b in at.button]
     assert "図で入力する（はじめての方に）" in labels and "Excelで登録する" in labels
+
+
+def test_analysis_tells_that_it_finished():
+    # 結果はボタンの下に出て気づきにくいため、終わったことを知らせる（次の操作では出さない）
+    at = analyze_scenario_a()
+    assert any(s.value.startswith("分析が終わりました") for s in at.success)
+    assert any("影響分析が終わりました" in t.value for t in at.toast)
+    at.run()
+    assert not any(s.value.startswith("分析が終わりました") for s in at.success)
