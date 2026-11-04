@@ -1,3 +1,14 @@
+---
+title: ChangeScope AI
+colorFrom: green
+colorTo: gray
+sdk: docker
+app_port: 8501
+pinned: false
+license: mit
+short_description: 変更の前に、まだ確認していないことを見つけるAI
+---
+
 # ChangeScope AI
 
 **変更の前に、まだ確認していないことを見つけるAI。**
