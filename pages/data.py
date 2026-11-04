@@ -79,11 +79,13 @@ c_link1, c_link2, _ = st.columns([1, 1, 2])
 c_link1.page_link("pages/diagram.py", label="図で入力する", icon=":material/account_tree:")
 c_link2.page_link("pages/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
 
+# key を付けて、ほかの画面（ホーム・使い方）から「自社のデータを登録する」を選んだ状態で開けるようにする
 source = st.radio(
     "使用するデータ",
     ["sample", "own"],
     format_func={"sample": "まずはサンプルで試す", "own": "自社のデータを登録する"}.get,
     horizontal=True,
+    key="data_source",
 )
 
 if source == "sample":

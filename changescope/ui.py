@@ -467,6 +467,26 @@ def ai_spinner(task: str, estimate: str):
                       "結果は表示されません。料金はかかります）", show_time=True)
 
 
+def own_data_entry(key: str) -> None:
+    """自分のデータで試すときの入口（3つの登録のしかたへのボタン）。ホームと使い方から使う。
+
+    Excel のボタンは、データ管理を「自社のデータを登録する」を選んだ状態で開く。
+    """
+    with st.container(border=True):
+        st.markdown("**自分のデータで試す**　登録のしかたを選んでください。どれで作っても、同じ形のデータになります。")
+        c1, c2, c3 = st.columns(3)
+        if c1.button("図で入力する（はじめての方に）", key=f"{key}_diagram", type="primary",
+                     icon=":material/account_tree:", width="stretch"):
+            st.switch_page("pages/diagram.py")
+        if c2.button("Excelで登録する", key=f"{key}_excel", icon=":material/upload_file:", width="stretch"):
+            st.session_state.data_source = "own"
+            st.switch_page("pages/data.py")
+        if c3.button("文章から作る（AI・無料）", key=f"{key}_text", icon=":material/auto_awesome:", width="stretch"):
+            st.switch_page("pages/extract.py")
+        st.caption("図：案内に沿って1つずつ作る／Excel：テンプレートに書いてまとめて読み込む（データ管理）／"
+                   "文章：業務の流れを書くと、AIが図のたたき台を作る")
+
+
 def ui_label(text: str) -> str:
     """画面上のボタン名などを、本文中で目立たせる。"""
     return f'<span class="cs-ui">{text}</span>'

@@ -359,3 +359,20 @@ def test_ai_button_cannot_be_pressed_twice_while_running():
     assert at.session_state.calls == 1 and at.button(key="ai_test").disabled  # 処理中は押せない
     at.run()
     assert at.session_state.calls == 1 and not at.button(key="ai_test").disabled  # 終わったら押せる
+
+
+def test_guide_leads_to_own_data_registration():
+    # 使い方の「自社データを用意する」から、データ管理を「自社のデータを登録する」を選んだ状態で開ける
+    at = run_page("guide.py")
+    at.button(key="guide_own_excel").click().run()
+    assert not at.exception
+    assert any(t.value == "データ管理" for t in at.title)
+    assert at.radio(key="data_source").value == "own"
+    assert any(b.label.startswith("白紙テンプレート") for b in at.get("download_button"))
+
+
+def test_home_has_own_data_entry():
+    at = run_page("home.py")
+    assert not at.exception
+    labels = [b.label for b in at.button]
+    assert "図で入力する（はじめての方に）" in labels and "Excelで登録する" in labels

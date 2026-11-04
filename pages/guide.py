@@ -9,7 +9,7 @@ import streamlit as st
 from changescope import models
 
 from changescope.datasets import load_sample
-from changescope.ui import cards, flow, hero, note, section, set_dataset, steps, table, ui_label
+from changescope.ui import cards, flow, hero, note, own_data_entry, section, set_dataset, steps, table, ui_label
 
 hero(
     "GUIDE",
@@ -131,6 +131,7 @@ with tabs[2]:
         "登録された情報だけをもとに分析するので、結果には必ず「どの情報からそう判断したか」という根拠が付きます。"
         "<br><b>小さく始めましょう</b>　変更を検討しているシステムと、その周辺の10〜20件から登録するのがおすすめです。"
     )
+    own_data_entry("guide_own")
     section("THREE WAYS", "登録のしかたは3つ：Excel・図・文章（AI）")
     table(["", "A. Excelにまとめて書く", "B. 図で入力する", "C. 文章・資料から作る（AI）"], [
         ["向いている場面", "既存の一覧表から、まとめて書き写す", "関係者にヒアリングしながら、1つずつ登録する",
@@ -140,7 +141,7 @@ with tabs[2]:
         ["やり方", f"{ui_label('データ管理')} でテンプレートをダウンロードし、記入してアップロード",
          f"{ui_label('図で入力する')} で、箱と線を追加していく",
          f"{ui_label('文章・資料から作る')} で、AIが作った図のたたき台を確かめ、選んで登録する"],
-        ["料金", "なし", "なし", "文章は無料（1人月3回・1,000文字まで）。資料の貼り付けはアクセスコードが必要"],
+        ["料金", "なし", "なし", "文章は無料（画面を開いている間に3回・全員で1日20回・1,000文字まで）。資料の貼り付けはアクセスコードが必要"],
     ])
     note("<b>3つの関係：データの原本はExcelです。</b>図（B）はExcelの代わりに使え、図は文章（C）から作れます。"
          f"つまり、<b>文章 → 図 → Excel</b> の順につながっています。たとえば、文章からAIでたたき台を作り、"

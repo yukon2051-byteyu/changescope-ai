@@ -3,7 +3,7 @@
 import streamlit as st
 
 from changescope.datasets import load_sample
-from changescope.ui import cards, hero, html, note, section, set_dataset, ui_label
+from changescope.ui import cards, hero, html, note, own_data_entry, section, set_dataset, ui_label
 
 hero(
     "CHANGE IMPACT ANALYSIS",
@@ -25,6 +25,7 @@ if c1.button("サンプルで試す", type="primary", icon=":material/play_arrow
     set_dataset(load_sample())
     st.switch_page("pages/analysis.py")
 c2.page_link("pages/guide.py", label="使い方を詳しく見る", icon=":material/menu_book:")
+own_data_entry("home_own")
 
 section("WHAT YOU CAN DO", "できること")
 cards([
