@@ -17,7 +17,9 @@ short_description: 変更の前に、まだ確認していないことを見つ�
 
 > 個人開発のポートフォリオです。サンプルデータはすべて架空の会社（サンプル商事株式会社）のものです。
 
-**公開版：https://changescope-ai.streamlit.app/** （登録不要。「サンプルで試す」から約3分で分析まで体験できます。しばらく使われていないと起動に1分ほどかかります）
+**公開版：https://yukon2051-changescope-ai.hf.space/** （登録不要。「サンプルで試す」から約3分で分析まで体験できます。48時間使われていないと休止し、開くと1分ほどで起動します）
+
+公開先は Hugging Face Spaces（Docker）です（Space のページ：https://huggingface.co/spaces/yukon2051/changescope-ai ）。
 
 ---
 

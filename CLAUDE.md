@@ -42,7 +42,8 @@
     - 実測：例文63文字で約8円・19秒、資料946文字で約21円・64秒（Opus 5.5、試算）。サンプル：`data/sample/documents/`（架空の資料）と `data/sample/ai_results/extraction_kintai.json`。
   - **4 も完了（2026-11-03）**：「変更案を比べる」（`pages/compare.py`・`changescope/compare.py`。AIなし。6観点＋Aだけ・Bだけ・両方。関係する要素は「手を入れる要素＋影響を受ける要素」で数える。どちらが良いかは決めない。入力例は `data/sample/option_pairs.csv`）と、PDFレポート（`changescope/report.py`。fpdf2＋BIZ UDPゴシックを `assets/fonts` に同梱。ボタンを押したときだけ作る）。AIによる比較は利用者と相談のうえ入れていない。
   - テスト228件。**3つの柱はすべてそろった。** 残りは Phase 4（公開）と、最後にデザインの見直し。
-- **公開済み（2026-11-03）**：https://changescope-ai.streamlit.app/ （GitHub：yukon2051-byteyu/changescope-ai、MITライセンス、Python 3.12）。
+- **公開先を Hugging Face Spaces に移した（2026-11-04）**：https://yukon2051-changescope-ai.hf.space/ （Space：yukon2051/changescope-ai、Docker 方式、CPU basic・無料。48時間アクセスがないと休止。利用者は PRO プラン）。Streamlit Community Cloud（12時間で休止）は旧版。`Dockerfile` と README 先頭の設定で動く。秘密情報は Space の Secrets（環境変数）。**GitHub とは自動でつながっていない**：コードを直したら GitHub への push とは別に、`huggingface_hub` の `upload_folder`（`git ls-files` の一覧だけを送る）で Space へ送る（フォントなどのバイナリは普通の git push では送れないため）。このPCは `hf auth login` 済み。
+- **最初の公開（2026-11-03）**：https://changescope-ai.streamlit.app/ （GitHub：yukon2051-byteyu/changescope-ai、MITライセンス、Python 3.12）。
   - **予約と精算（2026-11-03 レビュー X01）**：AIを呼ぶ前に `store.locked()`（Neon は pg_advisory_xact_lock、SQLite は BEGIN IMMEDIATE）の中で確認と予約（status `reserved`、見込み額）を行い、終わったら `settle` で精算。10分を過ぎた予約は数えない。記録の時刻は日本時間（`now_jst`）。1人＝アクセスコードごと。
   - 利用記録は Neon（PostgreSQL・シンガポール）。secrets の `USAGE_DATABASE_URL`（直接の接続先。`-pooler` ではない方）。つながらないときはAIだけ止める。テストは `tests/conftest.py` でこのPCのファイルに切り替える（本物の記録を汚さない）。
   - 公開版で確かめたこと：ホーム・影響分析（サンプル）・図・比べる・使い方・データ管理でエラーなし、Neon の読み取り。**AIのボタンは公開版ではまだ押していない。**
