@@ -372,17 +372,34 @@ def test_guide_leads_to_own_data_registration():
     assert any(b.label.startswith("白紙テンプレート") for b in at.get("download_button"))
 
 
-def test_home_shows_three_equal_ways_and_two_purposes():
+def test_home_shows_three_equal_ways_and_entry_points():
     at = run_page("home.py")
     assert not at.exception
     labels = {b.key: b for b in at.button}
     ways = [labels[f"home_prepare_{w}"] for w in ("excel", "diagram", "text")]
-    assert [b.label for b in ways] == ["Excelを準備する", "図を作成する", "AIで作成する"]
+    assert [b.label for b in ways] == ["Excelで作成", "図から作成", "文章からAIで作成"]
     assert {b.proto.type for b in ways} == {ways[0].proto.type}  # 3つの方法は同じ重み
-    assert not any("はじめての方に" in b.label for b in at.button)
-    assert labels["home_prepare_upload"].label == "Excelを読み込んで分析開始"
-    assert any("A. 変更の影響を調べる" in m.value for m in at.markdown)
-    assert any("B. 複数の変更案を比べる" in m.value for m in at.markdown)
+    assert labels["home_prepare_upload"].label == "Excelをアップロードして分析開始"
+    assert labels["home_sample"].proto.type == "primary"  # サンプルがいちばん目立つ
+    assert not [b for b in at.button if b.proto.type == "primary" and b.key != "home_sample"]
+    assert any("サンプルは約3分" in c.value for c in at.caption)
+
+
+def test_home_compare_opens_with_sample_when_no_data():
+    at = run_page("home.py")
+    at.button(key="home_compare").click().run()
+    assert not at.exception
+    assert any(t.value == "変更案を比べる" for t in at.title)
+    assert at.session_state["dataset"].source == "sample"
+
+
+def test_home_compare_keeps_loaded_data():
+    from changescope.datasets import load_from_records, to_records
+
+    own = load_from_records(*to_records(load_sample())).dataset
+    at = run_page("home.py", own)
+    at.button(key="home_compare").click().run()
+    assert at.session_state["dataset"].source == "diagram"  # 読み込み済みのデータは置き換えない
 
 
 def test_upload_step_opens_own_data():

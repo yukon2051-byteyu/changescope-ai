@@ -1,9 +1,9 @@
-"""ホーム画面：システムの紹介と、はじめての人がすぐ試せる入口。"""
+"""ホーム画面：製品の価値を短時間で伝え、すぐにサンプルを試せる入口。詳しい説明は「使い方・用語について」に置く。"""
 
 import streamlit as st
 
 from changescope.datasets import load_sample
-from changescope.ui import cards, data_preparation, hero, html, note, section, set_dataset, ui_label
+from changescope.ui import data_entry, get_dataset, hero, html, set_dataset, text_link
 
 hero(
     "CHANGE IMPACT ANALYSIS",
@@ -13,56 +13,21 @@ hero(
     "変更によって<b>誰に</b>・<b>どこに</b>影響が出るかを、<b>根拠</b>とともに示します。",
 )
 
-note(
-    "<b>はじめての方へ</b>　最初に覚えることはありません。"
-    f"下の {ui_label('サンプルで試す')} を押すと、架空の会社のデータが読み込まれ、分析画面が開きます。"
-    "あとは入力例のボタンを押して分析するだけです（約3分）。"
-)
-
-
-c1, c2, _ = st.columns([1, 1, 2])
-if c1.button("サンプルで試す", type="primary", icon=":material/play_arrow:", width="stretch"):
+c1, c2, c3 = st.columns([1, 1, 1.3], vertical_alignment="center")
+if c1.button("サンプルで試す", key="home_sample", type="primary", icon=":material/play_arrow:", width="stretch"):
     set_dataset(load_sample())
     st.switch_page("pages/analysis.py")
-c2.page_link("pages/guide.py", label="使い方を詳しく見る", icon=":material/menu_book:")
+if c2.button("変更案を比べる", key="home_compare", icon=":material/compare_arrows:", width="stretch"):
+    if get_dataset() is None:  # データがなければサンプルで開く（入力例のボタンですぐに比べられる）
+        set_dataset(load_sample())
+    st.switch_page("pages/compare.py")
+with c3:
+    st.caption("サンプルは約3分で体験できます")
+    text_link("pages/guide.py", "使い方を詳しく見る", "home_guide")
 
-section("WHAT TO DO", "目的から選ぶ")
-c1, c2 = st.columns(2)
-with c1, st.container(border=True):
-    st.markdown("#### A. 変更の影響を調べる")
-    st.write("変更による影響範囲やリスクを洗い出す")
-    st.page_link("pages/analysis.py", label="影響分析を開く", icon=":material/search:")
-with c2, st.container(border=True):
-    st.markdown("#### B. 複数の変更案を比べる")
-    st.write("各案の影響やリスクを比較して検討する")
-    st.page_link("pages/compare.py", label="変更案を比べる", icon=":material/compare_arrows:")
+data_entry("home_prepare")
 
-data_preparation("home_prepare")
+html('<div class="cs-home-head">ChangeScope AIで分かること</div>'
+     '<div class="cs-facts"><div>影響を受ける部門・役割</div><div>影響が伝わる経路と根拠</div><div>確認が必要な事項</div></div>')
 
-section("WHAT YOU CAN DO", "できること")
-cards([
-    ("01", "誰に影響するかが分かる",
-     "影響を受ける部門・役割を、変更対象の責任部門を先頭に、影響の大きい順で一覧にします。"),
-    ("02", "なぜ影響するかをたどれる",
-     "「勤怠管理システム → 勤怠実績データ → 月次給与計算」のように、影響が伝わる経路と根拠資料を確認できます。"),
-    ("03", "確認が必要なことが分かる",
-     "推定や未確認の情報を含む影響を「要確認」として区別し、関係者に確認すべき点を明らかにします。"),
-])
-
-section("HOW IT WORKS", "利用の流れ")
-cards([
-    ("STEP 1", "分析用Excelを準備",
-     "Excelで直接作成するか、図から変換するか、文章からAIで生成します。"),
-    ("STEP 2", "Excelをアップロード",
-     "「データ管理」で読み込みます。記入内容は自動でチェックされます。"),
-    ("STEP 3", "変更影響を分析",
-     "変更内容を文章で入力し、誰に・どこに影響するかを根拠とともに確認します。"),
-    ("STEP 4", "必要に応じて変更案を比較",
-     "2つの変更案の違いを並べて検討します。結果はPDFで持ち帰れます。"),
-])
-
-html(
-    '<div class="cs-footer">影響の分析は、登録されたつながりをプログラムでたどって行います。'
-    "AIを使うのは、「AIで確認漏れを調べる」と「文章・資料から作る」だけです。結果はPDFで持ち帰れます。"
-    "サンプルデータはすべて架空のものです。</div>"
-)
+text_link("pages/guide.py", "詳しい使い方を見る", "home_guide_end")

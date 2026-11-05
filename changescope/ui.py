@@ -87,7 +87,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 
 .cs-hero {
   position: relative; overflow: hidden; border-radius: var(--cs-radius-lg); padding: 20px 48px 18px;
-  background: var(--cs-hero-bg); border-bottom: 3px solid var(--cs-hero-rule); color: var(--cs-hero-ink); margin-bottom: 8px;
+  background: var(--cs-hero-bg); border-bottom: 3px solid var(--cs-hero-rule); color: var(--cs-hero-ink); margin-bottom: 16px;
 }
 .cs-hero::after {
   content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
@@ -279,6 +279,22 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   .stTabs [data-testid="stTab"] p { font-size: .8rem; }
 }
 [class*="st-key-excel_goal_"] { background: var(--cs-ai-panel-bg) !important; border: 2px solid var(--cs-ai-panel-border) !important; }
+/* ホーム：短い見出し・3つの要点・文字だけのリンク。サンプルのボタンをいちばん目立たせる */
+.cs-home-head { font-size: 1.15rem; font-weight: 700; color: var(--cs-ink); margin: 18px 0 2px; }
+.cs-home-lead { font-size: .95rem; color: var(--cs-sub); margin-bottom: 8px; }
+.cs-home-note { text-align: center; font-size: .9rem; color: var(--cs-sub); margin-top: -6px; padding-bottom: 14px; }
+.cs-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 8px 0 14px; }
+.cs-facts div { background: var(--cs-cream); border-left: 3px solid var(--cs-gold); border-radius: var(--cs-radius);
+  padding: 10px 14px; font-size: .95rem; font-weight: 500; color: var(--cs-ink); }
+.st-key-home_sample button { min-height: 3.1rem; box-shadow: 0 0 0 3px var(--cs-ai-button-ring); }
+.st-key-home_sample button p { font-size: 1.08rem !important; font-weight: 700 !important; }
+.st-key-home_compare button { min-height: 3.1rem; }
+.st-key-home_prepare_upload button { border: 1.5px solid var(--cs-navy) !important; font-weight: 700; }
+[class*="st-key-text_link_"] { gap: 0 !important; }
+[data-testid="stMain"] [class*="st-key-text_link_"] [data-testid="stPageLink"] a {
+  background: transparent !important; border: none !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; }
+[data-testid="stMain"] [class*="st-key-text_link_"] [data-testid="stPageLink"] a * {
+  color: var(--cs-navy) !important; text-decoration: underline; font-size: .95rem; }
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }
 </style>
 """
@@ -552,6 +568,31 @@ def data_preparation(key: str) -> None:
             open_upload(scroll=True)
     st.page_link("pages/compare.py", label="読み込み後は変更案も比べられます",
                  icon=":material/compare_arrows:")
+
+
+def data_entry(key: str) -> None:
+    """自分のデータで分析する入口の短い版（ホーム用）。説明はツールチップと遷移先に置く。"""
+    html('<div class="cs-home-head">自分のデータで分析する</div>'
+         '<div class="cs-home-lead">Excelを直接用意するか、図・文章からExcelを作成できます。</div>')
+    ways = [
+        ("Excelで作成", "テンプレートに入力して、そのままアップロード", "table_view", "excel"),
+        ("図から作成", "画面上で関係図を描き、Excelに変換", "account_tree", "diagram"),
+        ("文章からAIで作成", "業務内容を文章で伝え、Excelの下書きを生成", "auto_awesome", "text"),
+    ]
+    for column, (label, help_text, icon, way) in zip(st.columns(3), ways):
+        if column.button(label, key=f"{key}_{way}", icon=f":material/{icon}:", help=help_text, width="stretch"):
+            if way == "excel":
+                open_upload()
+            st.switch_page("pages/diagram.py" if way == "diagram" else "pages/extract.py")
+    html('<div class="cs-home-note">いずれもExcel形式に統一</div>')
+    if st.button("Excelをアップロードして分析開始", key=f"{key}_upload", icon=":material/upload_file:", width="stretch"):
+        open_upload(scroll=True)
+
+
+def text_link(page: str, label: str, key: str) -> None:
+    """ボタンに見えない、文字だけのリンク。"""
+    with st.container(key=f"text_link_{key}"):
+        st.page_link(page, label=label)
 
 
 def no_data_actions(purpose: str) -> None:
