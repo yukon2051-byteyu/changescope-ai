@@ -297,3 +297,32 @@ def test_not_an_excel_file():
 
 def test_empty_file():
     assert load_from_excel(b"").dataset is None
+
+
+# ---------- 図・文章で作ったデータも、同じExcelになる ----------
+
+def test_diagram_data_round_trips_through_excel():
+    from changescope.datasets import load_from_records
+    from changescope.diagram import NO_EVIDENCE
+
+    elements = [{"element_id": "E-1", "name": "勤怠管理システム", "element_type": "system", "owner": ""},
+                {"element_id": "E-2", "name": "勤怠実績データ", "element_type": "data", "owner": ""}]
+    links = [{"dependency_id": "D-1", "from_id": "E-1", "to_id": "E-2", "relation_type": "provides_data",
+              "direction": "one_way", "evidence": NO_EVIDENCE, "status": "unconfirmed", "note": ""}]
+    made = load_from_records(elements, links).dataset
+    loaded = load_from_excel(build_template(made.elements, made.dependencies))
+    assert loaded.errors == [] and len(loaded.dataset.elements) == 2 and len(loaded.dataset.dependencies) == 1
+    row = loaded.dataset.dependencies.iloc[0]
+    assert (row["status"], row["evidence"]) == ("unconfirmed", NO_EVIDENCE)
+
+
+def test_extracted_data_round_trips_through_excel():
+    from changescope.datasets import load_from_records
+    from changescope.extraction import apply_candidates, load_sample_result
+
+    result, _ = load_sample_result([], [])
+    elements, links = apply_candidates([], [], result.elements, result.links, "説明書")
+    made = load_from_records(elements, links).dataset
+    loaded = load_from_excel(build_template(made.elements, made.dependencies))
+    assert loaded.errors == []
+    assert len(loaded.dataset.dependencies) == len(made.dependencies)

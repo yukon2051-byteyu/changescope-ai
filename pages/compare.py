@@ -11,13 +11,13 @@ from changescope.compare import OptionInput, compare
 from changescope.datasets import load_option_pairs
 from changescope.matcher import find_candidates
 from changescope.report import comparison_report
-from changescope.ui import data_table, element_label, get_dataset, note, section, show_mode_banner
+from changescope.ui import data_table, element_label, get_dataset, no_data_actions, note, section, show_mode_banner
 
 st.title("変更案を比べる")
 dataset = get_dataset()
 show_mode_banner(dataset)
 if dataset is None:
-    st.page_link("pages/data.py", label="データ管理へ", icon=":material/folder_open:")
+    no_data_actions("変更案の比較")
     st.stop()
 
 note("2つの変更案（例：システムを入れ替える案と、手順だけを見直す案）の、<b>影響の広さ</b>と<b>まだ確認していないこと</b>の違いを並べます。"

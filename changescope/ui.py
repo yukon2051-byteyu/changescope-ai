@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from changescope import models
-from changescope.datasets import Dataset
+from changescope.datasets import Dataset, load_sample
 from changescope.theme import THEME, css_variables
 
 STATUS_LABELS = {
@@ -260,6 +260,25 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .stTabs [data-testid="stTab"][data-selected] { background: var(--cs-tab-on-bg) !important; color: var(--cs-tab-on-ink) !important; }
 .stTabs [data-testid="stTab"][data-selected] p { font-weight: 700; }
 .stTabs .react-aria-SelectionIndicator { display: none !important; }  /* 元の選択中の下線 */
+/* 分析用データの準備：3つの方法から、共通の到達点（Excelの読み込み）へ流れを示す */
+.cs-prep-arrow { text-align: center; color: var(--cs-navy); font-weight: 700; margin: 8px 0 12px; }
+.cs-prep-mark { display: block; font-size: 1.6rem; line-height: 1.2; }
+.cs-prep-text { min-height: 3.6em; line-height: 1.8; margin-bottom: 12px; }
+@media (max-width: 640px) {
+  .cs-prep-text { min-height: 0; }
+  /* スマートフォン：帯の余白を詰め、見出しが単語の途中で折り返されないようにする */
+  .cs-hero { padding: 16px 20px 14px; }
+  .cs-hero h1, .cs-hero-title { font-size: 2.1rem !important; }
+  /* 流れの図は縦に並べ、矢印も下向きにする */
+  .cs-flow { flex-direction: column; }
+  .cs-flow-box { flex: none; }
+  .cs-flow-arrow { transform: rotate(90deg); line-height: 1; }
+  /* タブは折り返して、すべて見えるようにする */
+  .stTabs [role="tablist"] { flex-wrap: wrap !important; height: auto !important; overflow: visible !important; }
+  .stTabs [data-testid="stTab"] { min-height: 2.2rem; }
+  .stTabs [data-testid="stTab"] p { font-size: .8rem; }
+}
+[class*="st-key-excel_goal_"] { background: var(--cs-ai-panel-bg) !important; border: 2px solid var(--cs-ai-panel-border) !important; }
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }
 </style>
 """
@@ -499,24 +518,52 @@ def ai_spinner(task: str, estimate: str):
                       "結果は表示されません。料金はかかります）", show_time=True)
 
 
-def own_data_entry(key: str) -> None:
-    """自分のデータで試すときの入口（3つの登録のしかたへのボタン）。ホームと使い方から使う。
+def open_upload(scroll: bool = False) -> None:
+    """データ管理を「自社のデータを登録する」を選んだ状態で開く。scroll なら「③ アップロード」まで移動する。"""
+    st.session_state.data_source = "own"
+    st.session_state.data_scroll_upload = scroll
+    st.switch_page("pages/data.py")
 
-    Excel のボタンは、データ管理を「自社のデータを登録する」を選んだ状態で開く。
+
+def data_preparation(key: str) -> None:
+    """分析用データ（Excel）を準備する入口。ホームと使い方から使う。
+
+    3つの作成方法は同じ重みで並べ（初心者向けなどの区別はしない）、共通の到達点の「読み込み」だけを目立たせる。
     """
-    with st.container(border=True):
-        st.markdown("**自分のデータで試す**　データ作成方法を選んでください。アップロードはExcelファイルで行いますが、作成の方法は３種類あります。")
-        c1, c2, c3 = st.columns(3)
-        if c1.button("図で入力する（はじめての方に）", key=f"{key}_diagram", type="primary",
-                     icon=":material/account_tree:", width="stretch"):
-            st.switch_page("pages/diagram.py")
-        if c2.button("Excelで登録する", key=f"{key}_excel", icon=":material/upload_file:", width="stretch"):
-            st.session_state.data_source = "own"
-            st.switch_page("pages/data.py")
-        if c3.button("文章から作る（AI・無料）", key=f"{key}_text", icon=":material/auto_awesome:", width="stretch"):
-            st.switch_page("pages/extract.py")
-        st.caption("図：案内に沿って1つずつ作る／Excel：テンプレートに書いてまとめて読み込む（データ管理）／"
-                   "文章：業務の流れを書くと、AIが図のたたき台を作る")
+    section("PREPARE DATA", "分析用データを準備する")
+    st.write("分析にはExcelファイルを使用します。Excelは以下の3つの方法で準備できます。")
+    ways = [
+        ("① Excelで作成", "テンプレートに入力して、そのままアップロード", "Excelを準備する", "table_view", "excel"),
+        ("② 図から作成", "画面上で関係図を描き、Excelに変換", "図を作成する", "account_tree", "diagram"),
+        ("③ 文章からAIで作成", "業務内容を文章で伝え、Excelの下書きを生成", "AIで作成する", "auto_awesome", "text"),
+    ]
+    for column, (title, text, label, icon, way) in zip(st.columns(3), ways):
+        with column, st.container(border=True):
+            st.markdown(f"#### {title}")
+            html(f'<div class="cs-prep-text">{text}</div>')  # 文の長さが違っても、3枚の高さをそろえる
+            if st.button(label, key=f"{key}_{way}", icon=f":material/{icon}:", width="stretch"):
+                if way == "excel":
+                    open_upload()
+                st.switch_page("pages/diagram.py" if way == "diagram" else "pages/extract.py")
+    html('<div class="cs-prep-arrow"><span class="cs-prep-mark">↓</span>どの方法でも最終的にExcelファイルを作成</div>')
+    with st.container(border=True, key=f"excel_goal_{key}"):
+        if st.button("Excelを読み込んで分析開始", key=f"{key}_upload", type="primary", icon=":material/upload_file:",
+                     width="stretch"):
+            open_upload(scroll=True)
+    st.page_link("pages/compare.py", label="読み込み後は変更案も比べられます",
+                 icon=":material/compare_arrows:")
+
+
+def no_data_actions(purpose: str) -> None:
+    """データが読み込まれていないときの案内。行き止まりにせず、次の操作を選べるようにする。"""
+    st.write(f"{purpose}には、分析用データが必要です。サンプルで試すか、Excelを準備して読み込んでください。")
+    c1, c2 = st.columns(2)
+    if c1.button("サンプルデータで試す", key="no_data_sample", type="primary", icon=":material/play_arrow:",
+                 width="stretch"):
+        set_dataset(load_sample())
+        st.rerun()
+    if c2.button("分析用データを準備する", key="no_data_prepare", icon=":material/upload_file:", width="stretch"):
+        open_upload()
 
 
 def ui_label(text: str) -> str:

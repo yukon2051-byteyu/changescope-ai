@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 
+import pytest
 from streamlit.testing.v1 import AppTest
 
 from changescope.datasets import load_sample
@@ -364,18 +365,49 @@ def test_ai_button_cannot_be_pressed_twice_while_running():
 def test_guide_leads_to_own_data_registration():
     # 使い方の「自社データを用意する」から、データ管理を「自社のデータを登録する」を選んだ状態で開ける
     at = run_page("guide.py")
-    at.button(key="guide_own_excel").click().run()
+    at.button(key="guide_prepare_excel").click().run()
     assert not at.exception
     assert any(t.value == "データ管理" for t in at.title)
     assert at.radio(key="data_source").value == "own"
     assert any(b.label.startswith("白紙テンプレート") for b in at.get("download_button"))
 
 
-def test_home_has_own_data_entry():
+def test_home_shows_three_equal_ways_and_two_purposes():
     at = run_page("home.py")
     assert not at.exception
-    labels = [b.label for b in at.button]
-    assert "図で入力する（はじめての方に）" in labels and "Excelで登録する" in labels
+    labels = {b.key: b for b in at.button}
+    ways = [labels[f"home_prepare_{w}"] for w in ("excel", "diagram", "text")]
+    assert [b.label for b in ways] == ["Excelを準備する", "図を作成する", "AIで作成する"]
+    assert {b.proto.type for b in ways} == {ways[0].proto.type}  # 3つの方法は同じ重み
+    assert not any("はじめての方に" in b.label for b in at.button)
+    assert labels["home_prepare_upload"].label == "Excelを読み込んで分析開始"
+    assert any("A. 変更の影響を調べる" in m.value for m in at.markdown)
+    assert any("B. 複数の変更案を比べる" in m.value for m in at.markdown)
+
+
+def test_upload_step_opens_own_data():
+    at = run_page("home.py")
+    at.button(key="home_prepare_upload").click().run()
+    assert not at.exception
+    assert any(t.value == "データ管理" for t in at.title)
+    assert at.radio(key="data_source").value == "own"
+
+
+@pytest.mark.parametrize("name, purpose", [("compare.py", "変更案の比較"), ("analysis.py", "影響分析")])
+def test_pages_without_data_are_not_a_dead_end(name, purpose):
+    # データがなくても、サンプルで試すかデータの準備へ進める（行き止まりにしない）
+    at = run_page(name)
+    assert not at.exception
+    assert any(purpose in m.value for m in at.markdown)
+    at.button(key="no_data_sample").click().run()
+    assert not at.exception
+    assert at.session_state["dataset"].source == "sample"
+
+
+def test_loaded_notice_leads_to_compare():
+    at = run_page("data.py")
+    next(b for b in at.button if b.label == "サンプルデータを読み込む").click().run()
+    assert any(b.key == "go_compare_sample" for b in at.button)
 
 
 def test_analysis_tells_that_it_finished():

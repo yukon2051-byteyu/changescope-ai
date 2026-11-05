@@ -23,7 +23,7 @@ from changescope.report import analysis_report
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
     STATUS_LABELS, action_steps, ai_button, ai_spinner, conclusion, data_table, element_label, findings_list, get_dataset, note,
-    oversight_findings, section, show_mode_banner,
+    no_data_actions, oversight_findings, section, show_mode_banner,
 )
 from changescope.usage_store import open_store
 
@@ -34,7 +34,7 @@ st.title("影響分析")
 dataset = get_dataset()
 show_mode_banner(dataset)
 if dataset is None:
-    st.page_link("pages/data.py", label="データ管理へ", icon=":material/folder_open:")
+    no_data_actions("影響分析")
     st.stop()
 
 

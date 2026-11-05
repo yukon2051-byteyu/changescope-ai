@@ -59,11 +59,13 @@ def loaded_notice(where: str) -> None:
         return
     st.success(f"読み込みが完了しました（要素 {len(dataset.elements)}件・つながり {len(dataset.dependencies)}本）。"
                "次は「影響分析」で、変えたいことを入力して分析します。", icon=":material/check_circle:")
-    c1, c2, _ = st.columns([1, 1, 1])
+    c1, c2, c3 = st.columns(3)
     if c1.button("影響分析へ進む", type="primary", icon=":material/arrow_forward:", width="stretch",
                  key=f"go_analysis_{where}"):
         st.switch_page("pages/analysis.py")
-    if c2.button("図で開いて確認する", icon=":material/account_tree:", width="stretch", key=f"go_diagram_{where}"):
+    if c2.button("変更案を比べる", icon=":material/compare_arrows:", width="stretch", key=f"go_compare_{where}"):
+        st.switch_page("pages/compare.py")
+    if c3.button("図で開いて確認する", icon=":material/account_tree:", width="stretch", key=f"go_diagram_{where}"):
         st.switch_page("pages/diagram.py")
 
 
@@ -71,10 +73,9 @@ st.title("データ管理")
 if st.session_state.pop("data_loaded_toast", False):
     st.toast("読み込みが完了しました", icon=":material/check_circle:")
 show_mode_banner(get_dataset())
-note("<b>登録のしかたは3つあります。</b>この画面では、Excelにまとめて書いて読み込みます。"
-     f"図を見ながら1つずつ作りたいときは {ui_label('図で入力する')}（はじめての方におすすめ）、"
-     f"文章からAIで図のたたき台を作りたいときは {ui_label('文章・資料から作る')} を使ってください。"
-     "ここで読み込んだデータも、「図で入力する」で開いて確認・修正できます。")
+note("<b>分析にはExcelファイルを使用します。</b>この画面のテンプレートに入力して読み込むほか、"
+     f"{ui_label('図で入力する')} や {ui_label('文章・資料から作る')} で作ってExcelに保存したファイルも、ここで読み込みます。"
+     "読み込んだデータは、「図で入力する」で開いて確認・修正できます。")
 c_link1, c_link2, _ = st.columns([1, 1, 2])
 c_link1.page_link("pages/diagram.py", label="図で入力する", icon=":material/account_tree:")
 c_link2.page_link("pages/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
@@ -154,6 +155,15 @@ else:
             else:
                 finish_loading(result.dataset, "csv")
         loaded_notice("csv")
+
+# ホームなどの「Excelを読み込んで分析開始」から来たときは、「③ アップロード」まで移動する
+if st.session_state.pop("data_scroll_upload", False):
+    st.html("""<script>
+setTimeout(() => {
+  const heading = [...document.querySelectorAll("h4")].find(h => h.innerText.includes("アップロード"));
+  if (heading) heading.scrollIntoView({behavior: "smooth", block: "center"});
+}, 500);
+</script>""", unsafe_allow_javascript=True)
 
 dataset = get_dataset()
 if dataset is not None:

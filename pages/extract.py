@@ -37,7 +37,8 @@ show_mode_banner(get_dataset())
 settings = load_settings()
 store = open_store(settings.usage_db)  # 公開版は外部のデータベース、ローカルはファイル
 note("業務の流れを文章で書くか、資料を貼り付けると、AIが<b>図のたたき台</b>（要素とつながりの候補）を作ります。"
-     "<b>候補はそのまま登録しません。</b>根拠の文を見て登録するものを選び、「図で入力する」でマウスで直してください。")
+     "<b>候補はそのまま登録しません。</b>根拠の文を見て登録するものを選び、「図で入力する」でマウスで直してください。"
+     "直した図をExcelに保存して読み込むと、分析に使えます。")
 
 dataset = get_dataset()
 elements, links = to_records(dataset) if dataset is not None else ([], [])

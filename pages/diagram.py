@@ -25,7 +25,7 @@ from changescope import diagram, models
 from changescope.datasets import load_from_records, to_records
 from changescope.excel_template import build_template
 from changescope.theme import THEME, diagram_color
-from changescope.ui import STATUS_LABELS, data_table, get_dataset, note, set_dataset
+from changescope.ui import STATUS_LABELS, data_table, get_dataset, note, open_upload, set_dataset
 
 st.title("図で入力する")
 
@@ -285,7 +285,7 @@ if not editing:
     st.write("ヒアリングしながら、業務・システム・部門などのつながりを図で登録します。どちらから始めますか？")
     c1, c2 = st.columns(2)
     with c1, st.container(border=True):
-        st.markdown("**新しく作る（はじめての方におすすめ）**")
+        st.markdown("**新しく作る**")
         st.caption("何もない状態から、1つずつ案内に沿って作ります。要素を1つ → もう1つ → 2つの関係、の順に進みます。")
         if dataset is not None:
             st.caption("※ いま読み込んでいるデータは、分析に使われなくなります（Excelに保存していない内容は消えます）。")
@@ -323,9 +323,9 @@ if st.session_state.get("dg_toast"):
 for error in st.session_state.get("dg_errors", []):
     st.error(error)
 
-note("<b>図で作った内容は、このページを閉じると消えます。</b>残したいときは、下の「Excelに保存する」を押してください。"
-     "保存したExcelは、「データ管理」から読み込むと続きを編集できます。分析には、そのまま使えます（「影響分析」）。")
-c_back, c_save, _ = st.columns([1, 1, 2])
+note("<b>図はExcelに変換して分析に使います。</b>「Excelに保存する」で保存し、「保存したExcelを読み込む」から読み込んでください。"
+     "図で作った内容は、このページを閉じると消えます。保存したExcelを読み込むと、続きを図で編集できます。")
+c_back, c_save, c_next = st.columns(3)
 if c_back.button("最初の画面に戻る", icon=":material/arrow_back:", width="stretch"):
     for key in [k for k in st.session_state if str(k).startswith("dg_")]:
         del st.session_state[key]
@@ -342,6 +342,8 @@ else:
     c_save.download_button("Excelに保存する", st.session_state.dg_excel,
                            f"ChangeScope_図で作成_{date.today():%Y%m%d}.xlsx", XLSX_MIME, type="primary",
                            icon=":material/download:", width="stretch")
+if c_next.button("保存したExcelを読み込む", icon=":material/upload_file:", width="stretch", disabled=synced is None):
+    open_upload(scroll=True)
 
 
 # ---------- ダイアログ ----------
@@ -666,7 +668,7 @@ if step:
             f"- **「{first['name']}」を変えると、「{second['name']}」に影響する**、という1本のつながりです。\n"
             "- これが、Excelの依存関係シートの1行に当たります。\n"
             "- この調子で、つながりを1本ずつ増やしていくと、変更の影響を分析できるようになります。"
-            "（いまの2つだけでも、「影響分析」で分析できます）"
+            "（Excelに保存して読み込むと、分析に使えます）"
         )
         st.markdown("**次の画面では**、ある要素を真ん中に置き、左に影響元（その要素に影響を与えるもの）、"
                     "右に影響先（その要素が変わると影響を受けるもの）を並べて表示します。"
