@@ -13,16 +13,17 @@ hero(
     "変更によって<b>誰に</b>・<b>どこに</b>影響が出るかを、<b>根拠</b>とともに示します。",
 )
 
-c1, c2, c3 = st.columns([1, 1, 1.3], vertical_alignment="center")
-if c1.button("サンプルで試す", key="home_sample", type="primary", icon=":material/play_arrow:", width="stretch"):
+c1, c2, c3 = st.columns([1.15, 1.15, 0.7])
+if c1.button("サンプルで試す（約3分）", key="home_sample", type="primary", icon=":material/play_arrow:", width="stretch"):
     set_dataset(load_sample())
     st.switch_page("pages/analysis.py")
+c1.caption("架空の企業データで影響分析を体験")
 if c2.button("変更案を比べる", key="home_compare", icon=":material/compare_arrows:", width="stretch"):
     if get_dataset() is None:  # データがなければサンプルで開く（入力例のボタンですぐに比べられる）
         set_dataset(load_sample())
     st.switch_page("pages/compare.py")
+c2.caption("複数案の影響・未確認事項を比較")
 with c3:
-    st.caption("サンプルは約3分で体験できます")
     text_link("pages/guide.py", "使い方を詳しく見る", "home_guide")
 
 data_entry("home_prepare")

@@ -289,6 +289,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .st-key-home_sample button { min-height: 3.1rem; box-shadow: 0 0 0 3px var(--cs-ai-button-ring); }
 .st-key-home_sample button p { font-size: 1.08rem !important; font-weight: 700 !important; }
 .st-key-home_compare button { min-height: 3.1rem; }
+[class*="st-key-text_link_home_guide"]:not([class*="_end"]) { padding-top: .9rem; }
 .st-key-home_prepare_upload button { border: 1.5px solid var(--cs-navy) !important; font-weight: 700; }
 [class*="st-key-text_link_"] { gap: 0 !important; }
 [data-testid="stMain"] [class*="st-key-text_link_"] [data-testid="stPageLink"] a {

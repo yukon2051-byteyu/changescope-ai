@@ -29,7 +29,7 @@ def test_home_page():
 def test_home_sample_button_opens_analysis_with_sample():
     # ホームの「サンプルで試す」1回で、サンプルが読み込まれ分析画面に移る
     at = run_page("home.py")
-    next(b for b in at.button if b.label == "サンプルで試す").click().run()
+    next(b for b in at.button if b.key == "home_sample").click().run()
     assert not at.exception
     assert at.session_state["dataset"].source == "sample"
     assert any("影響分析" == t.value for t in at.title)
@@ -382,7 +382,9 @@ def test_home_shows_three_equal_ways_and_entry_points():
     assert labels["home_prepare_upload"].label == "Excelをアップロードして分析開始"
     assert labels["home_sample"].proto.type == "primary"  # サンプルがいちばん目立つ
     assert not [b for b in at.button if b.proto.type == "primary" and b.key != "home_sample"]
-    assert any("サンプルは約3分" in c.value for c in at.caption)
+    assert labels["home_sample"].label == "サンプルで試す（約3分）"
+    assert any(c.value == "架空の企業データで影響分析を体験" for c in at.caption)
+    assert any(c.value == "複数案の影響・未確認事項を比較" for c in at.caption)
 
 
 def test_home_compare_opens_with_sample_when_no_data():
