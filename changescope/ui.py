@@ -265,9 +265,32 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 """
 
 
+# Hugging Face のページの中（huggingface.co/spaces/...）では、アプリの枠が iframe-resizer で中身の高さまで伸び、
+# 外側のページごとスクロールするため、サイドバーが流れていく。枠の高さを画面に合わせて止め、本文だけをスクロールさせる。
+# 枠の外の画面の大きさが変わると getPageInfo がまた呼ばれる。枠の外から開いたとき（parentIFrame がない）は何もしない
+_FIT_FRAME_SCRIPT = """<script>
+if (!window.csFitFrame) {
+  window.csFitFrame = true;
+  let tries = 0;
+  const timer = setInterval(() => {
+    tries += 1;
+    const frame = window.parentIFrame;
+    if (!frame) {
+      if (tries > 40) clearInterval(timer);
+      return;
+    }
+    clearInterval(timer);
+    frame.autoResize(false);
+    frame.getPageInfo(info => frame.size(Math.max(400, info.clientHeight - Math.max(0, info.offsetTop - info.scrollTop))));
+  }, 250);
+}
+</script>"""
+
+
 def apply_global_style() -> None:
     """全画面共通のスタイルを読み込む（app.py から1回呼ぶ）。"""
     st.markdown(_GLOBAL_CSS, unsafe_allow_html=True)
+    st.html(_FIT_FRAME_SCRIPT, unsafe_allow_javascript=True)
 
 
 def html(markup: str) -> None:
@@ -482,7 +505,7 @@ def own_data_entry(key: str) -> None:
     Excel のボタンは、データ管理を「自社のデータを登録する」を選んだ状態で開く。
     """
     with st.container(border=True):
-        st.markdown("**自分のデータで試す**　登録のしかたを選んでください。どれで作っても、同じ形のデータになります。")
+        st.markdown("**自分のデータで試す**　データ作成方法を選んでください。アップロードはExcelファイルで行いますが、作成の方法は３種類あります。")
         c1, c2, c3 = st.columns(3)
         if c1.button("図で入力する（はじめての方に）", key=f"{key}_diagram", type="primary",
                      icon=":material/account_tree:", width="stretch"):
