@@ -85,20 +85,20 @@ def test_analysis_page_scenario_a_flow():
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     assert not at.exception
     metrics = {m.label: m.value for m in at.metric}
-    assert metrics["直接影響"] == "7 件"
-    assert metrics["間接影響"] == "14 件"
+    assert metrics["影響先"] == "21 件"
+    assert metrics["影響を受ける部門"] == "3 部門"
     assert metrics["関係者"] == "7 件"
     assert metrics["見落とし注意"] == "5 件"
-    assert metrics["要確認"] == "6 件"
+    assert metrics["要確認のつながり"] == "4 本"
     # 要確認（影響6件）と、確かめるつながり（4本）の差を説明し、一覧のタブを用意している
-    assert any("要確認 6件と、確かめるつながり 4本の関係" in m.value for m in at.markdown)
+    assert any("つながり4本を確かめると、要確認の影響6件" in c.value for c in at.caption)
     assert any(t.label == "要確認のつながり（4本）" for t in at.tabs)
     assert any("確かめるつながり" in m.value and "社内認証基盤" in m.value for m in at.markdown)
     assert at.slider[0].max == 8  # 8段までたどれる
-    assert any("影響の広さは「大」です" in m.value and "まずやること" in m.value for m in at.markdown)
+    assert any("影響の広さは「大」です" in m.value and "実務でまず行うこと" in m.value for m in at.markdown)
     assert any(t.label.startswith("見落としチェック") for t in at.tabs)
     assert any("データの移行・引き継ぎ" in m.value for m in at.markdown)
-    assert any("次にやること" in m.value for m in at.markdown)
+    assert any("実際の案件での対応手順" in m.value for m in at.markdown)
     assert any("変更対象の責任部門と、変更の方針を共有する" in m.value for m in at.markdown)
     # 直接影響の表（影響の大きい順）。長い文章も切れずに表示されるHTMLの表で表示している
     tables = [m.value for m in at.markdown if 'class="cs-table"' in m.value and "<th>注目</th>" in m.value]
@@ -204,7 +204,7 @@ def test_diagram_page_tutorial_creates_data_for_analysis():
     at.multiselect[0].set_value([dataset.elements.iloc[0]["element_id"]]).run()
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     assert not at.exception
-    assert {m.label: m.value for m in at.metric}["直接影響"] == "1 件"
+    assert {m.label: m.value for m in at.metric}["影響先"] == "1 件"
 
 
 def test_diagram_page_opens_sample_and_follows_data_change():
@@ -318,7 +318,7 @@ def test_compare_page_needs_targets_for_both():
 
 def test_analysis_and_compare_pages_offer_pdf():
     at = analyze_scenario_a()
-    assert any(b.label == "PDFでダウンロード" for b in at.get("download_button"))
+    assert any(b.label == "結果をPDFで保存" for b in at.get("download_button"))  # サンプル体験は終わりの表示から保存する
     at = run_page("compare.py", load_sample())
     at.button(key="cp_pair_A").click().run()
     next(b for b in at.button if b.label == "比べる").click().run()
@@ -432,7 +432,148 @@ def test_loaded_notice_leads_to_compare():
 def test_analysis_tells_that_it_finished():
     # 結果はボタンの下に出て気づきにくいため、終わったことを知らせる（次の操作では出さない）
     at = analyze_scenario_a()
-    assert any(s.value.startswith("分析が終わりました") for s in at.success)
+    assert any(s.value.startswith("分析が完了しました") for s in at.success)
     assert any("影響分析が終わりました" in t.value for t in at.toast)
     at.run()
-    assert not any(s.value.startswith("分析が終わりました") for s in at.success)
+    assert any(s.value.startswith("分析が完了しました") for s in at.success)  # 一時的な通知だけに頼らず、完了状態を残す
+    assert not at.toast
+
+
+# ---------- サンプル体験の進行と終わり ----------
+
+def own_dataset():
+    from changescope.datasets import load_from_records, to_records
+
+    return load_from_records(*to_records(load_sample())).dataset
+
+
+def demo_text(at) -> str:
+    return " ".join(m.value for m in at.markdown)
+
+
+def test_demo_shows_progress_and_end_card_from_results():
+    at = run_page("home.py")
+    at.button(key="home_sample").click().run()  # サンプルで試す：入力例が入った状態で始まる
+    assert not at.exception
+    assert "サンプル体験" in demo_text(at) and "いまここ" in demo_text(at)
+    assert at.text_area(key="change_text").value  # すぐに分析できる
+    assert not any(c.label == "入力内容を変更する" for c in at.expander)
+    at.switch_page("pages/analysis.py")  # テストの道具では、移動先のページを指定し直す必要がある
+    next(b for b in at.button if b.label == "影響を分析する").click().run()
+    assert not at.exception
+    text = demo_text(at)
+    assert "サンプル体験はここまでです" in text
+    assert "勤怠管理システムの変更が、3部門・21件に影響する可能性と、事実確認が必要な4本のつながり" in text
+    assert "実際の案件では、関係者への確認と対応が必要です" in text  # 実際の案件の完了と混同させない
+    assert any(e.label == "入力内容を変更する" for e in at.expander)  # 入力欄は畳んで、再編集できる
+    labels = {b.key for b in at.button}
+    assert {"demo_own", "demo_compare", "demo_details"} <= labels
+
+
+def test_own_data_has_no_demo_display():
+    at = run_page("analysis.py", own_dataset())
+    at.multiselect(key="targets").set_value(["SYS-ATT"]).run()
+    next(b for b in at.button if b.label == "影響を分析する").click().run()
+    assert not at.exception
+    text = demo_text(at)
+    assert "サンプル体験" not in text and "cs-demo-steps" not in text
+    assert "実際の案件での対応手順" in text
+    assert any(b.label == "PDFでダウンロード" for b in at.get("download_button"))
+    assert any("まずやること" in m.value for m in at.markdown)
+
+
+def test_changing_input_after_analysis_marks_result_as_old():
+    at = analyze_scenario_a()
+    at.text_area(key="change_text").set_value("勤怠管理システムを別のサービスに変更したい").run()
+    assert any("下の結果は前回の条件です" in w.value for w in at.warning)
+    assert not any(s.value.startswith("分析が完了しました") for s in at.success)
+    next(b for b in at.button if b.label == "影響を分析する").click().run()
+    assert not at.warning or not any("前回の条件" in w.value for w in at.warning)
+
+
+def test_details_button_opens_details():
+    at = analyze_scenario_a()
+    assert not next(e for e in at.expander if e.label.startswith("詳しい結果")).proto.expanded
+    at.button(key="demo_details").click().run()
+    assert not at.exception
+    assert next(e for e in at.expander if e.label.startswith("詳しい結果")).proto.expanded
+
+
+def test_analysis_inputs_survive_page_moves():
+    at = analyze_scenario_a()
+    text = at.text_area(key="change_text").value
+    at.switch_page("pages/home.py").run()
+    at.switch_page("pages/analysis.py").run()
+    assert not at.exception
+    assert at.text_area(key="change_text").value == text
+    assert at.multiselect(key="targets").value == ["SYS-ATT"]
+    assert any(s.value.startswith("分析が完了しました") for s in at.success)  # 結果も、古い扱いにならない
+
+
+# ---------- 比較の目的・結果の構成・引き継ぎ ----------
+
+def compare_sample_pair() -> AppTest:
+    at = run_page("compare.py", load_sample())
+    at.button(key="cp_pair_A").click().run()
+    next(b for b in at.button if b.label == "比べる").click().run()
+    return at
+
+
+def test_compare_sample_has_fictional_goal_and_decision_sections():
+    at = compare_sample_pair()
+    assert not at.exception
+    assert at.text_input(key="cp_goal").value == "勤怠の締め作業の負担を減らしたい"
+    assert any("架空の設定" in c.value for c in at.caption)
+    text = " ".join(m.value for m in at.markdown)
+    for title in ("比較の要約", "重要な違い", "判断前に確認すること", "比較表"):
+        assert title in text
+    assert "達成できるかは未評価" in text
+    assert any("A案にのみ影響候補として抽出" in c.value for c in at.caption)
+    assert "不要になるものです" not in text
+
+
+def test_compare_without_goal_shows_unevaluated():
+    at = run_page("compare.py", load_sample())
+    at.text_area(key="cp_a_text").set_value("勤怠管理システムを入れ替える").run()
+    at.text_area(key="cp_b_text").set_value("経費精算業務を見直す").run()
+    next(b for b in at.button if b.label == "比べる").click().run()
+    text = " ".join(m.value for m in at.markdown)
+    assert "未評価（目的が未入力）" in text
+    assert "比較の目的と成功条件は何か" in text
+
+
+def test_compare_result_is_marked_old_after_change():
+    at = compare_sample_pair()
+    assert not at.warning
+    at.text_input(key="cp_goal").set_value("別の目的").run()
+    assert any("前回の条件" in w.value for w in at.warning)
+    assert next(b for b in at.get("download_button")).disabled  # 古い結果をPDFにしない
+    next(b for b in at.button if b.label == "比べる").click().run()
+    assert not at.warning
+
+
+def test_detail_analysis_inherits_option_and_compare_is_kept():
+    at = compare_sample_pair()
+    at.button(key="cp_analyze_b").click().run()
+    assert not at.exception
+    assert any(t.value == "影響分析" for t in at.title)
+    assert at.multiselect(key="targets").value == ["PRC-ATT"]
+    assert "手順" in at.text_area(key="change_text").value
+    assert {m.label: m.value for m in at.metric}["影響先"] == "4 件"  # 再入力なしで分析される
+    at.switch_page("pages/analysis.py").run()
+    next(b for b in at.button if b.label == "変更案の比較に戻る").click().run()
+    assert not at.exception
+    assert any(t.value == "変更案を比べる" for t in at.title)
+    at.switch_page("pages/compare.py").run()
+    assert at.text_input(key="cp_goal").value == "勤怠の締め作業の負担を減らしたい"  # 条件と結果が残る
+    assert any("比較の要約" in m.value for m in at.markdown)
+    assert not at.warning
+
+
+def test_demo_compare_button_fills_matching_pair():
+    at = analyze_scenario_a()
+    at.button(key="demo_compare").click().run()
+    assert not at.exception
+    assert any(t.value == "変更案を比べる" for t in at.title)
+    assert at.multiselect(key="cp_a_targets").value == ["SYS-ATT"]
+    assert at.multiselect(key="cp_b_targets").value == ["PRC-ATT"]

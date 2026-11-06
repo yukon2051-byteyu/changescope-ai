@@ -60,10 +60,30 @@ class Assessment:
     caution: str = ""  # 確からしさが低い場合の注意
 
 
-def assess(graph: nx.MultiDiGraph, result: ImpactResult, stakeholders: list[Stakeholder]) -> Assessment:
+# 指標の定義。画面・PDF・比較で同じ名前を同じ意味で使う（同じ名前で違う集計値を出さない）
+METRIC_DEFINITIONS = [
+    ("変更対象", "手を入れる要素。影響先の件数には含めない"),
+    ("影響先", "変更対象から、つながりをたどって影響が届く要素（直接＋間接）"),
+    ("影響を受ける部門", "変更対象と影響先が属する部門の数。影響の広さ（大・中・小）の判定に使う"),
+    ("関係者（部門・役割）", "確認や調整の相手になる部門と役割を合わせた件数。部門の数とは別の値"),
+    ("要確認のつながり", "登録された関係のうち、確認状態が推定・未確認のもの（本）"),
+]
+UNCERTAIN_ZERO_NOTE = "未登録の関係や、分析範囲外の影響がないことを保証するものではありません。"
+
+
+def uncertain_label(count: int) -> str:
+    """要確認のつながりの本数の表示。0本を「安全」「確認不要」と読めないようにする。"""
+    return f"{count}本（推定・未確認）" if count else "登録された関係のうち未確認0本"
+
+
+def affected_departments(graph: nx.MultiDiGraph, result: ImpactResult) -> set[str]:
+    """変更対象と影響先が属する部門（要素ID）。"""
     in_range = [t for t in result.targets if t in graph] + [i.element_id for i in result.impacts]
-    departments = {d for e in in_range if (d := department_of(graph, e))}
-    n_departments = len(departments)
+    return {d for e in in_range if (d := department_of(graph, e))}
+
+
+def assess(graph: nx.MultiDiGraph, result: ImpactResult, stakeholders: list[Stakeholder]) -> Assessment:
+    n_departments = len(affected_departments(graph, result))
     if n_departments >= LARGE_DEPARTMENTS:
         level = "大"
     elif n_departments >= MEDIUM_DEPARTMENTS:

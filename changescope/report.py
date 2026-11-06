@@ -15,7 +15,7 @@ from fpdf import FPDF
 from fpdf.enums import WrapMode
 
 from changescope import models
-from changescope.assessment import Assessment
+from changescope.assessment import METRIC_DEFINITIONS, UNCERTAIN_ZERO_NOTE, Assessment
 from changescope.compare import Comparison, Split
 from changescope.gaps import Finding
 from changescope.graph_engine import ImpactItem, ImpactResult, describe_path
@@ -188,7 +188,7 @@ def analysis_report(graph: nx.MultiDiGraph, source: str, change_text: str, resul
         ("データ", SOURCE.get(source, source)),
         ("変更内容", change_text or "（入力なし）"),
         ("変更対象", "、".join(name(t) for t in result.targets)),
-        ("影響の件数", f"直接 {len(result.direct)}件・間接 {len(result.indirect)}件"
+        ("影響の件数", f"変更対象 {len(result.targets)}件／影響先 {len(result.impacts)}件（直接 {len(result.direct)}件・間接 {len(result.indirect)}件）"
                      + (f"（{max_depth}段先までたどった）" if max_depth else "")),
     ])
     if source == "sample":
@@ -197,6 +197,7 @@ def analysis_report(graph: nx.MultiDiGraph, source: str, change_text: str, resul
     if assessment is not None:
         pdf.section("1. 結論")
         pdf.subheading(f"影響の広さ：{assessment.level}　{assessment.headline}")
+        pdf.paragraph("影響の広さは関係する部門の数による指標で、リスクの大小を示すものではありません。", size=8.5, color=SUB)
         pdf.paragraph(assessment.meaning)
         pdf.paragraph(f"まずやること：{assessment.first_step}")
         if assessment.caution:
@@ -207,7 +208,8 @@ def analysis_report(graph: nx.MultiDiGraph, source: str, change_text: str, resul
         if assessment.basis:
             pdf.paragraph(assessment.basis, size=8.5, color=SUB)  # 「判定の根拠：」から始まる文
 
-    pdf.section("2. 次にやること")
+    pdf.section("2. 実際の案件での対応手順")
+    pdf.paragraph("実務でこの結果を使う場合の対応例です。", size=8.5, color=SUB)
     for n, action in enumerate(actions, start=1):
         pdf.subheading(f"{n}. {action.title}")
         pdf.paragraph(action.detail)
@@ -303,31 +305,63 @@ def _oversight_section(pdf: ReportPDF, oversight: dict) -> None:
 
 # ---------- 変更案の比較のレポート ----------
 def comparison_report(comparison: Comparison, titles: dict[str, str], source: str) -> bytes:
-    """変更案A・Bの比較をPDFにする。titles は表の見出し（例：{"a": "A案（システムを入れ替える）", ...}）。"""
+    """変更案A・Bの比較をPDFにする。titles は表の見出し（例：{"a": "A案（システムを入れ替える）", ...}）。
+
+    画面と同じ順・同じ内容にする（要約 → 重要な違い → 確認事項 → 比較表 → 定義と範囲 → 差分）。AIは使っていない。
+    """
     pdf = ReportPDF("変更案の比較レポート")
     a, b = comparison.a, comparison.b
-    pdf.cover("2つの変更案の、影響の広さと、まだ確認していないことの違い", [
+    goal = comparison.goal
+    pdf.cover("共通の目的に対する、2つの変更案の対応範囲と確認事項の違い", [
         ("作成日時", _now()),
         ("データ", SOURCE.get(source, source)),
-        (titles["a"], f"{a.option.text}（変更対象：{len(a.result.targets)}件）"),
-        (titles["b"], f"{b.option.text}（変更対象：{len(b.result.targets)}件）"),
+        ("目的", goal.purpose or "未入力（目的への適合性は未評価）"),
+        ("成功条件", goal.success or "未入力"),
+        (titles["a"], f"{a.option.text}（変更対象：{len(a.option.targets)}件）"),
+        (titles["b"], f"{b.option.text}（変更対象：{len(b.option.targets)}件）"),
     ])
-    pdf.note("このレポートは、どちらの案が良いかを決めるものではありません。影響が小さい案が、変更の目的を満たすとは限らないためです。"
-             "判断の材料としてお使いください。費用・期間は、入力がなければ「要見積もり」と表示しています（このツールでは計算しません）。")
+    pdf.note("このレポートは、どちらの案が良いかを決めるものではありません。影響範囲が狭い案が、目的を満たすとは限らないためです。"
+             "費用・期間は、入力がなければ「未入力・要見積もり」と表示しています（このツールでは計算しません）。"
+             "このレポートの内容はAIを使わず、登録データの分析結果と入力された内容から作っています。")
     if source == "sample":
-        pdf.note("架空の会社（サンプル商事株式会社）のサンプルデータを分析したものです。")
+        pdf.note("架空の会社（サンプル商事株式会社）のサンプルデータと、架空の目的・成功条件を使っています。")
 
-    pdf.section("1. 比較表")
+    pdf.section("1. 比較の要約")
+    for line in comparison.summary:
+        pdf.paragraph(line)
+
+    pdf.section("2. 重要な違い")
+    pdf.table([("観点", titles["a"], titles["b"])],
+              [(r.viewpoint, r.a, r.b) for r in comparison.differences], (32, 54, 54))
+
+    pdf.section("3. 判断前に確認すること")
+    pdf.table([("区分", "確認事項", "なぜ判断に必要か", "確認先", "対象案", "確認の根拠")],
+              [(c.kind, c.item, c.why, c.contact, c.target, c.basis) for c in comparison.checks],
+              (14, 41, 32, 20, 11, 22))
+
+    pdf.section("4. 比較表")
+    pdf.paragraph(f"{comparison.max_depth}段先までたどった結果です。件数の差は違いを示すだけで、少ない案が優れているという意味ではありません。")
     pdf.table([("観点", titles["a"], titles["b"], "違い")],
-              [(r.viewpoint, r.a, r.b, r.difference) for r in comparison.rows], (40, 37, 37, 26))
+              [(r.viewpoint, r.a, r.b, r.difference) for r in comparison.rows], (28, 44, 44, 24))
+
+    pdf.section("5. 分析条件と、分かる範囲")
+    pdf.paragraph(f"分析条件：変更対象から{comparison.max_depth}段先まで、登録されたつながりの向きにたどっています。")
+    pdf.table([("指標", "定義")], METRIC_DEFINITIONS, (40, 100))
+    pdf.subheading("登録データで分かること")
+    pdf.bullets(["登録されたつながりをたどって届く、影響先・部門・関係者", "登録された関係のうち、確認状態が推定・未確認のもの"])
+    pdf.subheading("未評価の事項")
+    pdf.bullets(["目的への適合性と、期待する効果（入力された内容は、入力された見込みです）",
+                 "業務の重要度、停止時の損失などのリスクの大きさ（影響の広さは、リスクの大小を示しません）",
+                 "費用と期間（入力された値は、ユーザー申告です）",
+                 f"未登録の関係や、分析範囲外の影響（{UNCERTAIN_ZERO_NOTE}）"])
 
     for number, (title, split, caption) in enumerate([
         ("要確認のつながり", comparison.uncertain, "確かめないと、影響があるかどうかがはっきりしないつながりです。"),
         ("関係する部門・担当", comparison.stakeholders, ""),
         ("見落としやすい影響", comparison.hidden, "変更対象の責任部門とは別の部門に、2段以上先で伝わる影響です。"),
         ("確認すべき観点", comparison.gaps, "データ移行・連携・規程・切り戻しなど、変更時に忘れやすい確認事項です。"),
-        ("関係する要素", comparison.elements, "手を入れる要素と、影響を受ける要素を合わせたものです。"),
-    ], start=2):
+        ("変更対象と影響先", comparison.elements, "「だけ」は、今回の登録データと分析条件で、その案にのみ影響候補として抽出されたものです。もう一方の案で対応が不要になるという意味ではありません。"),
+    ], start=6):
         pdf.section(f"{number}. {title}（Aだけ・Bだけ・両方）")
         if caption:
             pdf.paragraph(caption)

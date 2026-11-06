@@ -16,6 +16,7 @@ hero(
 c1, c2, c3 = st.columns([1.15, 1.15, 0.7])
 if c1.button("サンプルで試す（約3分）", key="home_sample", type="primary", icon=":material/play_arrow:", width="stretch"):
     set_dataset(load_sample())
+    st.session_state.demo_prefill = True  # 最初の入力例を入れた状態で始める
     st.switch_page("pages/analysis.py")
 c1.caption("架空の企業データで影響分析を体験")
 if c2.button("変更案を比べる", key="home_compare", icon=":material/compare_arrows:", width="stretch"):

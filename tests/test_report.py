@@ -3,7 +3,7 @@
 import pytest
 
 from changescope.assessment import assess
-from changescope.compare import OptionInput, compare
+from changescope.compare import Goal, OptionInput, compare
 from changescope.datasets import load_sample
 from changescope.gaps import find_gaps
 from changescope.graph_engine import analyze_impact
@@ -50,3 +50,6 @@ def test_comparison_report(graph):
                      OptionInput("B案", "手順だけを見直す", ["PRC-ATT"]))
     pdf = comparison_report(result, {"a": "A案（入れ替える）", "b": "B案（手順だけ）"}, "upload")
     assert pdf.startswith(b"%PDF-") and b"BIZUDPGothic" in pdf
+    with_goal = compare(graph, OptionInput("A案", "システムを入れ替える", ["SYS-ATT"], cost="約300万円"),
+                        OptionInput("B案", "手順だけを見直す", ["PRC-ATT"]), goal=Goal("負担を減らしたい", "半分にしたい"))
+    assert len(comparison_report(with_goal, {"a": "A案", "b": "B案"}, "sample")) > 1000

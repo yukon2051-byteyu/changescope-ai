@@ -18,7 +18,20 @@ STATUS_LABELS = {
 }
 
 # データを入れ替えたときに消す、分析中の状態
-_ANALYSIS_KEYS = ["targets", "_last_candidates", "impact_result", "impact_targets", "change_text"]
+_ANALYSIS_KEYS = ["targets", "_last_candidates", "impact_result", "impact_targets", "change_text", "impact_text",
+                  "impact_depth", "analysis_inputs", "analysis_from", "show_details", "demo_pdf_saved", "just_analyzed",
+                  "cp_inputs", "cp_result", "cp_titles", "cp_key"]
+
+
+def restore_inputs(name: str) -> None:
+    """ほかのページへ移ると Streamlit は入力欄の値を捨てるため、控えから戻す（入力欄を置く前に呼ぶ）。"""
+    for key, value in st.session_state.get(name, {}).items():
+        st.session_state.setdefault(key, value)
+
+
+def remember_inputs(name: str, keys: list[str]) -> None:
+    """入力欄の値の控えを残す。"""
+    st.session_state[name] = {key: st.session_state[key] for key in keys if key in st.session_state}
 
 
 def set_dataset(dataset: Dataset) -> None:
@@ -296,6 +309,18 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   background: transparent !important; border: none !important; padding: 0 !important; min-height: 0 !important; box-shadow: none !important; }
 [data-testid="stMain"] [class*="st-key-text_link_"] [data-testid="stPageLink"] a * {
   color: var(--cs-navy) !important; text-decoration: underline; font-size: .95rem; }
+/* サンプル体験の進行と終わりの表示。状態は色だけでなく文字（完了・いまここ）でも示す */
+.cs-demo-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 4px 0 10px; font-size: .92rem; }
+.cs-demo-step { padding: 5px 12px; border-radius: var(--cs-pill); border: 1px solid var(--cs-line); color: var(--cs-sub); background: var(--cs-paper); }
+.cs-demo-step small { margin-left: 6px; font-size: .75rem; font-weight: 700; }
+.cs-demo-done { background: var(--cs-cream); color: var(--cs-navy); border-color: var(--cs-gold); }
+.cs-demo-now { background: var(--cs-navy); color: #fff; border-color: var(--cs-navy); font-weight: 700; }
+.cs-demo-arrow { color: var(--cs-sub); }
+.cs-demo-end { background: var(--cs-ai-panel-bg); border: 2px solid var(--cs-ai-panel-border); border-radius: var(--cs-radius-lg);
+  padding: 16px 20px; margin: 14px 0 10px; line-height: 1.8; color: var(--cs-ink); }
+.cs-demo-end-title { font-size: 1.15rem; font-weight: 700; color: var(--cs-navy); margin-bottom: 4px; }
+.cs-demo-end-note { font-size: .88rem; color: var(--cs-sub); margin-top: 4px; }
+.cs-action-overview { margin: 4px 0 8px 1.2rem; line-height: 1.9; color: var(--cs-ink); }
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }
 </style>
 """
@@ -446,7 +471,7 @@ def _link_cards(links) -> str:
     return f'<div class="cs-link-cards">{cards}</div>' if cards else ""
 
 
-def conclusion(assessment) -> None:
+def conclusion(assessment, first_label: str = "まずやること") -> None:
     """分析結果の結論（総合判定・まずやること・意識すること）を、結果のいちばん上に表示する。
 
     責任部門の名前などアップロードされたデータを含むため、すべてエスケープする。
@@ -460,7 +485,7 @@ def conclusion(assessment) -> None:
         f'<div class="cs-conclusion-head"><span class="cs-level cs-level-{escape(a.level)}">影響の広さ {escape(a.level)}</span>'
         f'<span class="cs-conclusion-headline">{escape(a.headline)}</span></div>'
         f'<div class="cs-conclusion-meaning">{escape(a.meaning)}</div>'
-        f'<div class="cs-conclusion-first"><b>まずやること</b>{escape(a.first_step)}</div>'
+        f'<div class="cs-conclusion-first"><b>{escape(first_label)}</b>{escape(a.first_step)}</div>'
         f'{caution}'
         f'<div class="cs-conclusion-label">意識すること</div><ul class="cs-conclusion-stance">{stance}</ul>'
         f'<div class="cs-conclusion-basis">{escape(a.basis)}</div>'
@@ -606,6 +631,33 @@ def no_data_actions(purpose: str) -> None:
         st.rerun()
     if c2.button("分析用データを準備する", key="no_data_prepare", icon=":material/upload_file:", width="stretch"):
         open_upload()
+
+
+def action_overview(actions) -> None:
+    """対応手順の要点（見出しだけ）。詳細は折りたたみで見せる。"""
+    items = "".join(f"<li>{escape(a.title)}</li>" for a in actions)
+    html(f'<ol class="cs-action-overview">{items}</ol>')
+
+
+DEMO_STEPS = ["変更を入力", "影響を確認", "結果を持ち帰る"]
+
+
+def demo_progress(done: int) -> None:
+    """サンプル体験の進行。done は完了したステップの数。色だけに頼らず、文字でも状態を示す。"""
+    parts = []
+    for n, label in enumerate(DEMO_STEPS, start=1):
+        state, mark = (("done", "完了") if n <= done else ("now", "いまここ") if n == done + 1 else ("todo", ""))
+        badge = f"<small>{mark}</small>" if mark else ""
+        parts.append(f'<span class="cs-demo-step cs-demo-{state}">{"①②③"[n - 1]} {label}{badge}</span>')
+    html(f'<div class="cs-demo-steps">{"<span class=cs-demo-arrow>→</span>".join(parts)}</div>')
+
+
+def demo_end_card(summary: str, saved: bool) -> None:
+    """サンプル体験の終わりの表示。体験の終わりと、実際の案件の確認・対応の完了を混同させない。"""
+    extra = "PDFを保存しました。" if saved else ""
+    html(f'<div class="cs-demo-end"><div class="cs-demo-end-title">サンプル体験はここまでです</div>'
+         f'<div>{escape(summary)}</div>'
+         f'<div class="cs-demo-end-note">{extra}架空の会社のデータによる体験です。実際の案件では、関係者への確認と対応が必要です。</div></div>')
 
 
 def ui_label(text: str) -> str:
