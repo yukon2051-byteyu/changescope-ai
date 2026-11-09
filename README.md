@@ -142,7 +142,7 @@ ACCESS_CODES = ["配るアクセスコード"]
 
 ```
 app.py                 ページの一覧（入口）
-pages/                 各画面。表示だけを書き、判定のロジックは changescope/ に置く
+views/                 各画面。表示だけを書き、判定のロジックは changescope/ に置く
 changescope/
   graph_engine.py      グラフの作成と幅優先探索（直接・間接、経路、確認状態、影響度）
   stakeholders.py ほか 関係者・見落としやすい影響・見落としチェック・次にやること・結論（AIなし）

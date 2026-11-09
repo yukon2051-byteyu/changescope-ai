@@ -62,11 +62,11 @@ def loaded_notice(where: str) -> None:
     c1, c2, c3 = st.columns(3)
     if c1.button("影響分析へ進む", type="primary", icon=":material/arrow_forward:", width="stretch",
                  key=f"go_analysis_{where}"):
-        st.switch_page("pages/analysis.py")
+        st.switch_page("views/analysis.py")
     if c2.button("変更案を比べる", icon=":material/compare_arrows:", width="stretch", key=f"go_compare_{where}"):
-        st.switch_page("pages/compare.py")
+        st.switch_page("views/compare.py")
     if c3.button("図で開いて確認する", icon=":material/account_tree:", width="stretch", key=f"go_diagram_{where}"):
-        st.switch_page("pages/diagram.py")
+        st.switch_page("views/diagram.py")
 
 
 st.title("データ管理")
@@ -77,8 +77,8 @@ note("<b>分析にはExcelファイルを使用します。</b>この画面の�
      f"{ui_label('図で入力する')} や {ui_label('文章・資料から作る')} で作ってExcelに保存したファイルも、ここで読み込みます。"
      "読み込んだデータは、「図で入力する」で開いて確認・修正できます。")
 c_link1, c_link2, _ = st.columns([1, 1, 2])
-c_link1.page_link("pages/diagram.py", label="図で入力する", icon=":material/account_tree:")
-c_link2.page_link("pages/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
+c_link1.page_link("views/diagram.py", label="図で入力する", icon=":material/account_tree:")
+c_link2.page_link("views/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
 
 # key を付けて、ほかの画面（ホーム・使い方）から「自社のデータを登録する」を選んだ状態で開けるようにする
 source = st.radio(
@@ -208,4 +208,4 @@ if dataset is not None:
             }),
         )
     if st.button("影響分析へ進む", type="primary", icon=":material/arrow_forward:", key="go_analysis_bottom"):
-        st.switch_page("pages/analysis.py")
+        st.switch_page("views/analysis.py")

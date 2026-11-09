@@ -125,7 +125,7 @@ with tabs[1]:
     # ホームの「サンプルで試す」と同じ動き：サンプルを読み込み、影響分析の画面を開く
     if st.button("サンプルで試す", type="primary", icon=":material/play_arrow:", key="guide_try_sample"):
         set_dataset(load_sample())
-        st.switch_page("pages/analysis.py")
+        st.switch_page("views/analysis.py")
 
 # ---------- 自社データを用意する ----------
 with tabs[2]:

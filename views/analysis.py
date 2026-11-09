@@ -162,7 +162,7 @@ else:
 st.write("変更対象：" + "、".join(label(t) for t in result.targets) + f"　／　{analyzed_depth}段先までたどった結果")
 if st.session_state.get("analysis_from") and st.button("変更案の比較に戻る", icon=":material/arrow_back:"):
     st.session_state.pop("analysis_from", None)
-    st.switch_page("pages/compare.py")
+    st.switch_page("views/compare.py")
 
 uncertain = [i for i in result.impacts if i.path_status != "confirmed"]
 stakeholders = find_stakeholders(dataset.graph, result)
@@ -232,7 +232,7 @@ def demo_finish() -> None:
                        icon=":material/picture_as_pdf:", width="stretch", on_click=mark_saved)
     if c2.button("別の変更案と比較する", key="demo_compare", icon=":material/compare_arrows:", width="stretch"):
         st.session_state.compare_request = {"text": analyzed_text, "targets": list(result.targets)}
-        st.switch_page("pages/compare.py")
+        st.switch_page("views/compare.py")
     opened = st.session_state.get("show_details", False)
     if c3.button("詳しい結果を閉じる" if opened else "詳しい結果を見る", key="demo_details",
                  icon=":material/expand_less:" if opened else ":material/expand_more:", width="stretch"):

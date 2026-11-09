@@ -364,11 +364,12 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-mini-start::before { width: 700px; height: 700px; background:
   radial-gradient(circle, rgba(185, 216, 75, .30) 0, rgba(237, 244, 214, .55) 95px, rgba(237, 244, 214, 0) 150px),
   radial-gradient(circle,
-    transparent 0 148px, rgba(185, 216, 75, .70) 148px 150.5px,
-    transparent 151px 196px, rgba(185, 216, 75, .48) 196px 198px,
-    transparent 198.5px 256px, rgba(185, 216, 75, .30) 256px 257.5px,
-    transparent 258px 330px, rgba(185, 216, 75, .16) 330px 331.5px, transparent 332px); }
-.cs-mini-start::after { width: 300px; height: 300px; border: 2px solid rgba(185, 216, 75, .55);
+    transparent 0 148px, rgba(156, 74, 72, .62) 148px 150px,
+    transparent 150.5px 196px, rgba(156, 74, 72, .42) 196px 197.5px,
+    transparent 198px 256px, rgba(156, 74, 72, .26) 256px 257.2px,
+    transparent 257.7px 330px, rgba(156, 74, 72, .14) 330px 331.2px, transparent 331.7px); }
+/* 波紋の線は、主見出しの「影響」と同じレンガ赤（#9C4A48）。外へ行くほど薄くする */
+.cs-mini-start::after { width: 300px; height: 300px; border: 1.5px solid rgba(156, 74, 72, .5);
   animation: cs-ripple 4.5s ease-out infinite; }
 @keyframes cs-ripple {
   0% { width: 290px; height: 290px; opacity: .9; }
@@ -400,6 +401,9 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .st-key-home_sample button { min-height: 2.9rem; box-shadow: none !important; border-color: var(--cs-navy) !important; }
 .st-key-home_sample button p { font-size: 1.08rem !important; font-weight: 700 !important; }
 .st-key-home_compare button { min-height: 2.9rem; }
+/* トップのボタンの下の説明は、ボタンと左右の中央をそろえる */
+[data-testid="stHorizontalBlock"]:has(.st-key-home_sample) [data-testid="stCaptionContainer"],
+[data-testid="stHorizontalBlock"]:has(.st-key-home_sample) .stCaption { text-align: center; }
 [class*="st-key-text_link_home_guide"]:not([class*="_end"]) { padding-top: .9rem; }
 .st-key-home_prepare_upload button { border: 1.5px solid var(--cs-navy) !important; font-weight: 700; }
 [class*="st-key-text_link_"] { gap: 0 !important; }
@@ -439,6 +443,8 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   border-radius: 50%; background: #B9D84B; margin-right: .36em; vertical-align: .035em; }
 /* サイドバー上部のロゴは、押すとトップに戻る（押せることが分かるよう指の形にする） */
 [data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stHeaderLogo"] { cursor: pointer; }
+/* 以前の住所 /home の中継画面は、メニューに出さない */
+[data-testid="stSidebarNav"] li:has(a[href$="/home"]) { display: none !important; }
 .cs-reference { margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--cs-line); }
 .cs-subsection { font-size: 1.08rem; font-weight: 700; color: var(--cs-navy); margin: 22px 0 6px;
   padding-left: 10px; border-left: 3px solid var(--cs-gold); }
@@ -750,7 +756,7 @@ def open_upload(scroll: bool = False) -> None:
     """データ管理を「自社のデータを登録する」を選んだ状態で開く。scroll なら「③ アップロード」まで移動する。"""
     st.session_state.data_source = "own"
     st.session_state.data_scroll_upload = scroll
-    st.switch_page("pages/data.py")
+    st.switch_page("views/data.py")
 
 
 def data_preparation(key: str) -> None:
@@ -772,13 +778,13 @@ def data_preparation(key: str) -> None:
             if st.button(label, key=f"{key}_{way}", icon=f":material/{icon}:", width="stretch"):
                 if way == "excel":
                     open_upload()
-                st.switch_page("pages/diagram.py" if way == "diagram" else "pages/extract.py")
+                st.switch_page("views/diagram.py" if way == "diagram" else "views/extract.py")
     html('<div class="cs-prep-arrow"><span class="cs-prep-mark">↓</span>どの方法でも最終的にExcelファイルを作成</div>')
     with st.container(border=True, key=f"excel_goal_{key}"):
         if st.button("Excelを読み込んで分析開始", key=f"{key}_upload", type="primary", icon=":material/upload_file:",
                      width="stretch"):
             open_upload(scroll=True)
-    st.page_link("pages/compare.py", label="読み込み後は変更案も比べられます",
+    st.page_link("views/compare.py", label="読み込み後は変更案も比べられます",
                  icon=":material/compare_arrows:")
 
 
@@ -795,7 +801,7 @@ def data_entry(key: str) -> None:
         if column.button(label, key=f"{key}_{way}", icon=f":material/{icon}:", help=help_text, width="stretch"):
             if way == "excel":
                 open_upload()
-            st.switch_page("pages/diagram.py" if way == "diagram" else "pages/extract.py")
+            st.switch_page("views/diagram.py" if way == "diagram" else "views/extract.py")
     if st.button("Excelをアップロードして分析開始", key=f"{key}_upload", icon=":material/upload_file:", width="stretch"):
         open_upload(scroll=True)
 

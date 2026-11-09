@@ -304,10 +304,10 @@ if not editing:
         else:
             st.markdown("**サンプルや自分のExcelを図で見る**")
             st.caption("先に「データ管理」でサンプルデータかExcelを読み込むと、ここから図で開けます。")
-            st.page_link("pages/data.py", label="データ管理へ", icon=":material/folder_open:")
+            st.page_link("views/data.py", label="データ管理へ", icon=":material/folder_open:")
     st.caption("業務の流れを文章で書いて、AIに図のたたき台を作ってもらうこともできます（アクセスコード不要）。"
                "作ったたたき台は、この画面でマウスで直せます。")
-    st.page_link("pages/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
+    st.page_link("views/extract.py", label="文章・資料から作る", icon=":material/auto_awesome:")
     st.stop()
 
 elements: list[dict] = st.session_state.dg_elements

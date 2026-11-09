@@ -17,18 +17,18 @@ def run_page(name: str, dataset=None) -> AppTest:
     if dataset is not None:
         at.session_state["dataset"] = dataset
     at.run()
-    return at.switch_page(f"pages/{name}").run()
+    return at.switch_page(f"views/{name}").run()
 
 
 def test_home_page():
-    at = run_page("home.py")
+    at = run_page("top.py")
     assert not at.exception
     assert any("ChangeScope <span>AI</span>" in m.value and "変更影響分析" in m.value for m in at.markdown)
 
 
 def test_home_sample_button_opens_analysis_with_sample():
     # ホームの「サンプルで試す」1回で、サンプルが読み込まれ分析画面に移る
-    at = run_page("home.py")
+    at = run_page("top.py")
     next(b for b in at.button if b.key == "home_sample").click().run()
     assert not at.exception
     assert at.session_state["dataset"].source == "sample"
@@ -149,7 +149,7 @@ def analyze_scenario_a(secrets=None) -> AppTest:
     for key, value in (secrets or {}).items():
         at.secrets[key] = value
     at.run()
-    at = at.switch_page("pages/analysis.py").run()
+    at = at.switch_page("views/analysis.py").run()
     at.button(key="scenario_A").click().run()
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     return at
@@ -210,7 +210,7 @@ def test_diagram_page_tutorial_creates_data_for_analysis():
     assert any("やってみましょう" in i.value for i in at.info)
 
     # 作ったデータで、そのまま影響分析ができる
-    at.switch_page("pages/analysis.py").run()
+    at.switch_page("views/analysis.py").run()
     at.multiselect[0].set_value([dataset.elements.iloc[0]["element_id"]]).run()
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     assert not at.exception
@@ -292,7 +292,7 @@ def test_extract_page_wrong_access_code_does_not_call_ai():
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=30)
     at.secrets["ACCESS_CODES"] = ["right-code"]
     at.run()
-    at = at.switch_page("pages/extract.py").run()
+    at = at.switch_page("views/extract.py").run()
     at.radio(key="ex_mode").set_value("document").run()
     at.text_area(key="ex_document").set_value("勤怠管理システムは勤怠実績データを出力する。").run()
     at.text_input(key="ex_access_code").set_value("wrong-code").run()
@@ -383,7 +383,7 @@ def test_guide_leads_to_own_data_registration():
 
 
 def test_home_shows_three_equal_ways_and_entry_points():
-    at = run_page("home.py")
+    at = run_page("top.py")
     assert not at.exception
     labels = {b.key: b for b in at.button}
     ways = [labels[f"home_prepare_{w}"] for w in ("excel", "diagram", "text")]
@@ -398,7 +398,7 @@ def test_home_shows_three_equal_ways_and_entry_points():
 
 
 def test_home_compare_opens_with_sample_when_no_data():
-    at = run_page("home.py")
+    at = run_page("top.py")
     at.button(key="home_compare").click().run()
     assert not at.exception
     assert any(t.value == "変更案を比べる" for t in at.title)
@@ -409,13 +409,13 @@ def test_home_compare_keeps_loaded_data():
     from changescope.datasets import load_from_records, to_records
 
     own = load_from_records(*to_records(load_sample())).dataset
-    at = run_page("home.py", own)
+    at = run_page("top.py", own)
     at.button(key="home_compare").click().run()
     assert at.session_state["dataset"].source == "diagram"  # 読み込み済みのデータは置き換えない
 
 
 def test_upload_step_opens_own_data():
-    at = run_page("home.py")
+    at = run_page("top.py")
     at.button(key="home_prepare_upload").click().run()
     assert not at.exception
     assert any(t.value == "データ管理" for t in at.title)
@@ -458,17 +458,18 @@ def own_dataset():
 
 
 def demo_text(at) -> str:
-    return " ".join(m.value for m in at.markdown)
+    # 全画面共通のスタイル（<style>…）は画面の文字ではないので除く
+    return " ".join(m.value for m in at.markdown if not m.value.lstrip().startswith("<style>"))
 
 
 def test_demo_shows_progress_and_end_card_from_results():
-    at = run_page("home.py")
+    at = run_page("top.py")
     at.button(key="home_sample").click().run()  # サンプルで試す：入力例が入った状態で始まる
     assert not at.exception
     assert "サンプル体験" in demo_text(at) and "いまここ" in demo_text(at)
     assert at.text_area(key="change_text").value  # すぐに分析できる
     assert not any(c.label == "入力内容を変更する" for c in at.expander)
-    at.switch_page("pages/analysis.py")  # テストの道具では、移動先のページを指定し直す必要がある
+    at.switch_page("views/analysis.py")  # テストの道具では、移動先のページを指定し直す必要がある
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     assert not at.exception
     text = demo_text(at)
@@ -519,8 +520,8 @@ def test_details_button_opens_details():
 def test_analysis_inputs_survive_page_moves():
     at = analyze_scenario_a()
     text = at.text_area(key="change_text").value
-    at.switch_page("pages/home.py").run()
-    at.switch_page("pages/analysis.py").run()
+    at.switch_page("views/top.py").run()
+    at.switch_page("views/analysis.py").run()
     assert not at.exception
     assert at.text_area(key="change_text").value == text
     assert at.multiselect(key="targets").value == ["SYS-ATT"]
@@ -577,11 +578,11 @@ def test_detail_analysis_inherits_option_and_compare_is_kept():
     assert at.multiselect(key="targets").value == ["PRC-ATT"]
     assert "手順" in at.text_area(key="change_text").value
     assert {m.label: m.value for m in at.metric}["影響先"] == "4 件"  # 再入力なしで分析される
-    at.switch_page("pages/analysis.py").run()
+    at.switch_page("views/analysis.py").run()
     next(b for b in at.button if b.label == "変更案の比較に戻る").click().run()
     assert not at.exception
     assert any(t.value == "変更案を比べる" for t in at.title)
-    at.switch_page("pages/compare.py").run()
+    at.switch_page("views/compare.py").run()
     assert at.text_input(key="cp_goal").value == "勤怠締め作業の負担を減らす"  # 条件と結果が残る
     assert any("判断を分けるポイント" in m.value for m in at.markdown)
     assert not at.warning

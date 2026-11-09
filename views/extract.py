@@ -300,4 +300,4 @@ if st.button("登録して図で直す", type="primary", icon=":material/account
         st.session_state.toast_after_open = (f"要素 {len(new_elements) - len(elements)}件・"
                                              f"つながり {len(new_link_records) - len(links)}本を登録しました。")
         reset_candidates()
-        st.switch_page("pages/diagram.py")
+        st.switch_page("views/diagram.py")

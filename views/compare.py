@@ -240,7 +240,7 @@ def open_analysis(option_result, option_title: str) -> None:
     """この案の条件を引き継いで、影響分析を開く（再入力は不要。比較の条件と結果は残る）。"""
     st.session_state.analysis_request = {"text": option_result.option.text, "targets": list(option_result.option.targets),
                                          "depth": result.max_depth, "title": option_title}
-    st.switch_page("pages/analysis.py")
+    st.switch_page("views/analysis.py")
 
 
 section("", "詳細分析と保存")

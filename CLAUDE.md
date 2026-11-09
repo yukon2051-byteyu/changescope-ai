@@ -33,14 +33,14 @@
 - **1・2 は完了（2026-11-02）**：`changescope/oversight.py`（指示文・回答の形・確かめる処理）、`changescope/access.py`（アクセスコード。secrets の `ACCESS_CODES`）、影響分析画面の「AIで確認漏れを調べる」（サンプル表示＋アクセスコードでAI分析）、`data/sample/ai_results/`（4シナリオの事前生成サンプル）。テスト168件。
   - 知見：指示文で「必ず2件以上」と書いてもAIが0件で返すことがあった → 回答の形（JSONスキーマ）の `minItems: 1` で強制（APIが使える値は0か1だけ）。文章中のD番号はプログラムで「A → B」に置き換える。
   - 限界：「登録情報にもとづく」は番号が実在するかの照合で、番号が指摘の内容に合っているかまでは判定しない。
-  - 3 のうち「図で入力する」は**本体に組み込み済み（2026-11-03）**：`pages/diagram.py`（画面）と `changescope/diagram.py`（計算）。チュートリアル（要素1つ → もう1つ → 線でつなぐ）、箱のクリックで見る要素を切り替え、たどった順、データを線の上にまとめる表示、追加の画面にヒアリングの質問の例、Excelに保存。図での変更は `datasets.load_from_records` で Excel と同じ検証を通して分析用のデータにする。根拠なしで線を引いたら「未記入（図で入力）」。README も書き直し済み。テスト195件。
+  - 3 のうち「図で入力する」は**本体に組み込み済み（2026-11-03）**：`views/diagram.py`（画面）と `changescope/diagram.py`（計算）。チュートリアル（要素1つ → もう1つ → 線でつなぐ）、箱のクリックで見る要素を切り替え、たどった順、データを線の上にまとめる表示、追加の画面にヒアリングの質問の例、Excelに保存。図での変更は `datasets.load_from_records` で Excel と同じ検証を通して分析用のデータにする。根拠なしで線を引いたら「未記入（図で入力）」。README も書き直し済み。テスト195件。
   - 次は 3 の残り「資料からの依存関係の抽出（AIが候補、人が確認）」、その後 4（変更案A・Bの比較、PDF）、Phase 4（公開）。
-  - **「文章・資料から作る」は完了（2026-11-03）**：`pages/extract.py`（画面）と `changescope/extraction.py`（計算）。
+  - **「文章・資料から作る」は完了（2026-11-03）**：`views/extract.py`（画面）と `changescope/extraction.py`（計算）。
     - 文章で説明する：**アクセスコード不要**（利用者の判断）・1,000文字まで・専用の月の予算10ドル（`free_monthly_budget_usd`）・画面を開いている間（セッション）ごとに3回＋全員で1日20回（`free_daily_limit`）。**公開先では `st.context.ip_address` も X-Forwarded-For も中継サーバーの社内向けの番号で、利用者のIPは取れない（2026-11-03 に診断して確認）**ため、IPでは数えない。文章から確定できないつながりも「AIの推測」（`inferred`）として出し、**「未確認」**で登録。
     - 資料を貼り付ける：アクセスコードが必要・8,000文字まで。資料に書いてあるつながりだけを「推定」で出す（推測は出さない）。
     - 回数の上限は**機能ごとに1人月3回**（月150回は全機能の合計）。根拠の文が本当に書いてあるかをPythonで照合し、登録済み・逆向きが登録済みに印を付ける。選んだつながりを図のたたき台で表示し、「登録して図で直す」で「図で入力する」を、登録した要素を真ん中にして開く。
     - 実測：例文63文字で約8円・19秒、資料946文字で約21円・64秒（Opus 5.5、試算）。サンプル：`data/sample/documents/`（架空の資料）と `data/sample/ai_results/extraction_kintai.json`。
-  - **4 も完了（2026-11-03）**：「変更案を比べる」（`pages/compare.py`・`changescope/compare.py`。AIなし。6観点＋Aだけ・Bだけ・両方。関係する要素は「手を入れる要素＋影響を受ける要素」で数える。どちらが良いかは決めない。入力例は `data/sample/option_pairs.csv`）と、PDFレポート（`changescope/report.py`。fpdf2＋BIZ UDPゴシックを `assets/fonts` に同梱。ボタンを押したときだけ作る）。AIによる比較は利用者と相談のうえ入れていない。
+  - **4 も完了（2026-11-03）**：「変更案を比べる」（`views/compare.py`・`changescope/compare.py`。AIなし。6観点＋Aだけ・Bだけ・両方。関係する要素は「手を入れる要素＋影響を受ける要素」で数える。どちらが良いかは決めない。入力例は `data/sample/option_pairs.csv`）と、PDFレポート（`changescope/report.py`。fpdf2＋BIZ UDPゴシックを `assets/fonts` に同梱。ボタンを押したときだけ作る）。AIによる比較は利用者と相談のうえ入れていない。
   - テスト228件。**3つの柱はすべてそろった。** 残りは Phase 4（公開）と、最後にデザインの見直し。
 - **公開先を Hugging Face Spaces に移した（2026-11-04）**：https://yukon2051-changescope-ai.hf.space/ （Space：yukon2051/changescope-ai、Docker 方式、CPU basic・無料。48時間アクセスがないと休止。利用者は PRO プラン）。Streamlit Community Cloud（12時間で休止）は旧版。`Dockerfile` と README 先頭の設定で動く。秘密情報は Space の Secrets（環境変数）。**GitHub とは自動でつながっていない**：コードを直したら GitHub への push とは別に、`huggingface_hub` の `upload_folder`（`git ls-files` の一覧だけを送る）で Space へ送る（フォントなどのバイナリは普通の git push では送れないため）。このPCは `hf auth login` 済み。
 - **最初の公開（2026-11-03）**：https://changescope-ai.streamlit.app/ （GitHub：yukon2051-byteyu/changescope-ai、MITライセンス、Python 3.12）。
@@ -69,13 +69,13 @@
 ## 技術構成
 - Python 3.12（`.venv`。PC標準の3.15はライブラリ未対応の恐れがあるため使わない）、Streamlit、NetworkX、pandas、openpyxl、pytest。
 - 起動：`.\.venv\Scripts\Activate.ps1` → `streamlit run app.py`
-- **`changescope/` の部品を変えたら、アプリを起動し直す。** Streamlit は `pages/` の変更は自動で読み直すが、`changescope/` の部品は起動したときのものを使い続けるため、新しく足した関数が「見つからない」（ImportError）になる（2026-11-03 に発生）。
+- **`changescope/` の部品を変えたら、アプリを起動し直す。** Streamlit は `views/` の変更は自動で読み直すが、`changescope/` の部品は起動したときのものを使い続けるため、新しく足した関数が「見つからない」（ImportError）になる（2026-11-03 に発生）。
 - テスト：`.venv/Scripts/python.exe -m pytest -q`（Git Bash では `PYTHONUTF8=1` を付けると日本語が化けない）
 
 | ファイル | 役割 |
 |---|---|
 | `app.py` | ページ一覧（ホーム／使い方・用語について／データ管理／影響分析） |
-| `pages/` | 各画面。表示だけを書き、判定ロジックは `changescope/` に置く |
+| `views/` | 各画面。表示だけを書き、判定ロジックは `changescope/` に置く |
 | `changescope/models.py` | 区分値（要素8種・関係8種・向き・確認状態）、列、Excelの日本語見出し |
 | `changescope/csv_validator.py` | 入力チェック。形式の誤り・名前の重複・存在しない参照先はエラー、重複した依存関係は根拠を残して統合 |
 | `changescope/excel_template.py` | Excelテンプレートの作成・読み込み（名前で選ぶプルダウン、選択肢の追加） |
@@ -104,11 +104,12 @@
 - 「次にやること」と「結論」は登録データからルールで作る。具体的な相手（確認先）と事項まで示す。
 
 ## 実装上の注意
+- **画面のフォルダは `views/`（`pages/` にしない）**。`pages/` という名前だと Streamlit が古い方式のページ一覧を自動で作り、`/home` などの住所で開くと app.py を通らずに画面ファイルを直接実行する（CSS が効かずロゴが巨大になり、メニューが英語のファイル名になる。2026-11-09 公開版で発生）。
 - **アップロードされたデータをHTMLに埋め込むときは必ず `html.escape`**（`ui.data_table` / `action_steps` / `conclusion` / `findings_list` はエスケープ済み。静的な文言だけの部品はエスケープしていない）。
 - 長い文章の表は `st.dataframe` ではなく `ui.data_table`（セル内で折り返す）。
 - テンプレートのExcelは `st.cache_data` しているため、関係ファイルの内容から作る目印（`template_version()`）を引数に渡してキャッシュを作り直す。
 - 表示名は `models.element_type_label` / `relation_type_label` を使う（利用者が追加した選択肢でもエラーにしない）。
-- 判定ロジックを変えたら、使い方ページ（`pages/guide.py`）とExcelの使い方シートの説明も合わせて直す。
+- 判定ロジックを変えたら、使い方ページ（`views/guide.py`）とExcelの使い方シートの説明も合わせて直す。
 
 ## デザイン方針
 - 参考：https://www.proximo.co.jp/works/ 、https://lloon.jp/portfolio/ 、https://leapy.jp/works/job/consulting_investigation/
