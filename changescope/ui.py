@@ -311,13 +311,14 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* ホーム：短い見出し・3つの要点・文字だけのリンク。サンプルのボタンをいちばん目立たせる */
 .cs-home-head { font-size: 1.12rem; font-weight: 700; color: var(--cs-ink); margin: 6px 0 0; }
 /* ホームのヒーロー：左に説明と分かること、右に小さな関係図（ヒーローの高さを増やさない） */
-/* 上の内側余白は 20px。左のロゴ・製品名と右の図の見出しは、同じ上端の線から始める（外枠の上端はメニューの先頭の行とそろえたまま） */
+/* 上の内側余白は 20px。ロゴと製品名を1.3倍にした分は、ヒーローを高くして収める。
+   左のロゴ・製品名と右の図の見出しは、同じ上端の線から始める（外枠の上端はメニューの先頭の行とそろえたまま） */
 .cs-home-hero { display: flex; gap: 28px; align-items: flex-start; padding: 20px 32px 16px; margin-bottom: 12px; }
 .cs-home-hero-main { flex: 1 1 auto; position: relative; z-index: 2; }  /* 右の図の波紋より手前に描く */
-/* 製品名：ロゴ（48px）＋サンセリフ。読み込めないときは OS のサンセリフに切り替わる */
+/* 製品名：ロゴ（62px）＋サンセリフ（57px）。2026-11-09 に1.3倍。読み込めないときは OS のサンセリフに切り替わる */
 .cs-brand { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 14px; }
-.cs-brand img { width: 48px; height: 48px; flex: none; }  /* 製品名（44px）と縦の中央をそろえる */
-.cs-brand-name { font-family: 'Manrope', 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 2.75rem;
+.cs-brand img { width: 62px; height: 62px; flex: none; }  /* 製品名（57px）と縦の中央をそろえる */
+.cs-brand-name { font-family: 'Manrope', 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 3.575rem;
   font-weight: 700; line-height: 1.05; letter-spacing: -.015em; color: var(--cs-ink); }
 .cs-brand-name span { color: #344C25; }
 .cs-brand-tag { font-size: .85rem; font-weight: 600; color: var(--cs-sub); border-left: 1px solid var(--cs-line);
