@@ -5,10 +5,12 @@
 
 import streamlit as st
 
-from changescope.ui import LOGO_PATH, apply_global_style
+from changescope.ui import LOGO_PATH, WORDMARK_PATH, apply_global_style
 
 st.set_page_config(page_title="ChangeScope AI", page_icon=str(LOGO_PATH), layout="wide")
 apply_global_style()
+# サイドバー上部の小さなブランド表示。サイドバーを畳んだときは、マークだけを左上に出す
+st.logo(str(WORDMARK_PATH), icon_image=str(LOGO_PATH), size="large")
 
 pages = [
     st.Page("pages/home.py", title="ホーム", icon=":material/home:", default=True),

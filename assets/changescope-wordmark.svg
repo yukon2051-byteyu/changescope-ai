@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" role="img" aria-labelledby="title">
+  <title id="title">ChangeScope AI</title>
+  <g transform="translate(2 2) scale(0.5625)">
+    <rect x="2" y="2" width="60" height="60" rx="15" fill="#344C25"/>
+    <path d="M18 32h12m0 0 14-12M30 32l14 12" fill="none" stroke="#EDF4D6" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="18" cy="32" r="6" fill="#B9D84B"/>
+    <circle cx="44" cy="20" r="5" fill="#EDF4D6"/>
+    <circle cx="44" cy="44" r="5" fill="#EDF4D6"/>
+  </g>
+  <text x="46" y="27" font-family="Manrope, Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="19" font-weight="700" fill="#20271C" letter-spacing="-0.2">ChangeScope <tspan fill="#344C25">AI</tspan></text>
+</svg>

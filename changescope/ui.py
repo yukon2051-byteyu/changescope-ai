@@ -311,11 +311,12 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* ホーム：短い見出し・3つの要点・文字だけのリンク。サンプルのボタンをいちばん目立たせる */
 .cs-home-head { font-size: 1.12rem; font-weight: 700; color: var(--cs-ink); margin: 6px 0 0; }
 /* ホームのヒーロー：左に説明と分かること、右に小さな関係図（ヒーローの高さを増やさない） */
-.cs-home-hero { display: flex; gap: 28px; align-items: center; padding: 18px 32px 16px; margin-bottom: 12px; }
+/* 上の内側余白は 8px（ロゴと製品名を上寄りに見せる。外枠の上端はメニューの先頭の行とそろえたまま） */
+.cs-home-hero { display: flex; gap: 28px; align-items: center; padding: 8px 32px 16px; margin-bottom: 12px; }
 .cs-home-hero-main { flex: 1 1 auto; position: relative; z-index: 1; }
-/* 製品名：ロゴ（40px）＋サンセリフ。読み込めないときは OS のサンセリフに切り替わる */
+/* 製品名：ロゴ（48px）＋サンセリフ。読み込めないときは OS のサンセリフに切り替わる */
 .cs-brand { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 14px; }
-.cs-brand img { width: 40px; height: 40px; flex: none; }
+.cs-brand img { width: 48px; height: 48px; flex: none; }  /* 製品名（44px）と縦の中央をそろえる */
 .cs-brand-name { font-family: 'Manrope', 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 2.75rem;
   font-weight: 700; line-height: 1.05; letter-spacing: -.015em; color: var(--cs-ink); }
 .cs-brand-name span { color: #344C25; }
@@ -338,7 +339,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   .cs-home-hero { flex-direction: column; align-items: stretch; padding: 16px 18px; }
   .cs-brand-name { font-size: 1.75rem; }
   .cs-brand-tag { flex-basis: 100%; border-left: none; padding-left: 0; margin-left: 0; }
-  .cs-brand img { width: 34px; height: 34px; }
+  .cs-brand img { width: 38px; height: 38px; }
   .cs-mini-map { flex: none; }
 }
 .cs-home-lead { font-size: .95rem; color: var(--cs-sub); margin-bottom: 8px; }
@@ -376,6 +377,13 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-option-label { font-size: .8rem; font-weight: 700; color: var(--cs-sub); margin-top: 10px; }
 .cs-option-line { font-size: .93rem; line-height: 1.7; color: var(--cs-ink); }
 .cs-action-overview { margin: 4px 0 8px 1.2rem; line-height: 1.9; color: var(--cs-ink); }
+.cs-page-hero { padding: 14px 32px 16px; }
+.cs-page-title { font-family: 'Manrope', 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, var(--cs-heading-font), sans-serif;
+  font-size: 2.25rem; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; color: var(--cs-ink); margin-bottom: 6px;
+  position: relative; z-index: 1; }
+.cs-page-hero .cs-hero-sub { position: relative; z-index: 1; }
+/* サイドバー上部の小さなブランド表示（44px のヘッダーの中に置き、メニューの位置は動かさない） */
+[data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stSidebarHeader"] img { height: 28px !important; max-width: 170px; }
 .cs-reference { margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--cs-line); }
 .cs-subsection { font-size: 1.08rem; font-weight: 700; color: var(--cs-navy); margin: 22px 0 6px;
   padding-left: 10px; border-left: 3px solid var(--cs-gold); }
@@ -440,8 +448,14 @@ def subsection(title: str) -> None:
     html(f'<div class="cs-subsection">{title}</div>')
 
 
+def page_hero(title: str, sub: str) -> None:
+    """トップ以外のページの見出しカード。製品名と同じ系統のサンセリフで、製品名より一段小さくする。"""
+    html(f'<div class="cs-hero cs-page-hero"><div class="cs-page-title">{title}</div><div class="cs-hero-sub">{sub}</div></div>')
+
+
 # 製品のマーク（トップの製品名の左とファビコンで使う）。画面には文字列として埋め込む
 LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "changescope-logo.svg"
+WORDMARK_PATH = LOGO_PATH.with_name("changescope-wordmark.svg")  # サイドバー上部の、マーク＋製品名
 _LOGO_URI = "data:image/svg+xml;base64," + base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
 
 

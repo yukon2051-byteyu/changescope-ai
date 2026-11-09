@@ -9,12 +9,10 @@ import streamlit as st
 from changescope import models
 
 from changescope.datasets import load_sample
-from changescope.ui import cards, data_preparation, flow, hero, note, section, set_dataset, steps, table, ui_label
+from changescope.ui import cards, data_preparation, flow, note, page_hero, section, set_dataset, steps, table, ui_label
 
-hero(
-    "GUIDE",
-    "How to use",
-    "使い方・用語について",
+page_hero(
+    "使い方・用語",
     "はじめての方は「はじめに」と「サンプルで試す」の2つだけ読めば使い始められます。"
     "ほかのタブは、必要になったときに読んでください。",
 )
