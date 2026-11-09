@@ -458,7 +458,7 @@ def home_hero() -> None:
         '<div class="cs-brand-name">ChangeScope <span>AI</span></div>'
         '<div class="cs-brand-tag">変更影響分析</div></div>'
         '<div class="cs-hero-lead">その変更は、組織のどこに影響するのか。</div>'
-        '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、変更の影響を'
+        '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、<br>変更の影響を'
         '<b>根拠</b>とともに示します。</div>'
         f'<div class="cs-home-facts"><b>分かること</b>{facts}</div></div>'
         f'<div class="cs-mini-map" aria-label="架空サンプルの影響の経路">{chain}'
