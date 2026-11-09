@@ -218,7 +218,8 @@ def mark_saved() -> None:
     st.session_state.demo_pdf_saved = True
 
 
-if demo:
+def demo_finish() -> None:
+    """サンプル体験の終わり（完了カードと次の操作）。ページの一番下に置く（詳しい結果を開いたときは、その下）。"""
     subject = "、".join(dataset.graph.nodes[t]["name"] for t in result.targets)
     found = f"事実確認が必要な{len(links)}本のつながり" if links else "登録された関係のうち未確認が0本であること"
     demo_end_card(f"{subject}の変更が、{len(departments)}部門・{len(result.impacts)}件に影響する可能性と、{found}を確認できました。",
@@ -237,8 +238,12 @@ if demo:
                  icon=":material/expand_less:" if opened else ":material/expand_more:", width="stretch"):
         st.session_state.show_details = not opened
         st.rerun()
-    # サンプル体験は、完了カードと次の操作で終える。詳しい内容は「詳しい結果を見る」を押したときだけ出す
-    if not opened:
+
+
+if demo:
+    # サンプル体験は、完了カードと次の操作で終える。詳しい内容は「詳しい結果を見る」を押したときだけ、カードの上に出す
+    if not st.session_state.get("show_details", False):
+        demo_finish()
         st.stop()
     reference_heading("参考：サンプルの分析結果を詳しく見る")
     subsection("実務での対応例")
@@ -534,3 +539,7 @@ with details:
                 "確認状態": [STATUS_LABELS[s.status] for s in chosen.other_links],
                 "根拠": [s.evidence for s in chosen.other_links],
             }))
+
+# サンプル体験で詳しい結果を開いているときも、完了カードと次の操作はページの一番下に置く
+if demo:
+    demo_finish()

@@ -82,8 +82,15 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
 /* 上余白（全ページ共通）：ヘッダーとサイドバーの開閉ボタンの領域を 44px にし、ボタンの下端（36px）から 12px 下の
    48px から、メニューの先頭の行と本文を始める（2026-11-09 に 60px → 48px）。ページごとの余白は持たない（すべてここで決める） */
-[data-testid="stHeader"], [data-testid="stSidebarHeader"] { height: 2.75rem !important; min-height: 2.75rem !important; }
-[data-testid="stSidebarHeader"] { margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+[data-testid="stHeader"] { height: 2.75rem !important; min-height: 2.75rem !important; }
+/* サイドバー上部のロゴ（と開閉ボタン）は、本文の先頭の上端にそろえる：
+   トップ・使い方はヒーローの枠（24px）、見出し（h1）のあるページは見出しの文字の上端（約32px）。
+   ヘッダーの高さは全ページ 72px で固定し、メニューの位置はページによって変えない */
+[data-testid="stSidebarHeader"] { height: 72px !important; min-height: 72px !important; align-items: flex-start !important;
+  margin-bottom: 0 !important; padding-top: 20px !important; padding-bottom: 0 !important; }
+.stApp:has([data-testid="stMain"] h1) [data-testid="stSidebarHeader"] { padding-top: 27px !important; }
+@media (max-width: 640px) { [data-testid="stSidebarHeader"] { height: 2.75rem !important; min-height: 2.75rem !important;
+  align-items: center !important; padding-top: 0 !important; } }
 /* 本文の上端は 24px（2026-11-09、利用者の判断でヒーロー・見出しだけを上げ、メニューの先頭の行は 48px のまま）。
    本文の先頭には全ページ共通の見えない部品（スタイルの読み込みとスクリプト。高さ0）が2つあり、
    その後ろの間隔（16px ずつ）を打ち消して、上余白をここの値だけで決める。
