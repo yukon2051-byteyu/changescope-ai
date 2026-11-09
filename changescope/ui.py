@@ -328,13 +328,24 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-home-facts b { font-size: .85rem; color: var(--cs-sub); margin-right: 2px; }
 .cs-home-facts span { background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-radius: var(--cs-pill);
   padding: 4px 12px; font-size: .9rem; font-weight: 600; color: var(--cs-ink); }
-.cs-mini-map { flex: 0 0 210px; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
-.cs-mini-node { width: 100%; text-align: center; background: #fff; border: 1px solid var(--cs-line); border-radius: 8px;
-  padding: 6px 8px; font-size: .85rem; font-weight: 600; color: var(--cs-ink); }
-.cs-mini-node small { margin-left: 6px; font-size: .72rem; font-weight: 700; }
-.cs-mini-start { background: var(--cs-gold); border-color: var(--cs-gold); color: var(--cs-ink); }
-.cs-mini-line { width: 1px; height: 14px; background: var(--cs-sub); }
-.cs-mini-caption { margin-top: 6px; font-size: .75rem; color: var(--cs-sub); }
+/* 右の図：影響が伝わる経路の例（補足の位置づけ。左のコピーより目立たせない）。
+   カード（役割｜名前）と、下向きの矢印＋伝わる理由を交互に並べる */
+.cs-mini-map { flex: 0 0 262px; position: relative; z-index: 1; display: flex; flex-direction: column; }
+.cs-mini-title { font-size: .78rem; font-weight: 700; color: var(--cs-navy); margin-bottom: 4px; }
+.cs-mini-node { display: flex; align-items: baseline; gap: 8px; background: #fff; border: 1px solid var(--cs-line);
+  border-radius: 8px; padding: 4px 10px; color: var(--cs-ink); }
+.cs-mini-node small { flex: 0 0 4.2em; font-size: .7rem; font-weight: 600; color: var(--cs-sub); }
+.cs-mini-node b { font-size: .86rem; font-weight: 700; }
+.cs-mini-start { background: var(--cs-gold); border-color: var(--cs-gold); }
+.cs-mini-start small { color: var(--cs-navy); }
+.cs-mini-arrow { display: flex; align-items: center; gap: 10px; height: 22px; padding-left: 22px; }
+.cs-mini-arrow i { position: relative; flex: none; width: 2px; height: 100%; background: var(--cs-navy); }
+.cs-mini-arrow i::after { content: ""; position: absolute; left: -4px; bottom: -1px; border: 5px solid transparent;
+  border-top: 6px solid var(--cs-navy); border-bottom: 0; }
+.cs-mini-arrow span { font-size: .74rem; font-weight: 600; color: var(--cs-navy); }
+.cs-mini-arrow em { font-style: normal; font-size: .66rem; font-weight: 700; color: #9A6A00; background: #FFF8E6;
+  border: 1px solid #F0D9A0; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
+.cs-mini-caption { margin-top: 2px; font-size: .7rem; color: var(--cs-sub); text-align: right; }
 @media (max-width: 640px) {
   .cs-home-hero { flex-direction: column; align-items: stretch; padding: 16px 18px; }
   .cs-brand-name { font-size: 1.75rem; }
@@ -347,7 +358,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 8px 0 14px; }
 .cs-facts div { background: var(--cs-cream); border-left: 3px solid var(--cs-gold); border-radius: var(--cs-radius);
   padding: 10px 14px; font-size: .95rem; font-weight: 500; color: var(--cs-ink); }
-.st-key-home_sample button { min-height: 2.9rem; box-shadow: 0 0 0 3px var(--cs-ai-button-ring); }
+.st-key-home_sample button { min-height: 2.9rem; box-shadow: none !important; border-color: var(--cs-navy) !important; }
 .st-key-home_sample button p { font-size: 1.08rem !important; font-weight: 700 !important; }
 .st-key-home_compare button { min-height: 2.9rem; }
 [class*="st-key-text_link_home_guide"]:not([class*="_end"]) { padding-top: .9rem; }
@@ -384,6 +395,11 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-page-hero .cs-hero-sub { position: relative; z-index: 1; }
 /* サイドバー上部の小さなブランド表示（44px のヘッダーの中に置き、メニューの位置は動かさない） */
 [data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stSidebarHeader"] img { height: 28px !important; max-width: 170px; }
+/* ページの見出し（トップ以外）の頭に黄緑の●。サイドバーには付けない */
+[data-testid="stMain"] h1::before, .cs-page-title::before { content: ""; display: inline-block; width: .42em; height: .42em;
+  border-radius: 50%; background: #B9D84B; margin-right: .32em; vertical-align: .14em; }
+/* サイドバー上部のロゴは、押すとトップに戻る（押せることが分かるよう指の形にする） */
+[data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stHeaderLogo"] { cursor: pointer; }
 .cs-reference { margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--cs-line); }
 .cs-subsection { font-size: 1.08rem; font-weight: 700; color: var(--cs-navy); margin: 22px 0 6px;
   padding-left: 10px; border-left: 3px solid var(--cs-gold); }
@@ -414,10 +430,24 @@ if (!window.csFitFrame) {
 </script>"""
 
 
+# サイドバー上部のロゴを押したら、メニューの先頭（ホーム）を押したのと同じ動きでトップに戻る。
+# 画面の切り替えはアプリの中で行う（ページを読み込み直さないので、読み込んだデータは消えない）
+_LOGO_HOME_SCRIPT = """<script>
+if (!window.csLogoHome) {
+  window.csLogoHome = true;
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest('[data-testid="stSidebarLogo"], [data-testid="stHeaderLogo"]')) return;
+    const home = document.querySelector('[data-testid="stSidebarNav"] a');
+    if (home) { event.preventDefault(); home.click(); }
+  }, true);
+}
+</script>"""
+
+
 def apply_global_style() -> None:
     """全画面共通のスタイルを読み込む（app.py から1回呼ぶ）。"""
     st.markdown(_GLOBAL_CSS, unsafe_allow_html=True)
-    st.html(_FIT_FRAME_SCRIPT, unsafe_allow_javascript=True)
+    st.html(_FIT_FRAME_SCRIPT + _LOGO_HOME_SCRIPT, unsafe_allow_javascript=True)
 
 
 def html(markup: str) -> None:
@@ -462,10 +492,16 @@ _LOGO_URI = "data:image/svg+xml;base64," + base64.b64encode(LOGO_PATH.read_bytes
 def home_hero() -> None:
     """ホームのヒーロー。左に製品名・説明・分かること3項目、右に架空サンプルの小さな関係図。"""
     facts = "".join(f"<span>{t}</span>" for t in ("影響を受ける部門・役割", "影響経路と根拠", "確認が必要な事項"))
-    nodes = [("勤怠管理システム", "変更", True), ("給与計算システム", "", False), ("経理部", "", False)]
-    chain = '<div class="cs-mini-line"></div>'.join(
-        f'<div class="cs-mini-node{" cs-mini-start" if start else ""}">{name}'
-        f'{f"<small>{tag}</small>" if tag else ""}</div>' for name, tag, start in nodes)
+    # 架空サンプルに登録された関係に合わせる：勤怠管理システム →（勤怠データをCSV連携・確認済み）給与計算システム
+    # →（利用される）月次給与計算 →（担当される・推定）経理部。給与計算システムと経理部は直接つながっていないため「経由」と書く
+    nodes = [("変更対象", "勤怠管理システム"), ("影響先", "給与計算システム"), ("関係部門", "経理部")]
+    arrows = ["勤怠データをCSV連携", "月次給与計算を経由<em>推定</em>"]
+    parts = []
+    for n, (role, name) in enumerate(nodes):
+        parts.append(f'<div class="cs-mini-node{" cs-mini-start" if n == 0 else ""}"><small>{role}</small><b>{name}</b></div>')
+        if n < len(arrows):
+            parts.append(f'<div class="cs-mini-arrow"><i></i><span>{arrows[n]}</span></div>')
+    chain = "".join(parts)
     html(
         '<div class="cs-hero cs-home-hero"><div class="cs-home-hero-main">'
         f'<div class="cs-brand"><img src="{_LOGO_URI}" alt="">'
@@ -475,7 +511,9 @@ def home_hero() -> None:
         '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、<br>変更の影響を'
         '<b>根拠</b>とともに示します。</div>'
         f'<div class="cs-home-facts"><b>分かること</b>{facts}</div></div>'
-        f'<div class="cs-mini-map" aria-label="架空サンプルの影響の経路">{chain}'
+        '<div class="cs-mini-map" aria-label="変更の影響が伝わる経路の例。勤怠管理システムの変更が、勤怠データのCSV連携で給与計算システムへ、'
+        '月次給与計算を経由して経理部へ伝わる（経理部への関係は推定）。架空サンプル">'
+        f'<div class="cs-mini-title">変更の影響が伝わる経路（例）</div>{chain}'
         '<div class="cs-mini-caption">架空サンプル</div></div></div>'
     )
 
