@@ -2,30 +2,30 @@
 [theme]
 base = "light"
 font = "Noto Sans JP:https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap, Meiryo, sans-serif"
-primaryColor = "#0E4F3A"
-textColor = "#18211F"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F1F5F3"
-linkColor = "#0E4F3A"
+primaryColor = "#344C25"
+textColor = "#20271C"
+backgroundColor = "#F6F8F2"
+secondaryBackgroundColor = "#EEF2E6"
+linkColor = "#344C25"
 linkUnderline = false
-borderColor = "#DCE5E1"
-dataframeBorderColor = "#E3EAE6"
-dataframeHeaderBackgroundColor = "#F1F5F3"
+borderColor = "#DDE3D3"
+dataframeBorderColor = "#E3E8DA"
+dataframeHeaderBackgroundColor = "#EEF2E6"
 showWidgetBorder = true
 # ヘッダーの下の余白（標準は約6rem）。本文側はさらにCSS（changescope/ui.py）で上端近くまで詰めている
 paddingTop = "0.75rem"
 baseRadius = "medium"
 buttonRadius = "full"
-blueColor = "#0E4F3A"
-blueBackgroundColor = "#E8F1EC"
-blueTextColor = "#0E4F3A"
+blueColor = "#344C25"
+blueBackgroundColor = "#EDF4D6"
+blueTextColor = "#344C25"
 
 [theme.sidebar]
-backgroundColor = "#F4F7F5"
-secondaryBackgroundColor = "#E6EEEA"
-textColor = "#2F3B37"
-primaryColor = "#0E4F3A"
-borderColor = "#DCE5E1"
+backgroundColor = "#F6F8F2"
+secondaryBackgroundColor = "#E6EDD8"
+textColor = "#2E3A27"
+primaryColor = "#344C25"
+borderColor = "#DDE3D3"
 
 [client]
 # 右上の開発者向けボタン（Deploy など）を隠し、メニューだけにする

@@ -73,7 +73,7 @@ UNCERTAIN_ZERO_NOTE = "未登録の関係や、分析範囲外の影響がない
 
 def uncertain_label(count: int) -> str:
     """要確認のつながりの本数の表示。0本を「安全」「確認不要」と読めないようにする。"""
-    return f"{count}本（推定・未確認）" if count else "登録された関係のうち未確認0本"
+    return f"{count}本（推定・未確認）" if count else "登録された関係のうち、今回の分析範囲で要確認のつながりは0本"
 
 
 def affected_departments(graph: nx.MultiDiGraph, result: ImpactResult) -> set[str]:

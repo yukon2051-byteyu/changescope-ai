@@ -83,15 +83,20 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 [data-testid="stToolbar"] { background: transparent; }
 /* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
 [data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
-[data-testid="stMainBlockContainer"] { padding-top: 4rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
+[data-testid="stMainBlockContainer"] { padding-top: 2.85rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 /* 本文の幅は1200pxで止め、それより広い画面では中央に寄せる（大きな画面で横に間延びしないように） */
 [data-testid="stMainBlockContainer"] { max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
 
-.stApp h3 { border-left: 4px solid var(--cs-gold); padding-left: 12px; letter-spacing: .04em; }
+.stApp h3 { letter-spacing: .03em; font-weight: 700; }
+/* 全画面で、本文の先頭（ページの見出し）の上端を、左のメニューの先頭の行にそろえる */
+.stApp h1 { padding-top: 0 !important; margin-top: 0 !important; }
 [data-testid="stMetric"] {
-  background: var(--cs-paper); border: 1px solid var(--cs-line); border-top: 3px solid var(--cs-gold);
+  background: var(--cs-paper); border: 1px solid var(--cs-line);
   border-radius: var(--cs-radius); padding: 14px 18px; box-shadow: var(--cs-shadow);
 }
+/* 要確認の数は、アンバー系の色と文言を一緒に使う（色だけに頼らない） */
+.st-key-metric_uncertain [data-testid="stMetricValue"] { color: #9A6A00; }
+.st-key-metric_uncertain [data-testid="stMetric"] { background: #FFF8E6; border-color: #F0D9A0; }
 [data-testid="stMain"] [data-testid="stPageLink"] a {
   background: var(--cs-paper); border: 1px solid var(--cs-navy-2); border-radius: var(--cs-pill); padding: 10px 18px;
 }
@@ -100,7 +105,8 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 
 .cs-hero {
   position: relative; overflow: hidden; border-radius: var(--cs-radius-lg); padding: 20px 48px 18px;
-  background: var(--cs-hero-bg); border-bottom: 3px solid var(--cs-hero-rule); color: var(--cs-hero-ink); margin-bottom: 16px;
+  background: var(--cs-hero-bg); border: 1px solid var(--cs-line); border-bottom: 3px solid var(--cs-hero-rule);
+  color: var(--cs-hero-ink); margin-bottom: 16px; box-shadow: var(--cs-shadow);
 }
 .cs-hero::after {
   content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
@@ -117,7 +123,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-hero-sub { color: var(--cs-hero-sub); line-height: 1.9; }
 .cs-hero-rule { width: 56px; height: 2px; background: var(--cs-hero-rule); margin: 0 0 18px; }
 
-.cs-section { margin: 36px 0 14px; }
+.cs-section { margin: 26px 0 10px; }
 .cs-section-title { font-size: 1.35rem; font-weight: 700; color: var(--cs-ink); letter-spacing: .06em; margin-top: 4px; }
 
 .cs-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
@@ -293,15 +299,37 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 }
 [class*="st-key-excel_goal_"] { background: var(--cs-ai-panel-bg) !important; border: 2px solid var(--cs-ai-panel-border) !important; }
 /* ホーム：短い見出し・3つの要点・文字だけのリンク。サンプルのボタンをいちばん目立たせる */
-.cs-home-head { font-size: 1.15rem; font-weight: 700; color: var(--cs-ink); margin: 18px 0 2px; }
+.cs-home-head { font-size: 1.12rem; font-weight: 700; color: var(--cs-ink); margin: 6px 0 0; }
+/* ホームのヒーロー：左に説明と分かること、右に小さな関係図（ヒーローの高さを増やさない） */
+.cs-home-hero { display: flex; gap: 28px; align-items: center; padding: 18px 32px 16px; margin-bottom: 12px; }
+.cs-home-hero-main { flex: 1 1 auto; position: relative; z-index: 1; }
+.cs-home-hero .cs-hero-title { font-size: 2.7rem; margin: 4px 0 10px; }
+.cs-home-hero .cs-hero-rule { margin-bottom: 10px; }
+.cs-home-hero .cs-hero-lead { font-size: 1.2rem; margin-bottom: 4px; }
+.cs-home-hero .cs-hero-sub { line-height: 1.7; font-size: .95rem; }
+.cs-home-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.cs-home-facts b { font-size: .85rem; color: var(--cs-sub); margin-right: 2px; }
+.cs-home-facts span { background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-radius: var(--cs-pill);
+  padding: 4px 12px; font-size: .9rem; font-weight: 600; color: var(--cs-ink); }
+.cs-mini-map { flex: 0 0 210px; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.cs-mini-node { width: 100%; text-align: center; background: #fff; border: 1px solid var(--cs-line); border-radius: 8px;
+  padding: 6px 8px; font-size: .85rem; font-weight: 600; color: var(--cs-ink); }
+.cs-mini-node small { margin-left: 6px; font-size: .72rem; font-weight: 700; }
+.cs-mini-start { background: var(--cs-gold); border-color: var(--cs-gold); color: var(--cs-ink); }
+.cs-mini-line { width: 1px; height: 14px; background: var(--cs-sub); }
+.cs-mini-caption { margin-top: 6px; font-size: .75rem; color: var(--cs-sub); }
+@media (max-width: 640px) {
+  .cs-home-hero { flex-direction: column; align-items: stretch; padding: 16px 18px; }
+  .cs-mini-map { flex: none; }
+}
 .cs-home-lead { font-size: .95rem; color: var(--cs-sub); margin-bottom: 8px; }
 .cs-home-note { text-align: center; font-size: .9rem; color: var(--cs-sub); margin-top: -6px; padding-bottom: 14px; }
 .cs-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 8px 0 14px; }
 .cs-facts div { background: var(--cs-cream); border-left: 3px solid var(--cs-gold); border-radius: var(--cs-radius);
   padding: 10px 14px; font-size: .95rem; font-weight: 500; color: var(--cs-ink); }
-.st-key-home_sample button { min-height: 3.1rem; box-shadow: 0 0 0 3px var(--cs-ai-button-ring); }
+.st-key-home_sample button { min-height: 2.9rem; box-shadow: 0 0 0 3px var(--cs-ai-button-ring); }
 .st-key-home_sample button p { font-size: 1.08rem !important; font-weight: 700 !important; }
-.st-key-home_compare button { min-height: 3.1rem; }
+.st-key-home_compare button { min-height: 2.9rem; }
 [class*="st-key-text_link_home_guide"]:not([class*="_end"]) { padding-top: .9rem; }
 .st-key-home_prepare_upload button { border: 1.5px solid var(--cs-navy) !important; font-weight: 700; }
 [class*="st-key-text_link_"] { gap: 0 !important; }
@@ -318,8 +346,16 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-demo-arrow { color: var(--cs-sub); }
 .cs-demo-end { background: var(--cs-ai-panel-bg); border: 2px solid var(--cs-ai-panel-border); border-radius: var(--cs-radius-lg);
   padding: 16px 20px; margin: 14px 0 10px; line-height: 1.8; color: var(--cs-ink); }
+.cs-demo-badge { display: inline-block; background: var(--cs-gold); color: var(--cs-ink); font-weight: 700; font-size: .8rem;
+  border-radius: var(--cs-pill); padding: 2px 12px; margin-bottom: 6px; }
 .cs-demo-end-title { font-size: 1.15rem; font-weight: 700; color: var(--cs-navy); margin-bottom: 4px; }
+.cs-conclusion-risk { display: block; font-size: .85rem; color: var(--cs-concl-faint); margin-top: 2px; }
 .cs-demo-end-note { font-size: .88rem; color: var(--cs-sub); margin-top: 4px; }
+.cs-option-card { background: var(--cs-paper); border: 1px solid var(--cs-line); border-radius: var(--cs-radius-lg);
+  padding: 14px 18px; box-shadow: var(--cs-shadow); height: 100%; }
+.cs-option-title { font-size: 1.05rem; font-weight: 700; color: var(--cs-navy); margin-bottom: 6px; }
+.cs-option-label { font-size: .8rem; font-weight: 700; color: var(--cs-sub); margin-top: 10px; }
+.cs-option-line { font-size: .93rem; line-height: 1.7; color: var(--cs-ink); }
 .cs-action-overview { margin: 4px 0 8px 1.2rem; line-height: 1.9; color: var(--cs-ink); }
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }
 </style>
@@ -367,8 +403,29 @@ def hero(eyebrow: str, title: str, lead: str, sub: str) -> None:
 
 
 def section(eyebrow: str, title: str) -> None:
-    html(f'<div class="cs-section"><div class="cs-eyebrow">{eyebrow}</div>'
-         f'<div class="cs-section-title">{title}</div></div>')
+    """見出し。eyebrow（小さな英字の札）は空にすると出さない（結果画面では日本語の見出しだけにする）。"""
+    label = f'<div class="cs-eyebrow">{eyebrow}</div>' if eyebrow else ""
+    html(f'<div class="cs-section">{label}<div class="cs-section-title">{title}</div></div>')
+
+
+def home_hero() -> None:
+    """ホームのヒーロー。左に製品名・説明・分かること3項目、右に架空サンプルの小さな関係図。"""
+    facts = "".join(f"<span>{t}</span>" for t in ("影響を受ける部門・役割", "影響経路と根拠", "確認が必要な事項"))
+    nodes = [("勤怠管理システム", "変更", True), ("給与計算システム", "", False), ("経理部", "", False)]
+    chain = '<div class="cs-mini-line"></div>'.join(
+        f'<div class="cs-mini-node{" cs-mini-start" if start else ""}">{name}'
+        f'{f"<small>{tag}</small>" if tag else ""}</div>' for name, tag, start in nodes)
+    html(
+        '<div class="cs-hero cs-home-hero"><div class="cs-home-hero-main">'
+        '<div class="cs-eyebrow">CHANGE IMPACT ANALYSIS</div>'
+        '<div class="cs-hero-title">ChangeScope AI</div><div class="cs-hero-rule"></div>'
+        '<div class="cs-hero-lead">その変更は、組織のどこに影響するのか。</div>'
+        '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、変更の影響を'
+        '<b>根拠</b>とともに示します。</div>'
+        f'<div class="cs-home-facts"><b>分かること</b>{facts}</div></div>'
+        f'<div class="cs-mini-map" aria-label="架空サンプルの影響の経路">{chain}'
+        '<div class="cs-mini-caption">架空サンプル</div></div></div>'
+    )
 
 
 def cards(items: list[tuple[str, str, str]]) -> None:
@@ -481,10 +538,11 @@ def conclusion(assessment, first_label: str = "まずやること") -> None:
     caution = f'<div class="cs-conclusion-caution">{escape(a.caution)}</div>' if a.caution else ""
     html(
         f'<div class="cs-conclusion">'
-        f'<div class="cs-eyebrow">CONCLUSION</div>'
+        f'<div class="cs-eyebrow">結論</div>'
         f'<div class="cs-conclusion-head"><span class="cs-level cs-level-{escape(a.level)}">影響の広さ {escape(a.level)}</span>'
         f'<span class="cs-conclusion-headline">{escape(a.headline)}</span></div>'
-        f'<div class="cs-conclusion-meaning">{escape(a.meaning)}</div>'
+        f'<div class="cs-conclusion-meaning">{escape(a.meaning)}'
+        '<span class="cs-conclusion-risk">リスクの大きさ：未評価（損失や業務停止の影響は評価していません）</span></div>'
         f'<div class="cs-conclusion-first"><b>{escape(first_label)}</b>{escape(a.first_step)}</div>'
         f'{caution}'
         f'<div class="cs-conclusion-label">意識すること</div><ul class="cs-conclusion-stance">{stance}</ul>'
@@ -599,7 +657,7 @@ def data_preparation(key: str) -> None:
 def data_entry(key: str) -> None:
     """自分のデータで分析する入口の短い版（ホーム用）。説明はツールチップと遷移先に置く。"""
     html('<div class="cs-home-head">自分のデータで分析する</div>'
-         '<div class="cs-home-lead">Excelを直接用意するか、図・文章からExcelを作成できます。</div>')
+         '<div class="cs-home-lead">Excelを直接用意するか、図・文章からExcelを作成できます（いずれもExcel形式に統一）。</div>')
     ways = [
         ("Excelで作成", "テンプレートに入力して、そのままアップロード", "table_view", "excel"),
         ("図から作成", "画面上で関係図を描き、Excelに変換", "account_tree", "diagram"),
@@ -610,7 +668,6 @@ def data_entry(key: str) -> None:
             if way == "excel":
                 open_upload()
             st.switch_page("pages/diagram.py" if way == "diagram" else "pages/extract.py")
-    html('<div class="cs-home-note">いずれもExcel形式に統一</div>')
     if st.button("Excelをアップロードして分析開始", key=f"{key}_upload", icon=":material/upload_file:", width="stretch"):
         open_upload(scroll=True)
 
@@ -639,14 +696,17 @@ def action_overview(actions) -> None:
     html(f'<ol class="cs-action-overview">{items}</ol>')
 
 
-DEMO_STEPS = ["変更を入力", "影響を確認", "結果を持ち帰る"]
+DEMO_STEPS = ["変更を入力", "影響を確認", "デモ完了"]
 
 
 def demo_progress(done: int) -> None:
-    """サンプル体験の進行。done は完了したステップの数。色だけに頼らず、文字でも状態を示す。"""
+    """サンプル体験の進行。done は完了したステップの数（3で体験完了）。色だけに頼らず、文字でも状態を示す。"""
     parts = []
     for n, label in enumerate(DEMO_STEPS, start=1):
-        state, mark = (("done", "完了") if n <= done else ("now", "いまここ") if n == done + 1 else ("todo", ""))
+        if n <= done:
+            state, mark = ("now" if n == done == len(DEMO_STEPS) else "done"), "完了"
+        else:
+            state, mark = ("now", "いまここ") if n == done + 1 else ("todo", "")
         badge = f"<small>{mark}</small>" if mark else ""
         parts.append(f'<span class="cs-demo-step cs-demo-{state}">{"①②③"[n - 1]} {label}{badge}</span>')
     html(f'<div class="cs-demo-steps">{"<span class=cs-demo-arrow>→</span>".join(parts)}</div>')
@@ -655,9 +715,17 @@ def demo_progress(done: int) -> None:
 def demo_end_card(summary: str, saved: bool) -> None:
     """サンプル体験の終わりの表示。体験の終わりと、実際の案件の確認・対応の完了を混同させない。"""
     extra = "PDFを保存しました。" if saved else ""
-    html(f'<div class="cs-demo-end"><div class="cs-demo-end-title">サンプル体験はここまでです</div>'
+    html(f'<div class="cs-demo-end"><span class="cs-demo-badge">デモ完了</span>'
+         f'<div class="cs-demo-end-title">サンプル体験はここまでです</div>'
          f'<div>{escape(summary)}</div>'
          f'<div class="cs-demo-end-note">{extra}架空の会社のデータによる体験です。実際の案件では、関係者への確認と対応が必要です。</div></div>')
+
+
+def option_card(title: str, items: list[tuple[str, list[str]]]) -> None:
+    """比較の各案の要約カード。項目は両案で同じ順にする。入力や登録データを含むため、すべてエスケープする。"""
+    body = "".join(f'<div class="cs-option-label">{escape(label)}</div>'
+                   + "".join(f'<div class="cs-option-line">{escape(line)}</div>' for line in lines) for label, lines in items)
+    html(f'<div class="cs-option-card"><div class="cs-option-title">{escape(title)}</div>{body}</div>')
 
 
 def ui_label(text: str) -> str:

@@ -113,6 +113,7 @@ class Comparison:
     checks: list[Check] = field(default_factory=list)
     max_depth: int = DEFAULT_MAX_DEPTH
     same_targets: bool = False
+    cards: dict[str, list[tuple[str, list[str]]]] = field(default_factory=dict)  # 各案の要約（"a"・"b" → [(項目, 行)]）
 
 
 def analyze_option(graph: nx.MultiDiGraph, option: OptionInput, max_depth: int = DEFAULT_MAX_DEPTH) -> OptionResult:
@@ -263,6 +264,27 @@ def build_differences(graph: nx.MultiDiGraph, a: OptionResult, b: OptionResult, 
     ]
 
 
+def build_card(graph: nx.MultiDiGraph, r: OptionResult, goal: Goal, checks: list[Check]) -> list[tuple[str, list[str]]]:
+    """各案の要約。両案で同じ順に、変更対象・主な影響先・最初に確認すること・対応・目的への効果を示す。"""
+    impacts = r.result.impacts
+    main = [f"{len(impacts)}件（直接{len(r.result.direct)}件・間接{len(r.result.indirect)}件）"]
+    if impacts:
+        main.append(_grouped(impacts))
+    mine = [c for c in checks if c.target in (r.option.name, "共通")]
+    first = [c for c in mine if c.kind == DEPENDENCY][:2] or [c for c in mine if c.kind == GOAL][:2]
+    first_lines = [f"{c.item}（確認先：{c.contact}）" for c in first] or ["登録データからは、追加の確認事項は抽出されていません"]
+    partners = [s.name for s in r.stakeholders]
+    known, unknown = _effect_status(r.option, goal)
+    return [
+        ("変更対象", [_scope(graph, r.option.targets)]),
+        ("主な影響先", main),
+        ("最初に確認すること", first_lines),
+        ("対応", [f"確定（入力された変更）：{names_text([graph.nodes[t]['name'] for t in r.option.targets])}の変更",
+                  f"確認・調整の候補：{names_text(partners) if partners else '登録データにありません'}"]),
+        ("目的への効果の評価状況", [unknown, known]),
+    ]
+
+
 def _owners(r: OptionResult) -> str:
     """確認先：変更対象の責任部門（登録データにあるものだけ）。"""
     return "、".join(s.name for s in r.stakeholders if s.is_target_owner) or NO_CONTACT
@@ -320,13 +342,17 @@ def compare(graph: nx.MultiDiGraph, a: OptionInput, b: OptionInput, max_depth: i
         return Row(viewpoint, a_text, b_text, difference(a_count, b_count, a.name, b.name, unit))
 
     def scope(r: OptionResult) -> str:
-        top = names_text([i.name for i in r.result.impacts], 3)
         return (f"影響先{len(r.result.impacts)}件（直接{len(r.result.direct)}件・間接{len(r.result.indirect)}件）"
-                f"／影響の広さ {r.assessment.level}" + (f"／主な影響先：{top}" if top else ""))
+                f"／影響の広さ {r.assessment.level}")
+
+    def level_items(items: list[ImpactItem]) -> str:
+        return f"{len(items)}件" + (f"：{names_text([i.name for i in items], 3)}" if items else "")
+
+    def departments(r: OptionResult) -> str:
+        return f"{len(r.departments)}部門" + (f"：{names_text(r.departments)}" if r.departments else "")
 
     def people(r: OptionResult) -> str:
-        return (f"部門{len(r.departments)}・関係者{len(r.stakeholders)}件"
-                + (f"：{names_text([s.name for s in r.stakeholders])}" if r.stakeholders else ""))
+        return f"{len(r.stakeholders)}件" + (f"：{names_text([s.name for s in r.stakeholders])}" if r.stakeholders else "")
 
     def hidden(r: OptionResult) -> str:
         return f"{len(r.hidden)}件" + (f"：{names_text([i.name for i in r.hidden], 3)}" if r.hidden else "")
@@ -346,16 +372,24 @@ def compare(graph: nx.MultiDiGraph, a: OptionInput, b: OptionInput, max_depth: i
     rows = [
         Row("目的への適合性／評価状況", _fit_status(a, goal), _fit_status(b, goal), "—"),
         count_row("変更する対象", len(a.targets), len(b.targets), "件", targets(ra), targets(rb)),
-        count_row("影響範囲と主要な影響先", len(ra.result.impacts), len(rb.result.impacts), "件", scope(ra), scope(rb)),
-        count_row("関係部門・役割", len(ra.stakeholders), len(rb.stakeholders), "件", people(ra), people(rb)),
+        count_row("影響先（直接＋間接）", len(ra.result.impacts), len(rb.result.impacts), "件", scope(ra), scope(rb)),
+        count_row("　うち直接の影響先", len(ra.result.direct), len(rb.result.direct), "件",
+                  level_items(ra.result.direct), level_items(rb.result.direct)),
+        count_row("　うち間接の影響先", len(ra.result.indirect), len(rb.result.indirect), "件",
+                  level_items(ra.result.indirect), level_items(rb.result.indirect)),
+        count_row("影響を受ける部門", len(ra.departments), len(rb.departments), "部門", departments(ra), departments(rb)),
+        count_row("関係者（部門・役割）", len(ra.stakeholders), len(rb.stakeholders), "件", people(ra), people(rb)),
         count_row("未確認のつながり", len(ra.uncertain), len(rb.uncertain), "本",
                   uncertain_label(len(ra.uncertain)), uncertain_label(len(rb.uncertain))),
         count_row("見落としやすい影響", len(ra.hidden), len(rb.hidden), "件", hidden(ra), hidden(rb)),
         count_row("必要な対応・調整の候補", len(ra.gaps), len(rb.gaps), "項目", actions(ra), actions(rb)),
+        Row("リスクの大きさ", "未評価（損失・業務停止の影響は評価していません）",
+            "未評価（損失・業務停止の影響は評価していません）", "—"),
         Row("費用", declared(a.cost), declared(b.cost), "—"),
         Row("期間", declared(a.period), declared(b.period), "—"),
         Row("判断に不足している情報", missing(ra), missing(rb), "—"),
     ]
+    checks = build_checks(ra, rb, goal)
     return Comparison(
         ra, rb, rows,
         elements=split({e: name(e) for e in ra.involved}, {e: name(e) for e in rb.involved}),
@@ -366,7 +400,8 @@ def compare(graph: nx.MultiDiGraph, a: OptionInput, b: OptionInput, max_depth: i
         goal=goal,
         summary=build_summary(graph, ra, rb, goal, same_targets),
         differences=build_differences(graph, ra, rb, goal),
-        checks=build_checks(ra, rb, goal),
+        checks=checks,
         max_depth=max_depth,
         same_targets=same_targets,
+        cards={"a": build_card(graph, ra, goal, checks), "b": build_card(graph, rb, goal, checks)},
     )

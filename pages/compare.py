@@ -15,7 +15,7 @@ from changescope.datasets import load_option_pairs
 from changescope.matcher import find_candidates
 from changescope.report import comparison_report
 from changescope.ui import (
-    data_table, element_label, get_dataset, no_data_actions, note, remember_inputs, restore_inputs, section, show_mode_banner,
+    data_table, element_label, get_dataset, no_data_actions, note, remember_inputs, restore_inputs, section, show_mode_banner, option_card,
 )
 
 st.title("変更案を比べる")
@@ -63,86 +63,116 @@ if request := st.session_state.pop("compare_request", None):
         st.session_state.cp_a_targets = list(request["targets"])
         st.session_state.cp_a_last = find_candidates(request["text"], dataset.elements)
 
-# ---------- 1. 共通の目的 ----------
-st.markdown("### 1. 共通の目的")
-if pairs is not None:
-    st.caption("入力例（クリックすると、目的と2つの案が入ります）")
-    columns = st.columns(len(pairs))
-    for column, (_, row) in zip(columns, pairs.iterrows()):
-        column.button(row["title"], key=f"cp_pair_{row['pair_id']}", on_click=fill_pair, args=(row,), width="stretch")
-purpose = st.text_input("解決したい課題／達成したい目的（任意）", key="cp_goal", max_chars=200,
-                        placeholder="例：勤怠の締め作業の負担を減らしたい")
-success = st.text_input("成功条件（任意）", key="cp_success", max_chars=200, placeholder="例：締め作業の時間を現状の半分にしたい")
-if pairs is not None and purpose.strip() in set(pairs["goal"]):
-    st.caption("この目的と成功条件は、サンプル用の架空の設定です。")
-elif not purpose.strip():
-    st.caption("目的が未入力でも比較できます。その場合、目的への適合性は「未評価」と表示します。")
-goal = Goal(purpose.strip(), success.strip())
-
-# ---------- 2. 2つの案 ----------
-st.markdown("### 2. 2つの変更案を入力")
-inputs, titles = {}, {}
-for column, (side, label) in zip(st.columns(2, gap="large"), SIDES.items()):
-    with column, st.container(border=True):
-        st.markdown(f"**{label}**")
-        name = st.text_input("案の名前（任意）", key=f"cp_{side}_name", placeholder="例：システムを入れ替える")
+def read_inputs() -> tuple[Goal, dict[str, OptionInput], dict[str, str]]:
+    """入力欄の値から、共通の目的と2つの案を作る（ボタンの処理と画面の両方で使う）。"""
+    state = st.session_state
+    goal = Goal(state.get("cp_goal", "").strip(), state.get("cp_success", "").strip())
+    options, names = {}, {}
+    for side, label in SIDES.items():
+        value = lambda field: str(state.get(f"cp_{side}_{field}", "") or "").strip()  # noqa: E731
+        name = value("name")
         # 表の「違い」は「A案の方が〜」と読めるよう A案・B案 で書き、案の名前は見出しにだけ使う
-        titles[side] = f"{label}（{name.strip()}）" if name.strip() else label
-        text = st.text_area("変更内容", key=f"cp_{side}_text", max_chars=MAX_INPUT_CHARS, height=100,
-                            placeholder="例：勤怠管理システムを新しいクラウドサービスに入れ替える")
-        candidates = find_candidates(text, dataset.elements) if text.strip() else []
-        # 変更内容が変わって候補が変わったときだけ、変更対象を候補で置き換える（利用者の手直しは残す）
-        if st.session_state.get(f"cp_{side}_last") != candidates:
-            st.session_state[f"cp_{side}_targets"] = candidates
-            st.session_state[f"cp_{side}_last"] = candidates
-        targets = st.multiselect("変更対象（手を入れるもの。複数選べます）", list(dataset.elements["element_id"]),
-                                 key=f"cp_{side}_targets", format_func=lambda i: element_label(dataset, i))
-        c1, c2 = st.columns(2)
-        cost = c1.text_input("費用（任意）", key=f"cp_{side}_cost", placeholder="空欄なら「要見積もり」")
-        period = c2.text_input("期間（任意）", key=f"cp_{side}_period", placeholder="空欄なら「要見積もり」")
-        with st.expander("補足（目的への対応・期待する効果・前提）"):
-            approach = st.text_input("目的にどう対応する案か", key=f"cp_{side}_approach")
-            expected = st.text_input("期待する効果と根拠", key=f"cp_{side}_expected",
-                                     help="入力された内容は「入力された見込み」と表示し、ツールでは検証しません。")
-            premise = st.text_input("前提条件／制約", key=f"cp_{side}_premise")
-        inputs[side] = OptionInput(label, text, list(targets), cost.strip(), period.strip(), approach.strip(),
-                                   expected.strip(), premise.strip())
-remember_inputs("cp_inputs", INPUT_KEYS + ["cp_a_last", "cp_b_last"])
+        names[side] = f"{label}（{name}）" if name else label
+        options[side] = OptionInput(label, state.get(f"cp_{side}_text", "") or "", list(state.get(f"cp_{side}_targets", [])),
+                                    value("cost"), value("period"), value("approach"), value("expected"), value("premise"))
+    return goal, options, names
 
-current_key = comparison_key(goal, inputs["a"], inputs["b"], id(dataset.graph))
-ready = all(option.targets for option in inputs.values())
-if st.button("比べる", type="primary", icon=":material/compare_arrows:", disabled=not ready):
-    st.session_state.cp_result = compare(dataset.graph, inputs["a"], inputs["b"], goal=goal)
-    st.session_state.cp_titles = titles
-    st.session_state.cp_key = current_key
-if not ready:
-    st.caption("2つの案の両方で、変更対象を1つ以上選んでください（変更内容に要素の名前を書くと、自動で選ばれます）。")
+
+def run_compare() -> None:
+    """比べる。入力欄を畳んだ状態で結果を出すため、画面を描く前（ボタンの処理）で行う。"""
+    goal, options, names = read_inputs()
+    state = st.session_state
+    state.cp_result = compare(dataset.graph, options["a"], options["b"], goal=goal)
+    state.cp_titles = names
+    state.cp_key = comparison_key(goal, options["a"], options["b"], id(dataset.graph))
+    state.cp_count = state.get("cp_count", 0) + 1
+    state.cp_just = True
+
 
 result = st.session_state.get("cp_result")
+# 比較のあとは入力欄を畳み、結果を主役にする（入力欄は残るので、値は消えない。比べるたびに畳み直す）
+editor = (st.container() if result is None
+          else st.expander("比較条件を編集", icon=":material/edit:", key=f"cp_inputs_{st.session_state.get('cp_count', 0)}"))
+with editor:
+    # ---------- 1. 共通の目的 ----------
+    st.markdown("### 1. 共通の目的")
+    if pairs is not None:
+        st.caption("入力例（クリックすると、目的と2つの案が入ります）")
+        columns = st.columns(len(pairs))
+        for column, (_, row) in zip(columns, pairs.iterrows()):
+            column.button(row["title"], key=f"cp_pair_{row['pair_id']}", on_click=fill_pair, args=(row,), width="stretch")
+    purpose = st.text_input("解決したい課題・達成したい目的（任意）", key="cp_goal", max_chars=200,
+                            placeholder="例：勤怠締め作業の負担を減らす")
+    st.text_input("成功条件（任意）", key="cp_success", max_chars=200, placeholder="例：締め作業時間を現状の半分にする")
+    if pairs is not None and purpose.strip() in set(pairs["goal"]):
+        st.caption("この目的と成功条件は、サンプル用の架空の設定です。")
+    elif not purpose.strip():
+        st.caption("目的が未入力でも比較できます。その場合、目的への適合性は「未評価」と表示します。")
+
+    # ---------- 2. 2つの案 ----------
+    st.markdown("### 2. 2つの変更案を入力")
+    for column, (side, label) in zip(st.columns(2, gap="large"), SIDES.items()):
+        with column, st.container(border=True):
+            st.markdown(f"**{label}**")
+            st.text_input("案の名前（任意）", key=f"cp_{side}_name", placeholder="例：システムを入れ替える")
+            text = st.text_area("変更内容", key=f"cp_{side}_text", max_chars=MAX_INPUT_CHARS, height=100,
+                                placeholder="例：勤怠管理システムを新しいクラウドサービスに入れ替える")
+            candidates = find_candidates(text, dataset.elements) if text.strip() else []
+            # 変更内容が変わって候補が変わったときだけ、変更対象を候補で置き換える（利用者の手直しは残す）
+            if st.session_state.get(f"cp_{side}_last") != candidates:
+                st.session_state[f"cp_{side}_targets"] = candidates
+                st.session_state[f"cp_{side}_last"] = candidates
+            st.multiselect("変更対象（手を入れるもの。複数選べます）", list(dataset.elements["element_id"]),
+                           key=f"cp_{side}_targets", format_func=lambda i: element_label(dataset, i))
+            c1, c2 = st.columns(2)
+            c1.text_input("費用（任意）", key=f"cp_{side}_cost", placeholder="空欄なら「要見積もり」")
+            c2.text_input("期間（任意）", key=f"cp_{side}_period", placeholder="空欄なら「要見積もり」")
+            with st.expander("補足（目的への対応・期待する効果・前提）"):
+                st.text_input("目的への対応", key=f"cp_{side}_approach")
+                st.text_input("期待効果とその根拠", key=f"cp_{side}_expected",
+                              help="入力された内容は「入力された見込み」と表示し、ツールでは検証しません。")
+                st.text_input("前提・制約", key=f"cp_{side}_premise")
+    remember_inputs("cp_inputs", INPUT_KEYS + ["cp_a_last", "cp_b_last"])
+
+    goal, inputs, titles = read_inputs()
+    ready = all(option.targets for option in inputs.values())
+    st.button("比べる", type="primary", icon=":material/compare_arrows:", disabled=not ready, on_click=run_compare)
+    if not ready:
+        st.caption("2つの案の両方で、変更対象を1つ以上選んでください（変更内容に要素の名前を書くと、自動で選ばれます）。")
+
+current_key = comparison_key(goal, inputs["a"], inputs["b"], id(dataset.graph))
 if result is None:
     st.stop()
 
 # ---------- 3. 結果 ----------
-st.divider()
 a_name, b_name = result.a.option.name, result.b.option.name  # A案・B案
 title = st.session_state.get("cp_titles", {"a": a_name, "b": b_name})
 stale = st.session_state.get("cp_key") != current_key
 st.markdown("### 比較結果")
+if st.session_state.pop("cp_just", False):
+    # 結果の見出しまでスクロールする。比べた直後だけ動かす
+    st.html(f"""<script data-run="{st.session_state.get('cp_count', 0)}">
+setTimeout(() => {{
+  const heading = [...document.querySelectorAll("h3")].find(h => h.innerText.startsWith("比較結果"));
+  if (heading) heading.scrollIntoView({{behavior: "smooth", block: "start"}});
+}}, 400);
+</script>""", unsafe_allow_javascript=True)
 if stale:
     # 条件を変えたあとに、古い結果を新しい結果として見せない
-    st.warning("条件が変更されています。下の結果は前回の条件です。もう一度「比べる」を押すと更新されます。", icon=":material/history:")
+    st.warning("再比較が必要です。条件が変更されたため、下の結果は前回の条件のものです。「比較条件を編集」から「比べる」を押してください。",
+               icon=":material/history:")
 
-section("SUMMARY", "比較の要約")
-note("<br>".join(escape(line) for line in result.summary))
+section("", "共通の目的と、判断を分けるポイント")
+goal_line = (f"<b>目的</b>　{escape(result.goal.purpose) if result.goal.purpose else '未入力（目的への適合性は未評価）'}"
+             f"　／　<b>成功条件</b>　{escape(result.goal.success) if result.goal.success else '未入力'}")
+note(goal_line + "<br>" + "<br>".join(escape(line) for line in result.summary))
 
-section("KEY DIFFERENCES", "重要な違い")
-data_table(pd.DataFrame({
-    "観点": [r.viewpoint for r in result.differences],
-    title["a"]: [r.a.split("\n") for r in result.differences],
-    title["b"]: [r.b.split("\n") for r in result.differences],
-}))
+section("", "各案の要約")
+for column, side in zip(st.columns(2, gap="medium"), ("a", "b")):
+    with column:
+        option_card(title[side], result.cards[side])
 
-section("BEFORE YOU DECIDE", "判断前に確認すること")
+section("", "判断前に確認すること")
 st.caption("目的に対応する確認と、登録された依存関係から抽出した確認を分けています。重要なものから順に並べています。")
 data_table(pd.DataFrame({
     "区分": [c.kind for c in result.checks],
@@ -153,7 +183,7 @@ data_table(pd.DataFrame({
     "確認の根拠": [c.basis for c in result.checks],
 }))
 
-section("COMPARISON TABLE", "比較表")
+section("", "数値と項目の比較表")
 st.caption(f"{result.max_depth}段先までたどった結果です。件数の差は違いを示すだけで、少ない案が優れているという意味ではありません。")
 data_table(pd.DataFrame({
     "観点": [r.viewpoint for r in result.rows],
@@ -162,7 +192,7 @@ data_table(pd.DataFrame({
     "違い": [r.difference for r in result.rows],
 }))
 if not (result.a.uncertain and result.b.uncertain):
-    st.caption(f"{uncertain_label(0)}は、{UNCERTAIN_ZERO_NOTE}")
+    st.caption(f"「{uncertain_label(0)}」は、{UNCERTAIN_ZERO_NOTE}")
 with st.expander("指標の定義"):
     st.markdown("\n".join(f"- **{name}**：{meaning}" for name, meaning in METRIC_DEFINITIONS))
 
@@ -213,7 +243,7 @@ def open_analysis(option_result, option_title: str) -> None:
     st.switch_page("pages/analysis.py")
 
 
-section("NEXT", "次の操作")
+section("", "詳細分析と保存")
 if stale:
     st.caption("下の操作は、前回の条件の結果に対するものです。")
 c1, c2, c3 = st.columns(3)

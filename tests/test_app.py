@@ -522,10 +522,10 @@ def compare_sample_pair() -> AppTest:
 def test_compare_sample_has_fictional_goal_and_decision_sections():
     at = compare_sample_pair()
     assert not at.exception
-    assert at.text_input(key="cp_goal").value == "勤怠の締め作業の負担を減らしたい"
+    assert at.text_input(key="cp_goal").value == "勤怠締め作業の負担を減らす"
     assert any("架空の設定" in c.value for c in at.caption)
     text = " ".join(m.value for m in at.markdown)
-    for title in ("比較の要約", "重要な違い", "判断前に確認すること", "比較表"):
+    for title in ("判断を分けるポイント", "各案の要約", "判断前に確認すること", "比較表"):
         assert title in text
     assert "達成できるかは未評価" in text
     assert any("A案にのみ影響候補として抽出" in c.value for c in at.caption)
@@ -565,8 +565,8 @@ def test_detail_analysis_inherits_option_and_compare_is_kept():
     assert not at.exception
     assert any(t.value == "変更案を比べる" for t in at.title)
     at.switch_page("pages/compare.py").run()
-    assert at.text_input(key="cp_goal").value == "勤怠の締め作業の負担を減らしたい"  # 条件と結果が残る
-    assert any("比較の要約" in m.value for m in at.markdown)
+    assert at.text_input(key="cp_goal").value == "勤怠締め作業の負担を減らす"  # 条件と結果が残る
+    assert any("判断を分けるポイント" in m.value for m in at.markdown)
     assert not at.warning
 
 
@@ -577,3 +577,21 @@ def test_demo_compare_button_fills_matching_pair():
     assert any(t.value == "変更案を比べる" for t in at.title)
     assert at.multiselect(key="cp_a_targets").value == ["SYS-ATT"]
     assert at.multiselect(key="cp_b_targets").value == ["PRC-ATT"]
+
+
+def test_compare_collapses_inputs_after_comparing():
+    at = compare_sample_pair()
+    assert any(e.label == "比較条件を編集" for e in at.expander)  # 入力欄は畳み、結果を主役にする
+    assert at.text_input(key="cp_goal").value == "勤怠締め作業の負担を減らす"  # 畳んでも値は残る
+    text = " ".join(m.value for m in at.markdown)
+    assert "最初に確認すること" in text and "社内認証基盤" in text  # 各案の要約に具体名
+    assert "リスクの大きさ" in text and "うち直接の影響先" in text
+
+
+def test_demo_progress_marks_completion_without_extra_steps():
+    at = analyze_scenario_a()
+    text = " ".join(m.value for m in at.markdown)
+    assert "デモ完了" in text and "cs-demo-now" in text
+    assert next(b for b in at.button if b.key == "demo_own").proto.type == "primary"  # 自分の案件で試すが主ボタン
+    at.run()  # 再実行しても完了表示は残る
+    assert "サンプル体験はここまでです" in " ".join(m.value for m in at.markdown)

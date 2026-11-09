@@ -21,7 +21,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-ACTIVE_THEME = "white_green"
+ACTIVE_THEME = "lime"
 
 
 @dataclass(frozen=True)
@@ -90,6 +90,37 @@ PART_DEFAULTS = {
 DIAGRAM_PARTS = ("diagram-accent", "diagram-center-bg", "pick-bg", "pick-ink", "pick-sub", "pick-strong", "pick-line")
 
 THEMES = {
+    # 黄緑（2026-11-09 に採用）：AI BIC（濃紺が基調）と見分けるため、黄緑をブランドの色にする。
+    # 鮮やかな黄緑は、影響経路の起点・選択中の表示・小さな印にだけ使い、文字は濃い色にする
+    "lime": Theme(
+        label="黄緑", dark="#344C25", dark_2="#456333", primary="#344C25", accent="#B9D84B",
+        accent_light="#D6E98F", ink="#20271C", sub="#5A6352", line="#DDE3D3", table_line="#E3E8DA", paper="#FFFFFF",
+        cream="#EDF4D6", bg="#F6F8F2", bg_2="#EEF2E6", on_dark="#D6E1C9", on_dark_faint="#A9B79C", note_line="#DCE8B5",
+        sidebar_text="#2E3A27", sidebar_border="#DDE3D3", link_bg="#EDF4D6", heading_font="", heading_font_url="",
+        sidebar_bg="#F6F8F2", sidebar_bg_2="#E6EDD8", sidebar_primary="#344C25",
+        base_radius="medium", button_radius="full",
+        parts={
+            "accent-text": "#344C25", "badge-warn-ink": "#20271C", "radius": "10px", "radius-lg": "12px", "pill": "999px",
+            "shadow": "0 1px 4px rgba(32,39,28,.07)",
+            "hero-bg": "#FFFFFF", "hero-ink": "#20271C", "hero-sub": "#4E5846", "hero-eyebrow": "#344C25",
+            "hero-rule": "#B9D84B",
+            "hero-ring-line": "rgba(185,216,75,.45)", "hero-ring-1": "rgba(185,216,75,.10)",
+            "hero-ring-2": "rgba(185,216,75,.05)",
+            "concl-bg": "#EDF4D6", "concl-ink": "#20271C", "concl-sub": "#4E5846", "concl-faint": "#6E7866",
+            "concl-strong": "#344C25", "concl-first": "#FFFFFF", "concl-border": "1px solid #DCE8B5",
+            "level-big-bg": "#344C25", "level-big-ink": "#FFFFFF", "level-mid-bg": "#B9D84B", "level-mid-ink": "#20271C",
+            "level-small-bg": "#FFFFFF", "level-small-ink": "#344C25", "level-small-border": "1px solid #DDE3D3",
+            "tabs-bg": "#EEF2E6", "tab-bg": "transparent", "tab-ink": "#3F4A38", "tab-hover-bg": "#E2EAD3",
+            "tab-hover-ink": "#344C25", "tab-on-bg": "#B9D84B", "tab-on-ink": "#20271C",
+            "th-bg": "#EEF2E6", "th-ink": "#344C25",
+            "flow-bg": "#FFFFFF", "flow-ink": "#20271C", "flow-strong": "#344C25", "flow-sub": "#5A6352",
+            "diagram-accent": "#7FA02F", "diagram-center-bg": "#EDF4D6",
+            "pick-bg": "#FFFFFF", "pick-ink": "#344C25", "pick-sub": "#5A6352", "pick-strong": "#344C25",
+            "pick-line": "#DDE3D3",
+            "ai-panel-bg": "#EDF4D6", "ai-panel-border": "#B9D84B",
+            "ai-button-bg": "#344C25", "ai-button-ink": "#FFFFFF", "ai-button-ring": "#B9D84B",
+        },
+    ),
     "white_green": Theme(
         label="白とトラッドグリーン", dark="#0E4F3A", dark_2="#13644A", primary="#0E4F3A", accent="#B9CF1C",
         accent_light="#D8E47A", ink="#18211F", sub="#5E6B66", line="#DCE5E1", table_line="#E3EAE6", paper="#FFFFFF",

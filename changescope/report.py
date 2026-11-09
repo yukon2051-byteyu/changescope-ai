@@ -326,25 +326,31 @@ def comparison_report(comparison: Comparison, titles: dict[str, str], source: st
     if source == "sample":
         pdf.note("架空の会社（サンプル商事株式会社）のサンプルデータと、架空の目的・成功条件を使っています。")
 
-    pdf.section("1. 比較の要約")
+    pdf.section("1. 共通の目的と、判断を分けるポイント")
+    pdf.paragraph(f"目的：{goal.purpose or '未入力'}　／　成功条件：{goal.success or '未入力'}")
     for line in comparison.summary:
         pdf.paragraph(line)
 
-    pdf.section("2. 重要な違い")
+    pdf.section("2. 各案の概要")
+    pdf.table([("項目", titles["a"], titles["b"])],
+              [(label, lines_a, lines_b) for (label, lines_a), (_, lines_b) in zip(comparison.cards["a"], comparison.cards["b"])],
+              (28, 56, 56))
+
+    pdf.section("3. 重要な違い")
     pdf.table([("観点", titles["a"], titles["b"])],
               [(r.viewpoint, r.a, r.b) for r in comparison.differences], (32, 54, 54))
 
-    pdf.section("3. 判断前に確認すること")
+    pdf.section("4. 判断前に確認すること")
     pdf.table([("区分", "確認事項", "なぜ判断に必要か", "確認先", "対象案", "確認の根拠")],
               [(c.kind, c.item, c.why, c.contact, c.target, c.basis) for c in comparison.checks],
               (14, 41, 32, 20, 11, 22))
 
-    pdf.section("4. 比較表")
+    pdf.section("5. 比較表")
     pdf.paragraph(f"{comparison.max_depth}段先までたどった結果です。件数の差は違いを示すだけで、少ない案が優れているという意味ではありません。")
     pdf.table([("観点", titles["a"], titles["b"], "違い")],
               [(r.viewpoint, r.a, r.b, r.difference) for r in comparison.rows], (28, 44, 44, 24))
 
-    pdf.section("5. 分析条件と、分かる範囲")
+    pdf.section("6. 分析条件と、分かる範囲")
     pdf.paragraph(f"分析条件：変更対象から{comparison.max_depth}段先まで、登録されたつながりの向きにたどっています。")
     pdf.table([("指標", "定義")], METRIC_DEFINITIONS, (40, 100))
     pdf.subheading("登録データで分かること")
@@ -361,7 +367,7 @@ def comparison_report(comparison: Comparison, titles: dict[str, str], source: st
         ("見落としやすい影響", comparison.hidden, "変更対象の責任部門とは別の部門に、2段以上先で伝わる影響です。"),
         ("確認すべき観点", comparison.gaps, "データ移行・連携・規程・切り戻しなど、変更時に忘れやすい確認事項です。"),
         ("変更対象と影響先", comparison.elements, "「だけ」は、今回の登録データと分析条件で、その案にのみ影響候補として抽出されたものです。もう一方の案で対応が不要になるという意味ではありません。"),
-    ], start=6):
+    ], start=7):
         pdf.section(f"{number}. {title}（Aだけ・Bだけ・両方）")
         if caption:
             pdf.paragraph(caption)

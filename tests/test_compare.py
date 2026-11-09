@@ -27,9 +27,9 @@ def test_compare_system_replacement_vs_procedure_change(graph):
     # A：勤怠管理システムを入れ替える ／ B：勤怠管理業務の手順だけを見直す
     result = compare(graph, option("A案", ["SYS-ATT"]), option("B案", ["PRC-ATT"]))
     rows = {r.viewpoint: r for r in result.rows}
-    assert rows["影響範囲と主要な影響先"].difference == "A案の方が17件多い"
-    assert rows["影響範囲と主要な影響先"].a.startswith("影響先21件（直接7件・間接14件）")  # 影響分析の21件と同じ定義
-    assert rows["未確認のつながり"].b == "登録された関係のうち未確認0本"  # 0本を安全・確認不要と書かない
+    assert rows["影響先（直接＋間接）"].difference == "A案の方が17件多い"
+    assert rows["影響先（直接＋間接）"].a.startswith("影響先21件（直接7件・間接14件）")  # 影響分析の21件と同じ定義
+    assert rows["未確認のつながり"].b == "登録された関係のうち、今回の分析範囲で要確認のつながりは0本"  # 0本を安全・確認不要と書かない
     # 要確認のつながりは、システムを入れ替える案だけにある（社内認証基盤との連携の確認など）
     assert any("社内認証基盤" in text for text in result.uncertain.only_a) and not result.uncertain.only_b
     assert "情報システム部" in result.stakeholders.only_a
@@ -58,7 +58,7 @@ def test_sample_option_pairs_show_differences(graph):
         result = compare(graph, option(row["a_name"], row["a_targets"].split(";")),
                          option(row["b_name"], row["b_targets"].split(";")))
         rows = {r.viewpoint: r for r in result.rows}
-        assert rows["影響範囲と主要な影響先"].difference != "同じ"  # 入力例は、違いが分かる組み合わせにしている
+        assert rows["影響先（直接＋間接）"].difference != "同じ"  # 入力例は、違いが分かる組み合わせにしている
         assert row["goal"] and row["success"]  # 比較の入力例には共通の目的がある
         assert all(t in graph for t in [*result.a.option.targets, *result.b.option.targets])
 
@@ -119,7 +119,7 @@ def test_same_targets_explain_same_counts(graph):
     result = compare(graph, OptionInput("A案", "クラウドへ", ["SYS-ATT"]), OptionInput("B案", "オンプレで更新", ["SYS-ATT"]))
     assert result.same_targets
     assert "変更内容の文章が違っても同じ件数" in result.summary[0]
-    assert {r.viewpoint: r for r in result.rows}["影響範囲と主要な影響先"].difference == "同じ"
+    assert {r.viewpoint: r for r in result.rows}["影響先（直接＋間接）"].difference == "同じ"
 
 
 def test_comparison_key_changes_with_conditions():

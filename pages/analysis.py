@@ -75,14 +75,13 @@ just_analyzed = st.session_state.pop("just_analyzed", False)
 if just_analyzed:
     st.toast("影響分析が終わりました。結果を表示しています。", icon=":material/check_circle:")
 
-if demo:
-    demo_progress(0 if result is None else 3 if st.session_state.get("demo_pdf_saved") else 2)
-    if result is None:
-        current = st.session_state.get("change_text", "")
-        titles = dict(zip(load_scenarios()["input_text"], load_scenarios()["title"]))
-        subject = f"「{titles[current]}」が" if current in titles else "変更が"
-        note(f"<b>サンプル体験</b>　{escape(subject)}、どの部門・業務に影響するかを体験します。"
-             "「影響を分析する」を押すだけです。AIやPDFを使わなくても、体験は完了します。")
+if demo and result is None:
+    demo_progress(0)
+    current = st.session_state.get("change_text", "")
+    titles = dict(zip(load_scenarios()["input_text"], load_scenarios()["title"]))
+    subject = f"「{titles[current]}」が" if current in titles else "変更が"
+    note(f"<b>サンプル体験</b>　{escape(subject)}、どの部門・業務に影響するかを体験します。"
+         "「影響を分析する」を押すだけです。AIやPDFを使わなくても、体験は完了します。")
 
 # 分析のあとは入力欄を畳み、結果を主役にする。入力欄は残るので、値は消えない（分析のたびに畳み直す）
 inputs = (st.container() if result is None
@@ -157,6 +156,8 @@ if stale:
     st.warning("入力内容が変更されています。下の結果は前回の条件です。もう一度「影響を分析する」を押すと更新されます。",
                icon=":material/history:")
 else:
+    if demo:
+        demo_progress(3)  # 基本の結果が出たら体験は完了（PDF・AI・比較は任意）。結果の冒頭に完了を示す
     st.success("分析が完了しました。", icon=":material/check_circle:")
 st.write("変更対象：" + "、".join(label(t) for t in result.targets) + f"　／　{analyzed_depth}段先までたどった結果")
 if st.session_state.get("analysis_from") and st.button("変更案の比較に戻る", icon=":material/arrow_back:"):
@@ -181,11 +182,12 @@ c1.metric("影響先", f"{len(result.impacts)} 件", help=f"変更対象を除�
 c2.metric("影響を受ける部門", f"{len(departments)} 部門", help="変更対象と影響先が属する部門の数。影響の広さ（大・中・小）の判定に使います")
 c3.metric("関係者", f"{len(stakeholders)} 件", help="確認や調整の相手になる部門と役割を合わせた件数。部門の数とは別の値です")
 c4.metric("見落とし注意", f"{len(hidden)} 件", help="変更対象の責任部門とは別の部門に、2段以上先で伝わる影響の数")
-c5.metric("要確認のつながり", f"{len(links)} 本", help="登録された関係のうち、確認状態が推定・未確認のもの")
+with c5.container(key="metric_uncertain"):
+    st.metric("要確認のつながり", f"{len(links)} 本", help="登録された関係のうち、確認状態が推定・未確認のもの")
 if links:
     st.caption(f"つながり{len(links)}本を確かめると、要確認の影響{len(uncertain)}件の有無がまとめてはっきりします。")
 else:
-    st.caption(f"{uncertain_label(0)}。{UNCERTAIN_ZERO_NOTE}")
+    st.caption(f"{uncertain_label(0)}です。{UNCERTAIN_ZERO_NOTE}")
 
 if not result.impacts:
     st.info("登録された依存関係からは、影響を受ける要素が見つかりませんでした。依存関係の登録漏れがないか確認してください。")
@@ -221,28 +223,27 @@ if demo:
     found = f"事実確認が必要な{len(links)}本のつながり" if links else "登録された関係のうち未確認が0本であること"
     demo_end_card(f"{subject}の変更が、{len(departments)}部門・{len(result.impacts)}件に影響する可能性と、{found}を確認できました。",
                   st.session_state.get("demo_pdf_saved", False))
-    c1, c2 = st.columns(2)
-    c1.download_button("結果をPDFで保存", report_pdf, "ChangeScope_影響分析レポート.pdf", "application/pdf", key="demo_pdf",
-                       icon=":material/picture_as_pdf:", type="primary", width="stretch", on_click=mark_saved)
-    if c2.button("自分の案件で試す", key="demo_own", icon=":material/upload_file:", width="stretch"):
+    if st.button("自分の案件で試す", key="demo_own", type="primary", icon=":material/upload_file:", width="stretch"):
         open_upload()
-    st.caption("任意の追加体験")
-    c1, c2 = st.columns(2)
-    if c1.button("別の変更案と比較する", key="demo_compare", icon=":material/compare_arrows:", width="stretch"):
+    st.caption("任意の追加操作")
+    c1, c2, c3 = st.columns(3)
+    c1.download_button("結果をPDFで保存", report_pdf, "ChangeScope_影響分析レポート.pdf", "application/pdf", key="demo_pdf",
+                       icon=":material/picture_as_pdf:", width="stretch", on_click=mark_saved)
+    if c2.button("別の変更案と比較する", key="demo_compare", icon=":material/compare_arrows:", width="stretch"):
         st.session_state.compare_request = {"text": analyzed_text, "targets": list(result.targets)}
         st.switch_page("pages/compare.py")
-    if c2.button("詳しい結果を見る", key="demo_details", icon=":material/expand_more:", width="stretch"):
+    if c3.button("詳しい結果を見る", key="demo_details", icon=":material/expand_more:", width="stretch"):
         st.session_state.show_details = True
 
 # ---------- 第2層：実務での対応手順・AI・PDF ----------
-section("FOR YOUR PROJECT", "実際の案件での対応手順")
+section("", "実際の案件での対応手順")
 st.caption("ここからは、実務でこの結果を使う場合の対応例です。")
 action_overview(actions)
 with st.expander("手順の詳細を見る"):
     action_steps(actions)
 
 # ---------- 4. AIで確認漏れを調べる ----------
-section("AI CHECK", "AIで確認漏れを調べる")
+section("", "AIによる追加確認（任意）")
 st.caption(
     "上の結果は、登録されたつながりをプログラムでたどったものです。AIは、この結果をもとに"
     "「変更の前にまだ確認していないこと」と「誰に何を聞けばよいか」を挙げます。"
@@ -355,7 +356,7 @@ if oversight and oversight["targets"] == result.targets:
 
 # ---------- PDFレポート ----------
 if not demo:  # サンプル体験では、体験の終わりの表示から保存する
-    section("REPORT", "PDFで持ち帰る")
+    section("", "PDFで持ち帰る")
     st.caption("結論・対応手順・関係者・要確認のつながり・見落とし・影響の一覧を、1つのPDFにします。"
                + ("上の「AIで確認漏れを調べる」の結果も載せます。" if oversight_part() else
                   "「AIで確認漏れを調べる」の結果を表示してから押すと、それも載せます。"))
