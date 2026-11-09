@@ -84,8 +84,14 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
    48px から、メニューの先頭の行と本文を始める（2026-11-09 に 60px → 48px）。ページごとの余白は持たない（すべてここで決める） */
 [data-testid="stHeader"], [data-testid="stSidebarHeader"] { height: 2.75rem !important; min-height: 2.75rem !important; }
 [data-testid="stSidebarHeader"] { margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
-/* 本文の上には全ページ共通の見えない部品（スタイルの読み込みなど）があり 32px ずれるため、余白は 16px。
-   メニューは 44px のヘッダーの下に 2px 空けて、先頭の行の上端を本文と同じ 48px にする */
+/* 本文の上端は 24px（2026-11-09、利用者の判断でヒーロー・見出しだけを上げ、メニューの先頭の行は 48px のまま）。
+   本文の先頭には全ページ共通の見えない部品（スタイルの読み込みとスクリプト。高さ0）が2つあり、
+   その後ろの間隔（16px ずつ）を打ち消して、上余白をここの値だけで決める。
+   スマートフォンでは左上の開閉ボタン（8〜36px）と重ならないよう、本文は 48px から始める */
+[data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:nth-child(-n+2) {
+  margin-bottom: -16px; }
+@media (max-width: 640px) { .stApp [data-testid="stMainBlockContainer"] { padding-top: 48px !important; } }
+/* メニューは 44px のヘッダーの下に 2px 空けて、先頭の行の上端を 48px にする */
 [data-testid="stSidebarNav"] { margin-top: 2px !important; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] a, [data-testid="stToolbar"] { pointer-events: auto; }
 /* 右上の道具（公開先では Fork・GitHub の印）には背景を付けない。公開先ではこの欄が横幅いっぱいに広がり、
@@ -93,7 +99,7 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 [data-testid="stToolbar"] { background: transparent; }
 /* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
 [data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
-[data-testid="stMainBlockContainer"] { padding-top: 1rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
+[data-testid="stMainBlockContainer"] { padding-top: 24px !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 /* 本文の幅は1200pxで止め、それより広い画面では中央に寄せる（大きな画面で横に間延びしないように） */
 [data-testid="stMainBlockContainer"] { max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
 
@@ -327,26 +333,41 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-home-hero .cs-hero-lead { font-size: 2.125rem; font-weight: 700; line-height: 1.3; letter-spacing: .02em;
   color: var(--cs-ink); margin-bottom: 6px; white-space: nowrap; }
 .cs-home-hero .cs-hero-sub { line-height: 1.7; font-size: 1.0625rem; }
+/* 主見出しの「影響」だけ、くすんだレンガ赤の差し色（書体・太さ・大きさは見出しと同じ） */
+.cs-lead-accent { color: #9C4A48; }
 .cs-home-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .cs-home-facts b { font-size: .85rem; color: var(--cs-sub); margin-right: 2px; }
 .cs-home-facts span { background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-radius: var(--cs-pill);
   padding: 4px 12px; font-size: .9rem; font-weight: 600; color: var(--cs-ink); }
 /* 右の図：影響が伝わる経路の例（補足の位置づけ。左のコピーより目立たせない）。
    カード（役割｜名前）と、下向きの矢印＋伝わる理由を交互に並べる */
-.cs-mini-map { flex: 0 0 262px; position: relative; z-index: 1; display: flex; flex-direction: column; }
+.cs-mini-map { flex: 0 0 262px; align-self: center; position: relative; z-index: 1; display: flex; flex-direction: column; }  /* ヒーローの上下中央 */
 .cs-mini-title { font-size: .78rem; font-weight: 700; color: var(--cs-navy); margin-bottom: 4px; }
 .cs-mini-node { display: flex; align-items: baseline; gap: 8px; background: #fff; border: 1px solid var(--cs-line);
   border-radius: 8px; padding: 4px 10px; color: var(--cs-ink); }
 .cs-mini-node small { flex: 0 0 4.2em; font-size: .7rem; font-weight: 600; color: var(--cs-sub); }
 .cs-mini-node b { font-size: .86rem; font-weight: 700; }
 .cs-mini-start { position: relative; background: var(--cs-gold); border-color: var(--cs-gold); }
-/* 背景の波紋：変更対象のカードを中心に、内側（少し濃い黄緑）と外側（薄い黄緑）の2本の円弧。
+/* 背景の波紋：変更対象のカードを中心に、外へ行くほど間隔が広がり、薄くなる4本の輪と、中心のほのかな光。
+   さらに1本の輪が中心からゆっくり広がって消える（動きを減らす設定では止める）。
    カードや文字の後ろに描き（z-index -1）、はみ出した分はヒーローの枠で切る。トップ以外の円の飾りは使わない */
 .cs-home-hero::after { display: none; }
 .cs-mini-start::before, .cs-mini-start::after { content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
   border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-.cs-mini-start::before { width: 330px; height: 330px; border: 2px solid rgba(185, 216, 75, .62); background: rgba(237, 244, 214, .45); }
-.cs-mini-start::after { width: 500px; height: 500px; border: 2px solid rgba(185, 216, 75, .28); }
+.cs-mini-start::before { width: 700px; height: 700px; background:
+  radial-gradient(circle, rgba(185, 216, 75, .30) 0, rgba(237, 244, 214, .55) 95px, rgba(237, 244, 214, 0) 150px),
+  radial-gradient(circle,
+    transparent 0 148px, rgba(185, 216, 75, .70) 148px 150.5px,
+    transparent 151px 196px, rgba(185, 216, 75, .48) 196px 198px,
+    transparent 198.5px 256px, rgba(185, 216, 75, .30) 256px 257.5px,
+    transparent 258px 330px, rgba(185, 216, 75, .16) 330px 331.5px, transparent 332px); }
+.cs-mini-start::after { width: 300px; height: 300px; border: 2px solid rgba(185, 216, 75, .55);
+  animation: cs-ripple 4.5s ease-out infinite; }
+@keyframes cs-ripple {
+  0% { width: 290px; height: 290px; opacity: .9; }
+  100% { width: 700px; height: 700px; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .cs-mini-start::after { animation: none; opacity: 0; } }
 .cs-mini-start small { color: var(--cs-navy); }
 .cs-mini-arrow { display: flex; align-items: center; gap: 10px; height: 22px; padding-left: 22px; }
 .cs-mini-arrow i { position: relative; flex: none; width: 2px; height: 100%; background: var(--cs-navy); }
@@ -518,7 +539,7 @@ def home_hero() -> None:
         f'<div class="cs-brand"><img src="{_LOGO_URI}" alt="">'
         '<div class="cs-brand-name">ChangeScope <span>AI</span></div>'
         '<div class="cs-brand-tag">変更影響分析</div></div>'
-        '<div class="cs-hero-lead">その変更、<wbr>どこに影響？</div>'
+        '<div class="cs-hero-lead">その変更、<wbr>どこに<span class="cs-lead-accent">影響</span>？</div>'
         '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、<br>変更の影響を'
         '<b>根拠</b>とともに示します。</div>'
         f'<div class="cs-home-facts"><b>分かること</b>{facts}</div></div>'
