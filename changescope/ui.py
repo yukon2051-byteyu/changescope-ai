@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 from html import escape
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -67,6 +69,7 @@ def show_mode_banner(dataset: Dataset | None) -> None:
 _FONT_IMPORTS = "".join(
     f"@import url('{url}');\n"
     for url in ("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap",
+                "https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&display=swap",
                 THEME.heading_font_url) if url
 )
 
@@ -77,13 +80,20 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* 上部の余白を詰める：ヘッダーを透明にし、本文を画面の上端近くから始める。
    ヘッダーは本文の上に重なるため、ボタン以外はクリックを通す。右上のメニューは淡い地色で見やすくする */
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
+/* 上余白（全ページ共通）：ヘッダーとサイドバーの開閉ボタンの領域を 44px にし、ボタンの下端（36px）から 24px 下の
+   60px から、メニューの先頭の行と本文を始める。ページごとの余白は持たない（すべてここで決める） */
+[data-testid="stHeader"], [data-testid="stSidebarHeader"] { height: 2.75rem !important; min-height: 2.75rem !important; }
+[data-testid="stSidebarHeader"] { margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
+/* 本文の上には全ページ共通の見えない部品（スタイルの読み込みなど）があり 32px ずれるため、余白は 28px。
+   メニューは 44px のヘッダーの下に 12px 空けて、先頭の行の上端を本文と同じ 60px にする */
+[data-testid="stSidebarNav"] { margin-top: 14px !important; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] a, [data-testid="stToolbar"] { pointer-events: auto; }
 /* 右上の道具（公開先では Fork・GitHub の印）には背景を付けない。公開先ではこの欄が横幅いっぱいに広がり、
    背景を付けると本文の上の部分が半透明の帯で覆われて、文字が見切れたように見える（2026-11-03 に発生） */
 [data-testid="stToolbar"] { background: transparent; }
 /* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
 [data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
-[data-testid="stMainBlockContainer"] { padding-top: 2.85rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
+[data-testid="stMainBlockContainer"] { padding-top: 1.75rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 /* 本文の幅は1200pxで止め、それより広い画面では中央に寄せる（大きな画面で横に間延びしないように） */
 [data-testid="stMainBlockContainer"] { max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
 
@@ -303,8 +313,14 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* ホームのヒーロー：左に説明と分かること、右に小さな関係図（ヒーローの高さを増やさない） */
 .cs-home-hero { display: flex; gap: 28px; align-items: center; padding: 18px 32px 16px; margin-bottom: 12px; }
 .cs-home-hero-main { flex: 1 1 auto; position: relative; z-index: 1; }
-.cs-home-hero .cs-hero-title { font-size: 2.7rem; margin: 4px 0 10px; }
-.cs-home-hero .cs-hero-rule { margin-bottom: 10px; }
+/* 製品名：ロゴ（40px）＋サンセリフ。読み込めないときは OS のサンセリフに切り替わる */
+.cs-brand { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 14px; }
+.cs-brand img { width: 40px; height: 40px; flex: none; }
+.cs-brand-name { font-family: 'Manrope', 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 2.75rem;
+  font-weight: 700; line-height: 1.05; letter-spacing: -.015em; color: var(--cs-ink); }
+.cs-brand-name span { color: #344C25; }
+.cs-brand-tag { font-size: .85rem; font-weight: 600; color: var(--cs-sub); border-left: 1px solid var(--cs-line);
+  padding-left: 12px; margin-left: 2px; }
 .cs-home-hero .cs-hero-lead { font-size: 1.2rem; margin-bottom: 4px; }
 .cs-home-hero .cs-hero-sub { line-height: 1.7; font-size: .95rem; }
 .cs-home-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
@@ -320,6 +336,9 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-mini-caption { margin-top: 6px; font-size: .75rem; color: var(--cs-sub); }
 @media (max-width: 640px) {
   .cs-home-hero { flex-direction: column; align-items: stretch; padding: 16px 18px; }
+  .cs-brand-name { font-size: 1.75rem; }
+  .cs-brand-tag { flex-basis: 100%; border-left: none; padding-left: 0; margin-left: 0; }
+  .cs-brand img { width: 34px; height: 34px; }
   .cs-mini-map { flex: none; }
 }
 .cs-home-lead { font-size: .95rem; color: var(--cs-sub); margin-bottom: 8px; }
@@ -357,6 +376,9 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-option-label { font-size: .8rem; font-weight: 700; color: var(--cs-sub); margin-top: 10px; }
 .cs-option-line { font-size: .93rem; line-height: 1.7; color: var(--cs-ink); }
 .cs-action-overview { margin: 4px 0 8px 1.2rem; line-height: 1.9; color: var(--cs-ink); }
+.cs-reference { margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--cs-line); }
+.cs-subsection { font-size: 1.08rem; font-weight: 700; color: var(--cs-navy); margin: 22px 0 6px;
+  padding-left: 10px; border-left: 3px solid var(--cs-gold); }
 .cs-footer { color: var(--cs-sub); font-size: .82rem; margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--cs-line); }
 </style>
 """
@@ -408,6 +430,21 @@ def section(eyebrow: str, title: str) -> None:
     html(f'<div class="cs-section">{label}<div class="cs-section-title">{title}</div></div>')
 
 
+def reference_heading(title: str) -> None:
+    """サンプル体験の「詳しい結果を見る」で開く参考の見出し。上に区切り線を付け、体験の本編と分ける。"""
+    html(f'<div class="cs-reference"><div class="cs-section-title">{title}</div></div>')
+
+
+def subsection(title: str) -> None:
+    """参考の見出しの中の小見出し（親の見出しより小さくする）。"""
+    html(f'<div class="cs-subsection">{title}</div>')
+
+
+# 製品のマーク（トップの製品名の左とファビコンで使う）。画面には文字列として埋め込む
+LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "changescope-logo.svg"
+_LOGO_URI = "data:image/svg+xml;base64," + base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+
+
 def home_hero() -> None:
     """ホームのヒーロー。左に製品名・説明・分かること3項目、右に架空サンプルの小さな関係図。"""
     facts = "".join(f"<span>{t}</span>" for t in ("影響を受ける部門・役割", "影響経路と根拠", "確認が必要な事項"))
@@ -417,8 +454,9 @@ def home_hero() -> None:
         f'{f"<small>{tag}</small>" if tag else ""}</div>' for name, tag, start in nodes)
     html(
         '<div class="cs-hero cs-home-hero"><div class="cs-home-hero-main">'
-        '<div class="cs-eyebrow">CHANGE IMPACT ANALYSIS</div>'
-        '<div class="cs-hero-title">ChangeScope AI</div><div class="cs-hero-rule"></div>'
+        f'<div class="cs-brand"><img src="{_LOGO_URI}" alt="">'
+        '<div class="cs-brand-name">ChangeScope <span>AI</span></div>'
+        '<div class="cs-brand-tag">変更影響分析</div></div>'
         '<div class="cs-hero-lead">その変更は、組織のどこに影響するのか。</div>'
         '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、変更の影響を'
         '<b>根拠</b>とともに示します。</div>'

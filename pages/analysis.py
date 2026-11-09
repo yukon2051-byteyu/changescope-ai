@@ -22,7 +22,7 @@ from changescope.oversight import ESTIMATE, SOURCES, find_oversights, load_sampl
 from changescope.report import analysis_report
 from changescope.stakeholders import find_stakeholders
 from changescope.ui import (
-    STATUS_LABELS, action_overview, action_steps, ai_button, ai_spinner, conclusion, data_table, demo_end_card, demo_progress,
+    STATUS_LABELS, action_overview, reference_heading, subsection, action_steps, ai_button, ai_spinner, conclusion, data_table, demo_end_card, demo_progress,
     element_label, findings_list, get_dataset, no_data_actions, note, open_upload, oversight_findings, remember_inputs,
     restore_inputs, section, show_mode_banner,
 )
@@ -232,18 +232,30 @@ if demo:
     if c2.button("別の変更案と比較する", key="demo_compare", icon=":material/compare_arrows:", width="stretch"):
         st.session_state.compare_request = {"text": analyzed_text, "targets": list(result.targets)}
         st.switch_page("pages/compare.py")
-    if c3.button("詳しい結果を見る", key="demo_details", icon=":material/expand_more:", width="stretch"):
-        st.session_state.show_details = True
-
-# ---------- 第2層：実務での対応手順・AI・PDF ----------
-section("", "実際の案件での対応手順")
-st.caption("ここからは、実務でこの結果を使う場合の対応例です。")
+    opened = st.session_state.get("show_details", False)
+    if c3.button("詳しい結果を閉じる" if opened else "詳しい結果を見る", key="demo_details",
+                 icon=":material/expand_less:" if opened else ":material/expand_more:", width="stretch"):
+        st.session_state.show_details = not opened
+        st.rerun()
+    # サンプル体験は、完了カードと次の操作で終える。詳しい内容は「詳しい結果を見る」を押したときだけ出す
+    if not opened:
+        st.stop()
+    reference_heading("参考：サンプルの分析結果を詳しく見る")
+    subsection("実務での対応例")
+    st.caption("実務でこの結果を使う場合の対応例です。")
+else:
+    # ---------- 第2層：実務での対応手順・AI・PDF ----------
+    section("", "実際の案件での対応手順")
+    st.caption("ここからは、実務でこの結果を使う場合の対応例です。")
 action_overview(actions)
 with st.expander("手順の詳細を見る"):
     action_steps(actions)
 
 # ---------- 4. AIで確認漏れを調べる ----------
-section("", "AIによる追加確認（任意）")
+if demo:
+    subsection("AIによる追加確認（任意）")
+else:
+    section("", "AIによる追加確認（任意）")
 st.caption(
     "上の結果は、登録されたつながりをプログラムでたどったものです。AIは、この結果をもとに"
     "「変更の前にまだ確認していないこと」と「誰に何を聞けばよいか」を挙げます。"
@@ -365,12 +377,16 @@ if not demo:  # サンプル体験では、体験の終わりの表示から保�
 
 # ---------- 第3層：詳しい結果 ----------
 show_details = st.session_state.get("show_details", False)
+if demo:
+    subsection("詳しい結果")
 details = st.expander("詳しい結果（一覧・経路・計算方法・根拠）", expanded=show_details, icon=":material/list:",
                       key=f"analysis_details_{show_details}")
 if show_details:
     st.html("""<script>
 setTimeout(() => {
-  const heading = [...document.querySelectorAll("summary")].find(h => h.innerText.includes("詳しい結果"));
+  // サンプル体験では参考の見出しへ、それ以外は詳しい結果の折りたたみへ移る
+  const heading = document.querySelector(".cs-reference")
+    || [...document.querySelectorAll("summary")].find(h => h.innerText.includes("詳しい結果"));
   if (heading) heading.scrollIntoView({behavior: "smooth", block: "start"});
 }, 400);
 </script>""", unsafe_allow_javascript=True)

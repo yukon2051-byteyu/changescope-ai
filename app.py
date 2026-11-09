@@ -5,9 +5,9 @@
 
 import streamlit as st
 
-from changescope.ui import apply_global_style
+from changescope.ui import LOGO_PATH, apply_global_style
 
-st.set_page_config(page_title="ChangeScope AI", page_icon=":material/hub:", layout="wide")
+st.set_page_config(page_title="ChangeScope AI", page_icon=str(LOGO_PATH), layout="wide")
 apply_global_style()
 
 pages = [

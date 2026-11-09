@@ -23,7 +23,7 @@ def run_page(name: str, dataset=None) -> AppTest:
 def test_home_page():
     at = run_page("home.py")
     assert not at.exception
-    assert any("ChangeScope AI" in m.value for m in at.markdown)
+    assert any("ChangeScope <span>AI</span>" in m.value and "変更影響分析" in m.value for m in at.markdown)
 
 
 def test_home_sample_button_opens_analysis_with_sample():
@@ -84,6 +84,8 @@ def test_analysis_page_scenario_a_flow():
     # 「影響を分析する」→ 結果が表示される
     next(b for b in at.button if b.label == "影響を分析する").click().run()
     assert not at.exception
+    at.button(key="demo_details").click().run()  # サンプル体験では、詳しい内容は押したときだけ出す
+    assert not at.exception
     metrics = {m.label: m.value for m in at.metric}
     assert metrics["影響先"] == "21 件"
     assert metrics["影響を受ける部門"] == "3 部門"
@@ -98,7 +100,8 @@ def test_analysis_page_scenario_a_flow():
     assert any("影響の広さは「大」です" in m.value and "実務でまず行うこと" in m.value for m in at.markdown)
     assert any(t.label.startswith("見落としチェック") for t in at.tabs)
     assert any("データの移行・引き継ぎ" in m.value for m in at.markdown)
-    assert any("実際の案件での対応手順" in m.value for m in at.markdown)
+    assert any("参考：サンプルの分析結果を詳しく見る" in m.value for m in at.markdown)
+    assert any("実務での対応例" in m.value for m in at.markdown)
     assert any("変更対象の責任部門と、変更の方針を共有する" in m.value for m in at.markdown)
     # 直接影響の表（影響の大きい順）。長い文章も切れずに表示されるHTMLの表で表示している
     tables = [m.value for m in at.markdown if 'class="cs-table"' in m.value and "<th>注目</th>" in m.value]
@@ -152,9 +155,16 @@ def analyze_scenario_a(secrets=None) -> AppTest:
     return at
 
 
+def open_details(at):
+    """サンプル体験で「詳しい結果を見る」を押す（AI・対応手順・詳しい結果は、押したときだけ出る）。"""
+    at.button(key="demo_details").click().run()
+    assert not at.exception
+    return at
+
+
 def test_analysis_page_shows_ai_sample_without_cost():
     # 入力例で分析すると、事前に生成したAIのサンプルを料金なしで見られる。サンプルであることを明示する
-    at = analyze_scenario_a()
+    at = open_details(analyze_scenario_a())
     next(b for b in at.button if b.label == "AIによる分析のサンプルを見る").click().run()
     assert not at.exception
     assert any("AIによる分析のサンプル" in m.value and "いま実行したAI分析ではありません" in m.value for m in at.markdown)
@@ -164,7 +174,7 @@ def test_analysis_page_shows_ai_sample_without_cost():
 
 
 def test_analysis_page_wrong_access_code_does_not_call_ai():
-    at = analyze_scenario_a({"ACCESS_CODES": ["right-code"]})
+    at = open_details(analyze_scenario_a({"ACCESS_CODES": ["right-code"]}))
     at.text_input(key="access_code").set_value("wrong-code").run()
     next(b for b in at.button if b.label == "AIで確認漏れを調べる").click().run()
     assert not at.exception
@@ -336,7 +346,7 @@ def test_guide_try_sample_button_opens_analysis():
 
 def test_evidence_tab_shows_other_routes():
     # 要素ごとの根拠で、代表の経路以外にこの要素へ届くつながり（ほかの経路）を表示する（レビュー C06）
-    at = analyze_scenario_a()
+    at = open_details(analyze_scenario_a())
     box = next(s for s in at.selectbox if s.label.startswith("根拠を確認する要素"))
     box.select(next(o for o in box.options if "情報システム部" in o)).run()
     assert not at.exception
@@ -493,10 +503,17 @@ def test_changing_input_after_analysis_marks_result_as_old():
 
 def test_details_button_opens_details():
     at = analyze_scenario_a()
-    assert not next(e for e in at.expander if e.label.startswith("詳しい結果")).proto.expanded
+    # 初期状態のサンプル体験は、完了カードと次の操作で終わる（対応手順・AI・詳しい結果は出さない）
+    assert not any(e.label.startswith("詳しい結果") for e in at.expander)
+    assert not any("実務での対応例" in m.value or "実際の案件での対応手順" in m.value or "AIによる追加確認" in m.value
+                   for m in at.markdown)
     at.button(key="demo_details").click().run()
     assert not at.exception
+    assert any("参考：サンプルの分析結果を詳しく見る" in m.value for m in at.markdown)
+    assert any("実務での対応例" in m.value for m in at.markdown)
     assert next(e for e in at.expander if e.label.startswith("詳しい結果")).proto.expanded
+    at.button(key="demo_details").click().run()  # もう一度押すと閉じる
+    assert not any(e.label.startswith("詳しい結果") for e in at.expander)
 
 
 def test_analysis_inputs_survive_page_moves():
