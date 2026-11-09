@@ -219,14 +219,9 @@ def mark_saved() -> None:
 
 
 def demo_finish() -> None:
-    """サンプル体験の終わり（完了カードと次の操作）。ページの一番下に置く（詳しい結果を開いたときは、その下）。"""
-    subject = "、".join(dataset.graph.nodes[t]["name"] for t in result.targets)
-    found = f"事実確認が必要な{len(links)}本のつながり" if links else "登録された関係のうち未確認が0本であること"
-    demo_end_card(f"{subject}の変更が、{len(departments)}部門・{len(result.impacts)}件に影響する可能性と、{found}を確認できました。",
-                  st.session_state.get("demo_pdf_saved", False))
-    if st.button("自分の案件で試す", key="demo_own", type="primary", icon=":material/upload_file:", width="stretch"):
-        open_upload()
-    st.caption("任意の追加操作")
+    """サンプル体験の終わり。任意の追加操作の下、ページの一番下に完了カードと「自分の案件で試す」を置く。"""
+    # 並び：任意の追加操作（PDF・比較・詳しい結果）→ 一番下に完了カードと「自分の案件で試す」
+    st.markdown('<div class="cs-optional-label">任意の追加操作</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     c1.download_button("結果をPDFで保存", report_pdf, "ChangeScope_影響分析レポート.pdf", "application/pdf", key="demo_pdf",
                        icon=":material/picture_as_pdf:", width="stretch", on_click=mark_saved)
@@ -238,6 +233,12 @@ def demo_finish() -> None:
                  icon=":material/expand_less:" if opened else ":material/expand_more:", width="stretch"):
         st.session_state.show_details = not opened
         st.rerun()
+    subject = "、".join(dataset.graph.nodes[t]["name"] for t in result.targets)
+    found = f"事実確認が必要な{len(links)}本のつながり" if links else "登録された関係のうち未確認が0本であること"
+    demo_end_card(f"{subject}の変更が、{len(departments)}部門・{len(result.impacts)}件に影響する可能性と、{found}を確認できました。",
+                  st.session_state.get("demo_pdf_saved", False))
+    if st.button("自分の案件で試す", key="demo_own", type="primary", icon=":material/upload_file:", width="stretch"):
+        open_upload()
 
 
 if demo:

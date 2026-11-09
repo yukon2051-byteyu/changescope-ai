@@ -445,6 +445,8 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 [data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stHeaderLogo"] { cursor: pointer; }
 /* 以前の住所 /home の中継画面は、メニューに出さない */
 [data-testid="stSidebarNav"] li:has(a[href$="/home"]) { display: none !important; }
+/* サンプル体験の「任意の追加操作」の見出し（黒い文字） */
+.cs-optional-label { font-size: .9rem; font-weight: 600; color: var(--cs-ink); margin: 18px 0 2px; }
 .cs-reference { margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--cs-line); }
 .cs-subsection { font-size: 1.08rem; font-weight: 700; color: var(--cs-navy); margin: 22px 0 6px;
   padding-left: 10px; border-left: 3px solid var(--cs-gold); }
