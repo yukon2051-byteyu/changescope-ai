@@ -80,20 +80,20 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* 上部の余白を詰める：ヘッダーを透明にし、本文を画面の上端近くから始める。
    ヘッダーは本文の上に重なるため、ボタン以外はクリックを通す。右上のメニューは淡い地色で見やすくする */
 [data-testid="stHeader"] { background: transparent; pointer-events: none; }
-/* 上余白（全ページ共通）：ヘッダーとサイドバーの開閉ボタンの領域を 44px にし、ボタンの下端（36px）から 24px 下の
-   60px から、メニューの先頭の行と本文を始める。ページごとの余白は持たない（すべてここで決める） */
+/* 上余白（全ページ共通）：ヘッダーとサイドバーの開閉ボタンの領域を 44px にし、ボタンの下端（36px）から 12px 下の
+   48px から、メニューの先頭の行と本文を始める（2026-11-09 に 60px → 48px）。ページごとの余白は持たない（すべてここで決める） */
 [data-testid="stHeader"], [data-testid="stSidebarHeader"] { height: 2.75rem !important; min-height: 2.75rem !important; }
 [data-testid="stSidebarHeader"] { margin-bottom: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
-/* 本文の上には全ページ共通の見えない部品（スタイルの読み込みなど）があり 32px ずれるため、余白は 28px。
-   メニューは 44px のヘッダーの下に 12px 空けて、先頭の行の上端を本文と同じ 60px にする */
-[data-testid="stSidebarNav"] { margin-top: 14px !important; }
+/* 本文の上には全ページ共通の見えない部品（スタイルの読み込みなど）があり 32px ずれるため、余白は 16px。
+   メニューは 44px のヘッダーの下に 2px 空けて、先頭の行の上端を本文と同じ 48px にする */
+[data-testid="stSidebarNav"] { margin-top: 2px !important; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] a, [data-testid="stToolbar"] { pointer-events: auto; }
 /* 右上の道具（公開先では Fork・GitHub の印）には背景を付けない。公開先ではこの欄が横幅いっぱいに広がり、
    背景を付けると本文の上の部分が半透明の帯で覆われて、文字が見切れたように見える（2026-11-03 に発生） */
 [data-testid="stToolbar"] { background: transparent; }
 /* 左のメニューを少し細くして（標準は300px）、本文とタブの帯を広く使う */
 [data-testid="stSidebar"] { width: 260px !important; min-width: 260px !important; }
-[data-testid="stMainBlockContainer"] { padding-top: 1.75rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
+[data-testid="stMainBlockContainer"] { padding-top: 1rem !important; padding-left: 2.5rem !important; padding-right: 2.5rem !important; }  /* 左右の余白を詰めて、本文を広く使う */
 /* 本文の幅は1200pxで止め、それより広い画面では中央に寄せる（大きな画面で横に間延びしないように） */
 [data-testid="stMainBlockContainer"] { max-width: 1200px !important; margin-left: auto !important; margin-right: auto !important; }
 
@@ -311,9 +311,9 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* ホーム：短い見出し・3つの要点・文字だけのリンク。サンプルのボタンをいちばん目立たせる */
 .cs-home-head { font-size: 1.12rem; font-weight: 700; color: var(--cs-ink); margin: 6px 0 0; }
 /* ホームのヒーロー：左に説明と分かること、右に小さな関係図（ヒーローの高さを増やさない） */
-/* 上の内側余白は 8px（ロゴと製品名を上寄りに見せる。外枠の上端はメニューの先頭の行とそろえたまま） */
-.cs-home-hero { display: flex; gap: 28px; align-items: center; padding: 8px 32px 16px; margin-bottom: 12px; }
-.cs-home-hero-main { flex: 1 1 auto; position: relative; z-index: 1; }
+/* 上の内側余白は 20px。左のロゴ・製品名と右の図の見出しは、同じ上端の線から始める（外枠の上端はメニューの先頭の行とそろえたまま） */
+.cs-home-hero { display: flex; gap: 28px; align-items: flex-start; padding: 20px 32px 16px; margin-bottom: 12px; }
+.cs-home-hero-main { flex: 1 1 auto; position: relative; z-index: 2; }  /* 右の図の波紋より手前に描く */
 /* 製品名：ロゴ（48px）＋サンセリフ。読み込めないときは OS のサンセリフに切り替わる */
 .cs-brand { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 14px; }
 .cs-brand img { width: 48px; height: 48px; flex: none; }  /* 製品名（44px）と縦の中央をそろえる */
@@ -322,8 +322,10 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-brand-name span { color: #344C25; }
 .cs-brand-tag { font-size: .85rem; font-weight: 600; color: var(--cs-sub); border-left: 1px solid var(--cs-line);
   padding-left: 12px; margin-left: 2px; }
-.cs-home-hero .cs-hero-lead { font-size: 1.2rem; margin-bottom: 4px; }
-.cs-home-hero .cs-hero-sub { line-height: 1.7; font-size: .95rem; }
+/* 主見出し（34px・太字）と説明文（17px）の大きさをはっきり分ける。主見出しはPCで1行に収める */
+.cs-home-hero .cs-hero-lead { font-size: 2.125rem; font-weight: 700; line-height: 1.3; letter-spacing: .02em;
+  color: var(--cs-ink); margin-bottom: 6px; white-space: nowrap; }
+.cs-home-hero .cs-hero-sub { line-height: 1.7; font-size: 1.0625rem; }
 .cs-home-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .cs-home-facts b { font-size: .85rem; color: var(--cs-sub); margin-right: 2px; }
 .cs-home-facts span { background: var(--cs-cream); border: 1px solid var(--cs-note-line); border-radius: var(--cs-pill);
@@ -336,7 +338,14 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
   border-radius: 8px; padding: 4px 10px; color: var(--cs-ink); }
 .cs-mini-node small { flex: 0 0 4.2em; font-size: .7rem; font-weight: 600; color: var(--cs-sub); }
 .cs-mini-node b { font-size: .86rem; font-weight: 700; }
-.cs-mini-start { background: var(--cs-gold); border-color: var(--cs-gold); }
+.cs-mini-start { position: relative; background: var(--cs-gold); border-color: var(--cs-gold); }
+/* 背景の波紋：変更対象のカードを中心に、内側（少し濃い黄緑）と外側（薄い黄緑）の2本の円弧。
+   カードや文字の後ろに描き（z-index -1）、はみ出した分はヒーローの枠で切る。トップ以外の円の飾りは使わない */
+.cs-home-hero::after { display: none; }
+.cs-mini-start::before, .cs-mini-start::after { content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
+  border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.cs-mini-start::before { width: 330px; height: 330px; border: 2px solid rgba(185, 216, 75, .62); background: rgba(237, 244, 214, .45); }
+.cs-mini-start::after { width: 500px; height: 500px; border: 2px solid rgba(185, 216, 75, .28); }
 .cs-mini-start small { color: var(--cs-navy); }
 .cs-mini-arrow { display: flex; align-items: center; gap: 10px; height: 22px; padding-left: 22px; }
 .cs-mini-arrow i { position: relative; flex: none; width: 2px; height: 100%; background: var(--cs-navy); }
@@ -345,12 +354,13 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-mini-arrow span { font-size: .74rem; font-weight: 600; color: var(--cs-navy); }
 .cs-mini-arrow em { font-style: normal; font-size: .66rem; font-weight: 700; color: #9A6A00; background: #FFF8E6;
   border: 1px solid #F0D9A0; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
-.cs-mini-caption { margin-top: 2px; font-size: .7rem; color: var(--cs-sub); text-align: right; }
 @media (max-width: 640px) {
   .cs-home-hero { flex-direction: column; align-items: stretch; padding: 16px 18px; }
   .cs-brand-name { font-size: 1.75rem; }
   .cs-brand-tag { flex-basis: 100%; border-left: none; padding-left: 0; margin-left: 0; }
   .cs-brand img { width: 38px; height: 38px; }
+  .cs-home-hero .cs-hero-lead { font-size: 1.6rem; white-space: normal; word-break: keep-all; }  /* 「、」のあとで折り返す */
+  .cs-home-hero .cs-hero-sub { font-size: 1rem; }
   .cs-mini-map { flex: none; }
 }
 .cs-home-lead { font-size: .95rem; color: var(--cs-sub); margin-bottom: 8px; }
@@ -396,8 +406,8 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 /* サイドバー上部の小さなブランド表示（44px のヘッダーの中に置き、メニューの位置は動かさない） */
 [data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stSidebarHeader"] img { height: 28px !important; max-width: 170px; }
 /* ページの見出し（トップ以外）の頭に黄緑の●。サイドバーには付けない */
-[data-testid="stMain"] h1::before, .cs-page-title::before { content: ""; display: inline-block; width: .42em; height: .42em;
-  border-radius: 50%; background: #B9D84B; margin-right: .32em; vertical-align: .14em; }
+[data-testid="stMain"] h1::before, .cs-page-title::before { content: ""; display: inline-block; width: .63em; height: .63em;
+  border-radius: 50%; background: #B9D84B; margin-right: .36em; vertical-align: .035em; }
 /* サイドバー上部のロゴは、押すとトップに戻る（押せることが分かるよう指の形にする） */
 [data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"], [data-testid="stHeaderLogo"] { cursor: pointer; }
 .cs-reference { margin: 36px 0 6px; padding-top: 22px; border-top: 1px solid var(--cs-line); }
@@ -507,14 +517,13 @@ def home_hero() -> None:
         f'<div class="cs-brand"><img src="{_LOGO_URI}" alt="">'
         '<div class="cs-brand-name">ChangeScope <span>AI</span></div>'
         '<div class="cs-brand-tag">変更影響分析</div></div>'
-        '<div class="cs-hero-lead">その変更は、組織のどこに影響するのか。</div>'
+        '<div class="cs-hero-lead">その変更、<wbr>どこに影響？</div>'
         '<div class="cs-hero-sub">業務・システム・部門・データ・社内規程のつながりから、<br>変更の影響を'
         '<b>根拠</b>とともに示します。</div>'
         f'<div class="cs-home-facts"><b>分かること</b>{facts}</div></div>'
         '<div class="cs-mini-map" aria-label="変更の影響が伝わる経路の例。勤怠管理システムの変更が、勤怠データのCSV連携で給与計算システムへ、'
         '月次給与計算を経由して経理部へ伝わる（経理部への関係は推定）。架空サンプル">'
-        f'<div class="cs-mini-title">変更の影響が伝わる経路（例）</div>{chain}'
-        '<div class="cs-mini-caption">架空サンプル</div></div></div>'
+        f'<div class="cs-mini-title">変更の影響が伝わる経路（架空サンプルの例）</div>{chain}</div></div>'
     )
 
 
