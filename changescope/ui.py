@@ -364,12 +364,12 @@ _GLOBAL_CSS = "<style>\n" + _FONT_IMPORTS + css_variables() + """
 .cs-mini-start::before { width: 700px; height: 700px; background:
   radial-gradient(circle, rgba(185, 216, 75, .30) 0, rgba(237, 244, 214, .55) 95px, rgba(237, 244, 214, 0) 150px),
   radial-gradient(circle,
-    transparent 0 148px, rgba(156, 74, 72, .62) 148px 150px,
-    transparent 150.5px 196px, rgba(156, 74, 72, .42) 196px 197.5px,
-    transparent 198px 256px, rgba(156, 74, 72, .26) 256px 257.2px,
-    transparent 257.7px 330px, rgba(156, 74, 72, .14) 330px 331.2px, transparent 331.7px); }
-/* 波紋の線は、主見出しの「影響」と同じレンガ赤（#9C4A48）。外へ行くほど薄くする */
-.cs-mini-start::after { width: 300px; height: 300px; border: 1.5px solid rgba(156, 74, 72, .5);
+    transparent 0 148px, rgba(185, 216, 75, .70) 148px 150.5px,
+    transparent 151px 196px, rgba(185, 216, 75, .48) 196px 198px,
+    transparent 198.5px 256px, rgba(185, 216, 75, .30) 256px 257.5px,
+    transparent 258px 330px, rgba(185, 216, 75, .16) 330px 331.5px, transparent 332px); }
+/* 中心から広がって消える1本の線だけ、主見出しの「影響」と同じレンガ赤（#9C4A48）。止まっている輪は黄緑 */
+.cs-mini-start::after { width: 300px; height: 300px; border: 2px solid rgba(156, 74, 72, .6);
   animation: cs-ripple 4.5s ease-out infinite; }
 @keyframes cs-ripple {
   0% { width: 290px; height: 290px; opacity: .9; }
